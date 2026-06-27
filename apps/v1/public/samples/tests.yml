@@ -63,8 +63,15 @@ testCases:
     category:
       major: "セッション"
       minor: "フィルタ"
-    prerequisites: "セッション設定画面を表示中"
+    prerequisites: "テスト実行画面 (/run) を表示中"
     description: "大分類フィルタと未実施のみで対象件数が変わる"
+
+  - id: TC-009
+    category:
+      major: "テスト実行"
+      minor: "入力"
+    prerequisites: "テスト実行画面を表示中"
+    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに結果を入力できる"
 
   - id: TC-007
     category:
