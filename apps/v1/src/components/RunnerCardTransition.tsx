@@ -20,12 +20,12 @@ export function RunnerCardTransition({
   slideKey,
   children,
 }: {
-  slideKey: number;
+  slideKey: string | number;
   children: ReactNode;
 }) {
   const reducedMotion = usePrefersReducedMotion();
   const storedRef = useRef({ key: slideKey, node: children });
-  const [exiting, setExiting] = useState<{ key: number; node: ReactNode } | null>(null);
+  const [exiting, setExiting] = useState<{ key: string | number; node: ReactNode } | null>(null);
 
   if (slideKey !== storedRef.current.key) {
     if (!reducedMotion) {

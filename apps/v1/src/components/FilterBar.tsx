@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
+import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import {
   getMajorCategories,
   getMediumCategories,
@@ -228,112 +229,110 @@ export function FilterBar() {
           hasScenarios={hasScenarios}
         />
 
-        {filterMode ? (
-          <div
-            key="filter-controls"
-            className="flex flex-wrap items-center gap-x-4 gap-y-2 animate-in fade-in slide-in-from-left-2 duration-200 fill-mode-both"
-          >
-            <div className="flex items-center gap-2">
-              <Label className="shrink-0 text-sm font-semibold">大分類</Label>
-              <Select
-                value={runnerFilters.majorCategoryFilter ?? ALL}
-                onValueChange={updateMajorFilter}
-              >
-                <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>すべて</SelectItem>
-                  {majorCategories.map((major) => (
-                    <SelectItem key={major} value={major}>
-                      {major}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="min-w-0 flex-1">
+          <RunnerCardTransition slideKey={filterMode ? "filter" : "scenario"}>
+            {filterMode ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="shrink-0 text-sm font-semibold">大分類</Label>
+                  <Select
+                    value={runnerFilters.majorCategoryFilter ?? ALL}
+                    onValueChange={updateMajorFilter}
+                  >
+                    <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>すべて</SelectItem>
+                      {majorCategories.map((major) => (
+                        <SelectItem key={major} value={major}>
+                          {major}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="flex items-center gap-2">
-              <Label className="shrink-0 text-sm font-semibold">中分類</Label>
-              <Select
-                value={runnerFilters.mediumCategoryFilter ?? ALL}
-                onValueChange={updateMediumFilter}
-                disabled={mediumCategories.length === 0}
-              >
-                <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>すべて</SelectItem>
-                  {mediumCategories.map((medium) => (
-                    <SelectItem key={medium} value={medium}>
-                      {medium}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="flex items-center gap-2">
+                  <Label className="shrink-0 text-sm font-semibold">中分類</Label>
+                  <Select
+                    value={runnerFilters.mediumCategoryFilter ?? ALL}
+                    onValueChange={updateMediumFilter}
+                    disabled={mediumCategories.length === 0}
+                  >
+                    <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>すべて</SelectItem>
+                      {mediumCategories.map((medium) => (
+                        <SelectItem key={medium} value={medium}>
+                          {medium}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="flex items-center gap-2">
-              <Label className="shrink-0 text-sm font-semibold">小分類</Label>
-              <Select
-                value={runnerFilters.minorCategoryFilter ?? ALL}
-                onValueChange={(value) =>
-                  void setRunnerFilters({
-                    ...runnerFilters,
-                    targetMode: "filter",
-                    scenarioId: undefined,
-                    minorCategoryFilter: value === ALL ? undefined : value,
-                  })
-                }
-                disabled={minorCategories.length === 0}
-              >
-                <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>すべて</SelectItem>
-                  {minorCategories.map((minor) => (
-                    <SelectItem key={minor} value={minor}>
-                      {minor}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        ) : (
-          <div
-            key="scenario-controls"
-            className="flex min-w-40 flex-1 items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200 fill-mode-both"
-          >
-            <Label className="shrink-0 text-sm font-semibold">シナリオ</Label>
-            <Select
-              value={runnerFilters.scenarioId ?? scenarios[0]?.id ?? ""}
-              onValueChange={(value) =>
-                void setRunnerFilters({
-                  ...runnerFilters,
-                  targetMode: "scenario",
-                  scenarioId: value || undefined,
-                  majorCategoryFilter: undefined,
-                  mediumCategoryFilter: undefined,
-                  minorCategoryFilter: undefined,
-                })
-              }
-            >
-              <SelectTrigger className="h-auto min-w-48 max-w-72 flex-1 px-2.5 py-1.5 text-sm font-semibold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {scenarios.map((scenario) => (
-                  <SelectItem key={scenario.id} value={scenario.id}>
-                    {scenario.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+                <div className="flex items-center gap-2">
+                  <Label className="shrink-0 text-sm font-semibold">小分類</Label>
+                  <Select
+                    value={runnerFilters.minorCategoryFilter ?? ALL}
+                    onValueChange={(value) =>
+                      void setRunnerFilters({
+                        ...runnerFilters,
+                        targetMode: "filter",
+                        scenarioId: undefined,
+                        minorCategoryFilter: value === ALL ? undefined : value,
+                      })
+                    }
+                    disabled={minorCategories.length === 0}
+                  >
+                    <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>すべて</SelectItem>
+                      {minorCategories.map((minor) => (
+                        <SelectItem key={minor} value={minor}>
+                          {minor}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-w-40 flex-1 items-center gap-2">
+                <Label className="shrink-0 text-sm font-semibold">シナリオ</Label>
+                <Select
+                  value={runnerFilters.scenarioId ?? scenarios[0]?.id ?? ""}
+                  onValueChange={(value) =>
+                    void setRunnerFilters({
+                      ...runnerFilters,
+                      targetMode: "scenario",
+                      scenarioId: value || undefined,
+                      majorCategoryFilter: undefined,
+                      mediumCategoryFilter: undefined,
+                      minorCategoryFilter: undefined,
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-auto min-w-48 max-w-72 flex-1 px-2.5 py-1.5 text-sm font-semibold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scenarios.map((scenario) => (
+                      <SelectItem key={scenario.id} value={scenario.id}>
+                        {scenario.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </RunnerCardTransition>
+        </div>
 
         <label
           className={cn(
