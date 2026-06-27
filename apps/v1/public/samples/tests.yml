@@ -23,6 +23,14 @@ categoryTargets:
       - chrome-desktop
       - firefox-desktop
 
+  - match:
+      major: "テスト実行"
+    required: any
+    targets:
+      - chrome-desktop
+      - firefox-desktop
+      - safari-desktop
+
 testCases:
   - id: TC-001
     category:
@@ -36,7 +44,7 @@ testCases:
       major: "ファイル読み込み"
       minor: "サンプル"
     prerequisites: "プロジェクト未読み込みの状態"
-    description: "「サンプルを試す」で tests.yml が読み込まれテスト開始できる"
+    description: "「サンプルを試す」で tests.yml が読み込まれ、セッション設定へ進める"
 
   - id: TC-003
     category:
@@ -50,43 +58,143 @@ testCases:
       major: "永続化"
       minor: "IndexedDB"
     prerequisites: "tests.yml 読み込み済み"
-    description: "ページをリロードしてもプロジェクト状態が復元される"
+    description: "ページをリロードしてもプロジェクト・セッション・結果・フィルタ状態が復元される"
 
   - id: TC-005
     category:
       major: "セッション"
+      medium: "設定"
       minor: "環境選択"
     prerequisites: "tests.yml 読み込み済み、セッション未開始"
-    description: "端末/環境をチェックボックスで選択できる"
+    description: "端末/環境をチェックボックスで選択でき、「すべて選択」で一括選択できる"
 
   - id: TC-006
     category:
       major: "セッション"
-      minor: "フィルタ"
-    prerequisites: "テスト実行画面 (/run) を表示中"
-    description: "大分類フィルタと未実施のみで対象件数が変わる"
-
-  - id: TC-009
-    category:
-      major: "テスト実行"
-      minor: "入力"
-    prerequisites: "テスト実行画面を表示中"
-    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに結果を入力できる"
+      medium: "設定"
+      minor: "実施者名"
+    prerequisites: "tests.yml 読み込み済み、セッション未開始"
+    description: "実施者名が未入力、または端末/環境が未選択の場合、テスト実行を開始できない"
 
   - id: TC-007
     category:
       major: "セッション"
+      medium: "設定"
       minor: "開始"
-    prerequisites: "実施者名と端末/環境を選択済み"
-    description: "テスト実行を開始して /run に遷移する"
+    prerequisites: "実施者名と端末/環境を1つ以上選択済み"
+    description: "テスト実行を開始して /run に遷移する。有効なセッションがあれば / から /run に直接復帰する"
 
   - id: TC-008
     category:
       major: "対象端末"
       medium: "解決"
       minor: "categoryTargets"
-    description: "categoryTargets と targetEnvironments で対象端末が解決される"
+    description: "categoryTargets と targetEnvironments で対象端末が解決され、セッション選択との交差後に inScope が判定される"
     targetEnvironments:
       required: any
       targets:
         - safari-desktop
+
+  - id: TC-009
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "使い方"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "最初に使い方カード（START）が表示され、次へでテスト入力に進める"
+
+  - id: TC-010
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "結果"
+    prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
+    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに OK/NG/SKIP を入力できる。メモも保存される"
+
+  - id: TC-011
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "自動移動"
+    prerequisites: "テスト実行画面を表示中"
+    description: "結果入力後、自動で次のテストへ移動する。最後のテスト後は完了カードへ進む"
+
+  - id: TC-012
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "完了"
+    prerequisites: "表示中のフィルタ対象テストをすべて入力済み"
+    description: "最後のテスト入力後に完了カード（DONE）が表示される"
+
+  - id: TC-013
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "カード幅"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "テストカードの横幅が画面幅の約88%以内に収まり、最大幅（42rem）を超えて広がらない"
+
+  - id: TC-014
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "ナビ"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "左右の矢印または ←/h →/l で前後（使い方・完了カードを含む）に移動できる"
+
+  - id: TC-015
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "大分類"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "大分類を選ぶと対象件数・ランナー・進捗バーのフィルタ行が絞り込まれる"
+
+  - id: TC-016
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "中分類"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "中分類を選ぶと対象件数がさらに絞り込まれる。大分類変更時は無効な中分類がクリアされる"
+
+  - id: TC-017
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "未実施のみ"
+    prerequisites: "テスト実行画面 (/run) を表示中、完了済みテストが1件以上あること"
+    description: "未実施のみをオンにすると、完了済みテストがランナーから除外される"
+
+  - id: TC-018
+    category:
+      major: "テスト実行"
+      medium: "進捗"
+      minor: "バー"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "画面下部にフィルタ行と全体行の2本の進捗バーが表示される（バー上・ラベル下）"
+
+  - id: TC-019
+    category:
+      major: "テスト実行"
+      medium: "進捗"
+      minor: "ホバー"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "進捗バーの色付き部分にホバーすると、ステータス別件数と N / M 完了が表示される"
+
+  - id: TC-020
+    category:
+      major: "テスト実行"
+      medium: "操作"
+      minor: "キーボード"
+    prerequisites: "テストカード表示中（メモ欄フォーカス外）"
+    description: "o/n/s で一括 OK/NG/SKIP を入力できる。メモ入力中はキーボード操作が無効"
+
+  - id: TC-021
+    category:
+      major: "テスト実行"
+      medium: "操作"
+      minor: "ショートカットヘルプ"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "画面右下の ? にホバーするとキーボードショートカット一覧が表示される"
