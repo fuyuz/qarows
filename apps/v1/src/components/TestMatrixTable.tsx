@@ -227,8 +227,7 @@ export function TestMatrixTable({
   return (
     <div
       ref={tableContainerRef}
-      className="overflow-auto rounded-lg border bg-card"
-      style={{ height: "calc(100vh - 10.5rem)" }}
+      className="h-full min-h-0 overflow-auto rounded-lg border bg-card"
     >
       <table
         className="table-fixed border-separate border-spacing-0 text-left"

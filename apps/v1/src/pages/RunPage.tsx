@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { FilterBar } from "@/components/FilterBar";
 import { AppNav } from "@/components/AppNav";
 import { RunProgressBar } from "@/components/RunProgressBar";
@@ -9,41 +8,17 @@ import { useApp } from "@/context/AppContext";
 
 export function RunPage() {
   const { definition, session } = useApp();
-  const mainRef = useRef<HTMLDivElement>(null);
-  const [mainHeight, setMainHeight] = useState<number | null>(null);
-
-  useEffect(() => {
-    const element = mainRef.current;
-    if (!element) return;
-
-    const updateHeight = () => {
-      setMainHeight(element.getBoundingClientRect().height);
-    };
-
-    updateHeight();
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [definition, session]);
 
   if (!definition || !session) return null;
 
-  const workspaceStyle =
-    mainHeight != null
-      ? ({ "--run-main-height": `${mainHeight}px` } as CSSProperties)
-      : undefined;
-
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="flex h-svh flex-col overflow-hidden">
       <AppNav />
       <FilterBar />
-      <main className="flex-1 px-5 pb-24 pt-4">
-        <div
-          className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 md:flex-row"
-          style={workspaceStyle}
-        >
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-24 pt-4">
+        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 md:flex-row md:items-stretch">
           <RunnerTaskList />
-          <div ref={mainRef} className="min-h-0 min-w-0 flex-1">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <TestRunner />
           </div>
         </div>

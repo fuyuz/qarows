@@ -291,7 +291,7 @@ export function RunnerTaskList() {
 
       <TaskListPanel
         {...panelProps}
-        className="hidden h-[var(--run-main-height,calc(100vh-9rem))] w-84 shrink-0 md:flex"
+        className="hidden h-full min-h-0 w-84 shrink-0 md:flex"
       />
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

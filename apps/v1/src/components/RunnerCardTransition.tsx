@@ -41,11 +41,11 @@ export function RunnerCardTransition({
   }, [exiting, reducedMotion]);
 
   if (reducedMotion || !exiting) {
-    return <div className="relative">{children}</div>;
+    return <div className="relative h-full min-h-0">{children}</div>;
   }
 
   return (
-    <div className="runner-card-crossfade relative grid [&>*]:col-start-1 [&>*]:row-start-1">
+    <div className="runner-card-crossfade relative grid h-full min-h-0 [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:h-full [&>*]:min-h-0">
       <div
         className="runner-card-crossfade__exit pointer-events-none"
         key={`exit-${exiting.key}`}

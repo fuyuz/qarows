@@ -83,8 +83,8 @@ export function TestCard({
 
   return (
     <article className={testCardShellClass()}>
-      <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-        <header className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b pb-3.5">
+      <header className="mb-0 shrink-0 border-b pb-3.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1">
             <Badge variant="secondary" className="bg-primary/10 font-bold text-primary">
               {testCase.id}
@@ -126,8 +126,10 @@ export function TestCard({
               コピー
             </Button>
           </div>
-        </header>
+        </div>
+      </header>
 
+      <div className="min-h-0 flex-1 overflow-y-auto pt-5 pb-3">
         {testCase.prerequisites && (
           <section className="mb-5">
             <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">

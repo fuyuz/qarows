@@ -105,7 +105,7 @@ export function statusButtonClass(status: "OK" | "NG" | "SKIP", active: boolean)
 
 export function testCardShellClass(extra?: string) {
   return cn(
-    "flex min-h-[80vh] flex-col rounded-xl border bg-card px-5 pt-5 pb-0 shadow-sm",
+    "flex h-full min-h-0 flex-col rounded-xl border bg-card px-5 pt-5 pb-0 shadow-sm",
     extra,
   );
 }

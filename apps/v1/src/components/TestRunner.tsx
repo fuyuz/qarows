@@ -449,9 +449,9 @@ export function TestRunner() {
   if (!definition || !results || !session) return null;
 
   return (
-    <div className="w-full">
-      <div className="flex w-full justify-center">
-        <div className="w-full min-h-[80vh] max-w-2xl">
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div className="flex min-h-0 flex-1 justify-center">
+        <div className="h-full w-full min-h-0 max-w-2xl">
           <RunnerCardTransition slideKey={slideIndex}>
             {slideIndex === 0 && (
               <RunnerIntroCard
