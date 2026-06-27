@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppNav } from "@/components/AppNav";
 import { classifyDroppedFiles, FileDropZone } from "@/components/FileDropZone";
+import { TestsYamlGuide } from "@/components/TestsYamlGuide";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,8 @@ export function HomePage() {
             </AlertDescription>
           </Alert>
         )}
+
+        <TestsYamlGuide />
 
         <FileDropZone
           title="ファイルをここにドロップ"

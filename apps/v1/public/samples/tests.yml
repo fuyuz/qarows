@@ -309,3 +309,11 @@ testCases:
       minor: "ダウンロード"
     prerequisites: "tests.yml 読み込み済み、結果が1件以上あること"
     description: "ナビメニューから results.json をエクスポートでき、再読み込みして内容が復元される"
+
+  - id: TC-031
+    category:
+      major: "ファイル読み込み"
+      medium: "ガイド"
+      minor: "AI プロンプト"
+    prerequisites: "プロジェクト未読み込みの状態（/load 画面）"
+    description: "tests.yml の書き方ガイドが表示され、「仕様をコピー」で AI 向け仕様テキストをクリップボードにコピーできる"
