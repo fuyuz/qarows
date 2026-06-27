@@ -1,6 +1,11 @@
 export type TestStatus = "OK" | "SKIP" | "OK_NG" | "NG";
 
-export type BugStatus = "open" | "in_progress" | "fixed";
+export type BugStatus =
+  | "open"
+  | "in_progress"
+  | "fixed"
+  | "pending_verification"
+  | "resolved";
 
 export type BugSeverity = "low" | "medium" | "high" | "critical";
 
@@ -71,7 +76,8 @@ export type TestResults = Record<string, Record<string, TestResultEntry>>;
 
 export interface Bug {
   id: string;
-  testCaseId: string;
+  testCaseId?: string;
+  environmentIds?: string[];
   title: string;
   severity: BugSeverity;
   assignee?: string;

@@ -1,3 +1,4 @@
+import { normalizeBugStatus } from "./bug";
 import type { Bug, ResultsFile, TestResultEntry, TestResults } from "./types";
 import { normalizeStatus } from "./status";
 
@@ -27,22 +28,33 @@ function parseResults(raw: unknown): TestResults {
   return results;
 }
 
+function parseEnvironmentIds(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const ids = raw.map((item) => String(item)).filter(Boolean);
+  return ids.length > 0 ? ids : undefined;
+}
+
 function parseBug(raw: unknown, index: number): Bug {
   if (typeof raw !== "object" || raw === null) {
     throw new Error(`bugs[${index}] の形式が不正です`);
   }
   const obj = raw as Record<string, unknown>;
   const id = String(obj.id ?? "");
-  const testCaseId = String(obj.testCaseId ?? "");
   const title = String(obj.title ?? "");
-  if (!id || !testCaseId || !title) {
-    throw new Error(`bugs[${index}] の id, testCaseId, title は必須です`);
+  if (!id || !title) {
+    throw new Error(`bugs[${index}] の id, title は必須です`);
   }
+  const testCaseIdRaw = obj.testCaseId;
+  const testCaseId =
+    testCaseIdRaw != null && String(testCaseIdRaw) !== ""
+      ? String(testCaseIdRaw)
+      : undefined;
   const severity = String(obj.severity ?? "medium") as Bug["severity"];
-  const status = String(obj.status ?? "open") as Bug["status"];
+  const status = normalizeBugStatus(String(obj.status ?? "open"));
   return {
     id,
     testCaseId,
+    environmentIds: parseEnvironmentIds(obj.environmentIds),
     title,
     severity,
     status,

@@ -6,6 +6,14 @@ import { TestsYamlGuide } from "@/components/TestsYamlGuide";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { readFileAsText } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import { cn } from "@/lib/cn";
@@ -18,6 +26,7 @@ export function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorShake, setErrorShake] = useState(false);
+  const [replaceDialogOpen, setReplaceDialogOpen] = useState(false);
 
   const showError = (message: string) => {
     setError(message);
@@ -50,7 +59,7 @@ export function HomePage() {
     }
   };
 
-  const handleStart = async () => {
+  const performLoad = async () => {
     if (!testsFile) return;
     setLoading(true);
     setError(null);
@@ -64,6 +73,20 @@ export function HomePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStart = () => {
+    if (!testsFile || loading) return;
+    if (definition) {
+      setReplaceDialogOpen(true);
+      return;
+    }
+    void performLoad();
+  };
+
+  const handleConfirmReplace = () => {
+    setReplaceDialogOpen(false);
+    void performLoad();
   };
 
   return (
@@ -125,7 +148,7 @@ export function HomePage() {
         )}
 
         <footer className="mt-6 flex flex-wrap items-center gap-3">
-          <Button disabled={!testsFile || loading} onClick={() => void handleStart()}>
+          <Button disabled={!testsFile || loading} onClick={handleStart}>
             {loading ? "読み込み中…" : "テストを開始"}
           </Button>
           <Button variant="ghost" onClick={() => void loadSample()}>
@@ -133,6 +156,34 @@ export function HomePage() {
           </Button>
         </footer>
       </main>
+
+      <Dialog open={replaceDialogOpen} onOpenChange={setReplaceDialogOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>プロジェクトを置き換えますか？</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  現在のプロジェクト「<strong className="text-foreground">{definition?.project.name}</strong>
+                  」を新しい tests.yml で置き換えます。
+                </p>
+                <p>
+                  実行結果・セッション設定・テスト進行状況は失われます。results.json
+                  を同時に選んでいない場合、結果は空の状態から始まります。
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReplaceDialogOpen(false)}>
+              キャンセル
+            </Button>
+            <Button variant="destructive" disabled={loading} onClick={handleConfirmReplace}>
+              置き換える
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

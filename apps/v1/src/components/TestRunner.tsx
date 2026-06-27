@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { resolveSessionTestTargets, type TestStatus } from "@qarows/shared";
+import { nextBugId, resolveSessionTestTargets, type Bug, type TestStatus } from "@qarows/shared";
+import { BugDialog, bugDraftToBug, type BugDialogDraft } from "@/components/BugDialog";
+import { RelatedBugsDialog } from "@/components/RelatedBugsDialog";
 import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { RunnerCompleteCard } from "@/components/RunnerCompleteCard";
 import { RunnerIntroCard } from "@/components/RunnerIntroCard";
 import { TestCard } from "@/components/TestCard";
 import { useApp } from "@/context/AppContext";
 import {
+  isRunnerBugKey,
   isRunnerNextKey,
   isRunnerPrevKey,
   isRunnerTypingTarget,
@@ -14,6 +17,12 @@ import {
 import { resolveRunnerTestCases } from "@/lib/utils";
 
 const AUTO_ADVANCE_DELAY_MS = 500;
+
+interface BugDialogOpenState {
+  initialTestCaseLinked: boolean;
+  initialEnvironmentIds: string[];
+  fromNg: boolean;
+}
 
 export function TestRunner() {
   const {
@@ -25,16 +34,23 @@ export function TestRunner() {
     setRunnerIndex,
     updateResults,
     updateResultsBatch,
+    updateResultsFile,
     clearTestResult,
   } = useApp();
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bugDialogOpen, setBugDialogOpen] = useState(false);
+  const [bugDialogState, setBugDialogState] = useState<BugDialogOpenState | null>(null);
+  const [bugCreateMore, setBugCreateMore] = useState(false);
+  const [bugFormKey, setBugFormKey] = useState(0);
+  const [relatedBugsDialogOpen, setRelatedBugsDialogOpen] = useState(false);
   const didRestoreSlide = useRef(false);
   const skipFilterSlideReset = useRef(true);
   const mountedRef = useRef(true);
   const advanceDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAdvanceSlideRef = useRef<number | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -57,6 +73,15 @@ export function TestRunner() {
     if (!current || !definition || !session) return null;
     return resolveSessionTestTargets(current, definition, session.selectedEnvironmentIds);
   }, [current, definition, session]);
+
+  const relatedBugs = useMemo(() => {
+    if (!results || !current) return [];
+    return results.bugs.filter((bug) => bug.testCaseId === current.id);
+  }, [results, current]);
+
+  useEffect(() => {
+    setRelatedBugsDialogOpen(false);
+  }, [current?.id]);
 
   useEffect(() => {
     if (!didRestoreSlide.current) {
@@ -145,6 +170,51 @@ export function TestRunner() {
     [goToSlide, waitBeforeAutoAdvance],
   );
 
+  const closeBugDialog = useCallback(
+    (cancelled: boolean) => {
+      const fromNg = bugDialogState?.fromNg ?? false;
+      setBugDialogOpen(false);
+      setBugDialogState(null);
+      if (cancelled) setBugCreateMore(false);
+
+      if (fromNg && pendingAdvanceSlideRef.current != null) {
+        const nextSlide = pendingAdvanceSlideRef.current;
+        pendingAdvanceSlideRef.current = null;
+        void advanceAfterComplete(nextSlide);
+      }
+    },
+    [advanceAfterComplete, bugDialogState],
+  );
+
+  const openBugDialog = useCallback(
+    (state: BugDialogOpenState) => {
+      setBugDialogState(state);
+      setBugDialogOpen(true);
+    },
+    [],
+  );
+
+  const openManualBugDialog = useCallback(() => {
+    pendingAdvanceSlideRef.current = null;
+    openBugDialog({
+      initialTestCaseLinked: true,
+      initialEnvironmentIds: [],
+      fromNg: false,
+    });
+  }, [openBugDialog]);
+
+  const maybeDeferAdvanceForNg = useCallback(
+    (nextSlide: number) => {
+      pendingAdvanceSlideRef.current = nextSlide;
+      openBugDialog({
+        initialTestCaseLinked: true,
+        initialEnvironmentIds: envTargets?.environmentIds ?? [],
+        fromNg: true,
+      });
+    },
+    [envTargets, openBugDialog],
+  );
+
   const applyBatch = useCallback(
     async (status: TestStatus) => {
       if (!current || !envTargets || busy || testSlideIndex == null) return;
@@ -160,6 +230,11 @@ export function TestRunner() {
       }
       const nextSlide =
         testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
+
+      if (status === "NG") {
+        maybeDeferAdvanceForNg(nextSlide);
+        return;
+      }
       void advanceAfterComplete(nextSlide);
     },
     [
@@ -169,6 +244,7 @@ export function TestRunner() {
       envTargets,
       memo,
       advanceAfterComplete,
+      maybeDeferAdvanceForNg,
       targets.length,
       testSlideIndex,
       updateResultsBatch,
@@ -201,6 +277,16 @@ export function TestRunner() {
         if (isComplete) {
           const nextSlide =
             testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
+
+          if (status === "NG") {
+            pendingAdvanceSlideRef.current = nextSlide;
+            openBugDialog({
+              initialTestCaseLinked: true,
+              initialEnvironmentIds: [envId],
+              fromNg: true,
+            });
+            return;
+          }
           void advanceAfterComplete(nextSlide);
         }
       } finally {
@@ -214,6 +300,7 @@ export function TestRunner() {
       envTargets,
       advanceAfterComplete,
       memo,
+      openBugDialog,
       results,
       session,
       targets.length,
@@ -235,9 +322,47 @@ export function TestRunner() {
     [busy, clearTestResult, current, testSlideIndex],
   );
 
+  const handleBugSubmit = useCallback(
+    async (draft: BugDialogDraft) => {
+      if (!results) return;
+      setBusy(true);
+      try {
+        const bug = bugDraftToBug(nextBugId(results.bugs), draft);
+        await updateResultsFile((prev) => ({
+          ...prev,
+          bugs: [...prev.bugs, bug],
+        }));
+
+        if (bugCreateMore) {
+          setBugFormKey((key) => key + 1);
+          return;
+        }
+        closeBugDialog(false);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [bugCreateMore, closeBugDialog, results, updateResultsFile],
+  );
+
+  const handleRelatedBugSave = useCallback(
+    async (bug: Bug) => {
+      setBusy(true);
+      try {
+        await updateResultsFile((prev) => ({
+          ...prev,
+          bugs: prev.bugs.map((entry) => (entry.id === bug.id ? bug : entry)),
+        }));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [updateResultsFile],
+  );
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (busy) return;
+      if (busy || bugDialogOpen || relatedBugsDialogOpen) return;
       if (isRunnerTypingTarget(e.target)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
@@ -258,6 +383,12 @@ export function TestRunner() {
 
       if (testSlideIndex == null) return;
 
+      if (isRunnerBugKey(e.key)) {
+        e.preventDefault();
+        openManualBugDialog();
+        return;
+      }
+
       const status = matchRunnerStatusKey(e.key);
       if (status) {
         e.preventDefault();
@@ -266,7 +397,17 @@ export function TestRunner() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [applyBatch, busy, goToSlide, maxSlide, slideIndex, testSlideIndex]);
+  }, [
+    applyBatch,
+    bugDialogOpen,
+    relatedBugsDialogOpen,
+    busy,
+    goToSlide,
+    maxSlide,
+    openManualBugDialog,
+    slideIndex,
+    testSlideIndex,
+  ]);
 
   if (!definition || !results || !session) return null;
 
@@ -310,11 +451,44 @@ export function TestRunner() {
                 onBatch={(status) => void applyBatch(status)}
                 onSingle={(envId, status) => void applySingle(envId, status)}
                 onClear={(envId) => void applyClear(envId)}
+                onOpenBug={openManualBugDialog}
+                relatedBugCount={relatedBugs.length}
+                onViewRelatedBugs={() => setRelatedBugsDialogOpen(true)}
               />
             )}
           </RunnerCardTransition>
         </div>
       </div>
+
+      {current && envTargets && bugDialogState && (
+        <BugDialog
+          open={bugDialogOpen}
+          testCase={current}
+          environments={definition.environments}
+          availableEnvironmentIds={envTargets.environmentIds}
+          initialTestCaseLinked={bugDialogState.initialTestCaseLinked}
+          initialEnvironmentIds={bugDialogState.initialEnvironmentIds}
+          createMore={bugCreateMore}
+          formKey={bugFormKey}
+          busy={busy}
+          onCreateMoreChange={setBugCreateMore}
+          onSubmit={handleBugSubmit}
+          onCancel={() => closeBugDialog(true)}
+        />
+      )}
+
+      {current && envTargets && (
+        <RelatedBugsDialog
+          open={relatedBugsDialogOpen}
+          bugs={relatedBugs}
+          testCase={current}
+          environments={definition.environments}
+          availableEnvironmentIds={envTargets.environmentIds}
+          busy={busy}
+          onSave={handleRelatedBugSave}
+          onClose={() => setRelatedBugsDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }

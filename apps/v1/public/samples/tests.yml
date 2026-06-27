@@ -156,7 +156,39 @@ testCases:
       medium: "入力"
       minor: "自動移動"
     prerequisites: "テスト実行画面を表示中"
-    description: "テストケースの全端末入力完了後、約500ms待ってから次のテストへ自動移動する。最後のテスト後は完了カードへ進む"
+    description: "OK/SKIP で全端末入力完了後、約500ms待ってから次のテストへ自動移動する。NG の場合はバグ起票 Dialog を閉じた後に同様に自動移動する。最後のテスト後は完了カードへ進む"
+
+  - id: TC-033
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "NG連動"
+    prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
+    description: "NG 入力後にバグ起票 Dialog が開き、起票は任意（キャンセルで Dialog を閉じられる）。Dialog 完全クローズ後に自動移動する"
+
+  - id: TC-034
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "起票Dialog"
+    prerequisites: "テスト実行画面を表示中"
+    description: "「バグ」ボタンまたは b キーで Dialog を開き、タイトル・重要度・ステータス・担当者・再現手順・期待・実際を入力して起票できる。関連 TC・端末は変更可能。Create more で連続起票できる"
+
+  - id: TC-035
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "prefill"
+    prerequisites: "テスト実行画面を表示中"
+    description: "バグ Dialog の再現手順・期待はテストケースから prefill される（編集可）。個別 NG はその端末、一括 NG は対象端末すべてが初期選択される"
+
+  - id: TC-036
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "関連不具合"
+    prerequisites: "表示中のテストケースに紐づく起票済みバグが1件以上あること"
+    description: "「不具合 (n)」ボタンで関連バグ一覧 Dialog が開き、左右ボタンまたは h/l で切り替え・編集できる。変更がないとき保存は無効、保存後も Dialog は開いたまま保存ボタンが再び無効になる"
 
   - id: TC-012
     category:
@@ -317,3 +349,11 @@ testCases:
       minor: "AI プロンプト"
     prerequisites: "プロジェクト未読み込みの状態（/load 画面）"
     description: "tests.yml の書き方ガイドが表示され、「仕様をコピー」で AI 向け仕様テキストをクリップボードにコピーできる"
+
+  - id: TC-032
+    category:
+      major: "ファイル読み込み"
+      medium: "置き換え"
+      minor: "確認ダイアログ"
+    prerequisites: "tests.yml 読み込み済み（/load 画面に戻った状態）、新しい tests.yml を選択済み"
+    description: "「テストを開始」で置き換え警告が表示され、確認後のみ新しいプロジェクトが読み込まれる"

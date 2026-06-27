@@ -7,6 +7,7 @@ export const RUNNER_KEYBINDINGS = {
   ok: ["o"],
   ng: ["n"],
   skip: ["s"],
+  bug: ["b"],
 } as const;
 
 const STATUS_BY_KEY: Record<string, TestStatus> = {
@@ -31,6 +32,10 @@ export function isRunnerPrevKey(key: string): boolean {
 
 export function isRunnerNextKey(key: string): boolean {
   return (RUNNER_KEYBINDINGS.next as readonly string[]).includes(key);
+}
+
+export function isRunnerBugKey(key: string): boolean {
+  return (RUNNER_KEYBINDINGS.bug as readonly string[]).includes(key);
 }
 
 export function formatRunnerKey(key: string): string {

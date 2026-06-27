@@ -1,4 +1,5 @@
 import type { SessionTestTargets, TestCase, TestDefinition, TestResults, TestStatus } from "@qarows/shared";
+import { Bug, ClipboardList } from "lucide-react";
 import { RUNNER_KEYBINDINGS } from "@/lib/runner-keybindings";
 import { Kbd } from "@/components/qa-ui";
 import {
@@ -36,6 +37,9 @@ export interface TestCardProps extends RunnerCardNavProps {
   onBatch: (status: TestStatus) => void;
   onSingle: (envId: string, status: TestStatus) => void;
   onClear: (envId: string) => void;
+  onOpenBug: () => void;
+  relatedBugCount: number;
+  onViewRelatedBugs: () => void;
 }
 
 export function TestCard({
@@ -53,6 +57,9 @@ export function TestCard({
   onBatch,
   onSingle,
   onClear,
+  onOpenBug,
+  relatedBugCount,
+  onViewRelatedBugs,
 }: TestCardProps) {
   return (
     <article className={testCardShellClass()}>
@@ -138,9 +145,37 @@ export function TestCard({
         </section>
 
         <section className="mb-5">
-          <label className="mb-1.5 block text-xs font-semibold tracking-wide text-muted-foreground uppercase" htmlFor={`test-memo-${testCase.id}`}>
-            メモ
-          </label>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase" htmlFor={`test-memo-${testCase.id}`}>
+              メモ
+            </label>
+            <div className="flex items-center gap-1">
+              {relatedBugCount > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  disabled={busy}
+                  onClick={onViewRelatedBugs}
+                >
+                  <ClipboardList className="size-3.5" aria-hidden />
+                  不具合 ({relatedBugCount})
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                disabled={busy}
+                onClick={onOpenBug}
+              >
+                <Bug className="size-3.5" aria-hidden />
+                バグ
+              </Button>
+            </div>
+          </div>
           <Textarea
             id={`test-memo-${testCase.id}`}
             rows={3}

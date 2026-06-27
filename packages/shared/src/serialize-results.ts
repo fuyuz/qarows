@@ -24,11 +24,12 @@ function serializeResults(results: TestResults): Record<string, unknown> {
 function serializeBug(bug: Bug): Record<string, unknown> {
   const obj: Record<string, unknown> = {
     id: bug.id,
-    testCaseId: bug.testCaseId,
     title: bug.title,
     severity: bug.severity,
     status: bug.status,
   };
+  if (bug.testCaseId) obj.testCaseId = bug.testCaseId;
+  if (bug.environmentIds?.length) obj.environmentIds = [...bug.environmentIds].sort();
   if (bug.assignee) obj.assignee = bug.assignee;
   if (bug.steps) obj.steps = bug.steps;
   if (bug.expected) obj.expected = bug.expected;
