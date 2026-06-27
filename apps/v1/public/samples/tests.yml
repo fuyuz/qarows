@@ -224,7 +224,7 @@ testCases:
       medium: "画面"
       minor: "完了"
     prerequisites: "表示中のフィルタ対象テストをすべて入力済み"
-    description: "最後のテスト入力後に完了カード（完了バッジ・チェックアイコン）が表示される"
+    description: "最後のテスト入力後に完了カード（完了バッジ・スコープ完了メッセージ）が表示される"
 
   - id: TC-013
     category:

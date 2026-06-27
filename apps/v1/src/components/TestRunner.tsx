@@ -97,7 +97,7 @@ export function TestRunner() {
     if (!filtersSettled || targets.length === 0) return;
 
     if (!testId) {
-      setSlideIndex(0);
+      setSlideIndex((prev) => (prev === maxSlide ? prev : 0));
       setRelatedBugsDialogOpen(false);
       setBugDialogOpen(false);
       setBugDialogState(null);
@@ -111,7 +111,7 @@ export function TestRunner() {
     }
 
     void setTestId(null);
-  }, [filtersSettled, setTestId, targets, testId]);
+  }, [filtersSettled, maxSlide, setTestId, targets, testId]);
 
   useEffect(() => {
     if (!current || !results || !envTargets) {
