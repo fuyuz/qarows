@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest";
+import { resolveFilteredBugs } from "@/lib/bug-filter";
+import { makeDefinition } from "@qarows/shared/test-fixtures";
+import type { Bug, SessionConfig } from "@qarows/shared";
+
+const session: SessionConfig = {
+  executorName: "qa",
+  selectedEnvironmentIds: ["chrome"],
+};
+
+describe("resolveFilteredBugs", () => {
+  const definition = makeDefinition();
+  const bugs: Bug[] = [
+    {
+      id: "BUG-001",
+      title: "Auth bug",
+      severity: "high",
+      status: "open",
+      testCaseId: "TC-001",
+    },
+    {
+      id: "BUG-002",
+      title: "Billing bug",
+      severity: "medium",
+      status: "open",
+      testCaseId: "TC-003",
+    },
+    { id: "BUG-003", title: "Unlinked", severity: "low", status: "open" },
+  ];
+
+  it("filters bugs by test case scope and major category", () => {
+    const filtered = resolveFilteredBugs(
+      definition,
+      { onlyIncomplete: false, majorCategoryFilter: "Auth" },
+      bugs,
+      {},
+      definition.environments.map((env) => env.id),
+      session,
+    );
+    expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001"]);
+  });
+
+  it("includes unlinked bugs when no category filter is active", () => {
+    const filtered = resolveFilteredBugs(
+      definition,
+      { onlyIncomplete: false },
+      bugs,
+      {},
+      definition.environments.map((env) => env.id),
+      session,
+    );
+    expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001", "BUG-002", "BUG-003"]);
+  });
+
+  it("filters by bug severity", () => {
+    const filtered = resolveFilteredBugs(
+      definition,
+      { onlyIncomplete: false },
+      bugs,
+      {},
+      definition.environments.map((env) => env.id),
+      session,
+      { priorities: ["high"], statuses: [] },
+    );
+    expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001"]);
+  });
+});

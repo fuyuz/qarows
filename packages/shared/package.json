@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./test-fixtures": "./src/test-fixtures.ts",
     "./schemas/results.schema.json": "./schemas/results.schema.json",
     "./schemas/tests.schema.json": "./schemas/tests.schema.json"
   },
