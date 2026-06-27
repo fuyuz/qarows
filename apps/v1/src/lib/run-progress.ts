@@ -21,7 +21,6 @@ const EMPTY_BUCKETS: Record<ProgressBucket, number> = {
   OK: 0,
   NG: 0,
   SKIP: 0,
-  OK_NG: 0,
 };
 
 function aggregateTestStatus(
@@ -87,13 +86,12 @@ export function computeRunProgressForTestCases(
 }
 
 /** プログレスバー上の表示順 */
-export const PROGRESS_SEGMENT_ORDER: ProgressBucket[] = ["OK", "SKIP", "OK_NG", "NG", "incomplete"];
+export const PROGRESS_SEGMENT_ORDER: ProgressBucket[] = ["OK", "SKIP", "NG", "incomplete"];
 
 export const PROGRESS_SEGMENT_LABELS: Record<ProgressBucket, string> = {
   OK: "OK",
   NG: "NG",
   SKIP: "SKIP",
-  OK_NG: "OK→NG",
   incomplete: "未実施",
 };
 

@@ -137,11 +137,39 @@ describe("resolveRunnerTestCases", () => {
 });
 
 describe("getTestCaseAggregateStatus", () => {
+  const definition = makeDefinition();
+
   it("returns incomplete for missing results", () => {
-    const testCase = makeDefinition().testCases[0]!;
+    const testCase = definition.testCases[0]!;
     expect(
-      getTestCaseAggregateStatus(testCase, makeDefinition(), session.selectedEnvironmentIds, {}),
+      getTestCaseAggregateStatus(testCase, definition, session.selectedEnvironmentIds, {}),
     ).toBe("incomplete");
+  });
+
+  it("returns OK when all scoped environments are OK", () => {
+    const testCase = definition.testCases[0]!;
+    const results: TestResults = {
+      "TC-001": {
+        chrome: { status: "OK" },
+        firefox: { status: "OK" },
+      },
+    };
+    expect(
+      getTestCaseAggregateStatus(testCase, definition, session.selectedEnvironmentIds, results),
+    ).toBe("OK");
+  });
+
+  it("returns NG when any scoped environment is NG", () => {
+    const testCase = definition.testCases[0]!;
+    const results: TestResults = {
+      "TC-001": {
+        chrome: { status: "OK" },
+        firefox: { status: "NG" },
+      },
+    };
+    expect(
+      getTestCaseAggregateStatus(testCase, definition, session.selectedEnvironmentIds, results),
+    ).toBe("NG");
   });
 });
 

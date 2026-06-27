@@ -7,14 +7,12 @@ const STATUS_LABELS: Record<TestStatus, string> = {
   OK: "OK",
   NG: "NG",
   SKIP: "SKIP",
-  OK_NG: "OK→NG",
 };
 
 const STATUS_VARIANTS: Record<TestStatus, string> = {
   OK: "border-transparent bg-green-100 text-green-800",
   NG: "border-transparent bg-red-100 text-red-800",
   SKIP: "border-transparent bg-muted text-muted-foreground",
-  OK_NG: "border-transparent bg-orange-100 text-orange-800",
 };
 
 export function StatusBadge({

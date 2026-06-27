@@ -64,4 +64,21 @@ describe("resolveFilteredBugs", () => {
     );
     expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001"]);
   });
+
+  it("filters by bug status", () => {
+    const scopedBugs: Bug[] = [
+      { id: "BUG-001", title: "Open", severity: "high", status: "open" },
+      { id: "BUG-002", title: "Fixed", severity: "medium", status: "fixed" },
+    ];
+    const filtered = resolveFilteredBugs(
+      definition,
+      { onlyIncomplete: false },
+      scopedBugs,
+      {},
+      definition.environments.map((env) => env.id),
+      session,
+      { priorities: [], statuses: ["fixed"] },
+    );
+    expect(filtered.map((bug) => bug.id)).toEqual(["BUG-002"]);
+  });
 });

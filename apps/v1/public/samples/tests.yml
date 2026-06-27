@@ -74,6 +74,38 @@ scenarios:
       - TC-021
       - TC-012
 
+  - id: bugs-flow
+    name: "バグ起票から閲覧"
+    description: |
+      ランナーで NG 入力 → バグ起票 → バグ画面で確認・編集する流れ。
+    steps:
+      - TC-033
+      - TC-034
+      - TC-035
+      - TC-050
+      - TC-053
+      - TC-054
+      - TC-055
+
+  - id: viewing
+    name: "閲覧画面"
+    description: |
+      ダッシュボード・マトリクス・バグ画面への遷移と基本表示を確認する。
+    steps:
+      - TC-045
+      - TC-042
+      - TC-043
+      - TC-050
+
+  - id: export-flow
+    name: "エクスポート"
+    description: |
+      results.json / tests.yml のエクスポートと再読み込みを確認する。
+    steps:
+      - TC-030
+      - TC-041
+      - TC-057
+
 testCases:
   - id: TC-001
     category:

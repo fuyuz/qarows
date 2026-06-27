@@ -24,16 +24,14 @@ function statusClass(status: ReturnType<typeof getTestCaseAggregateStatus>): str
   if (status === "incomplete") return "text-muted-foreground";
   if (status === "OK") return "text-green-600";
   if (status === "NG") return "text-red-600";
-  if (status === "SKIP") return "text-stone-500";
-  return "text-orange-600";
+  return "text-stone-500";
 }
 
 function statusSymbol(status: ReturnType<typeof getTestCaseAggregateStatus>): string {
   if (status === "incomplete") return "○";
   if (status === "OK") return "✓";
   if (status === "NG") return "✗";
-  if (status === "SKIP") return "–";
-  return "!";
+  return "–";
 }
 
 const TASK_BAR_ANIM_MS = 320;

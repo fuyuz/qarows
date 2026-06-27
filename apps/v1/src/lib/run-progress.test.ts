@@ -102,7 +102,7 @@ describe("computeCategoryProgress", () => {
 
 describe("PROGRESS_SEGMENT_ORDER", () => {
   it("includes all buckets", () => {
-    const buckets: ProgressBucket[] = ["OK", "SKIP", "OK_NG", "NG", "incomplete"];
+    const buckets: ProgressBucket[] = ["OK", "SKIP", "NG", "incomplete"];
     expect(PROGRESS_SEGMENT_ORDER).toEqual(buckets);
   });
 });

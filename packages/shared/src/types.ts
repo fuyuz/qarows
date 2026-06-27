@@ -1,4 +1,4 @@
-export type TestStatus = "OK" | "SKIP" | "OK_NG" | "NG";
+export type TestStatus = "OK" | "SKIP" | "NG";
 
 export type BugStatus =
   | "open"

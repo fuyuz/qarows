@@ -12,9 +12,9 @@ describe("LoadingScreen", () => {
 });
 
 describe("StatusBadge", () => {
-  it("renders OK→NG label", () => {
-    render(<StatusBadge status="OK_NG" />);
-    expect(screen.getByText("OK→NG")).toBeInTheDocument();
+  it("renders SKIP label", () => {
+    render(<StatusBadge status="SKIP" />);
+    expect(screen.getByText("SKIP")).toBeInTheDocument();
   });
 });
 

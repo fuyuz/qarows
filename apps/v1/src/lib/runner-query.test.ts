@@ -3,6 +3,7 @@ import {
   isRunnerFiltersSettled,
   parseRunnerSearchParams,
   queryToRunnerFilters,
+  runnerFiltersToQuery,
   runnerFiltersToSearchParams,
   searchParamsToRunnerQuery,
 } from "@/lib/runner-query";
@@ -43,5 +44,37 @@ describe("runner query roundtrip", () => {
     expect(params.get("incomplete")).toBe("1");
     expect(params.get("test")).toBe("TC-002");
     expect(params.get("mode")).toBeNull();
+  });
+
+  it("roundtrips minor category filter", () => {
+    const params = new URLSearchParams("major=Auth&medium=Login&minor=OAuth&test=TC-001");
+    const { filters, testId } = parseRunnerSearchParams(params);
+    expect(filters).toEqual({
+      targetMode: "filter",
+      majorCategoryFilter: "Auth",
+      mediumCategoryFilter: "Login",
+      minorCategoryFilter: "OAuth",
+      onlyIncomplete: false,
+    });
+    expect(testId).toBe("TC-001");
+
+    const serialized = runnerFiltersToSearchParams(filters, testId);
+    expect(serialized.get("minor")).toBe("OAuth");
+  });
+
+  it("clears category filters when switching to scenario mode", () => {
+    const query = runnerFiltersToQuery({
+      targetMode: "scenario",
+      scenarioId: "smoke",
+      onlyIncomplete: false,
+    });
+    expect(query).toEqual({
+      mode: "scenario",
+      major: null,
+      medium: null,
+      minor: null,
+      scenario: "smoke",
+      incomplete: false,
+    });
   });
 });

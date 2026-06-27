@@ -41,6 +41,29 @@ describe("formatTestCaseMarkdown", () => {
     expect(md).toContain("Related Bugs");
     expect(md).toContain("BUG-001: Crash");
   });
+
+  it("omits version and bug section when not applicable", () => {
+    const definition = makeDefinition({
+      testCases: [
+        {
+          id: "TC-001",
+          category: { major: "Auth" },
+          description: "Can log in",
+        },
+      ],
+    });
+    const testCase = definition.testCases[0]!;
+    const md = formatTestCaseMarkdown({
+      definition,
+      testCase,
+      envTargets: resolveSessionTestTargets(testCase, definition, ["chrome"]),
+      bugs: [],
+    });
+
+    expect(md).not.toContain("Version:");
+    expect(md).not.toContain("Related Bugs");
+    expect(md).toContain("In scope: Chrome");
+  });
 });
 
 describe("formatBugMarkdown", () => {
@@ -66,5 +89,27 @@ describe("formatBugMarkdown", () => {
     expect(md).toContain("修正中");
     expect(md).toContain("Can log in");
     expect(md).toContain("Chrome");
+  });
+
+  it("includes assignee, memo, and fix note when present", () => {
+    const definition = makeDefinition();
+    const md = formatBugMarkdown({
+      definition,
+      bug: {
+        id: "BUG-002",
+        title: "Regression",
+        severity: "critical",
+        status: "fixed",
+        assignee: "dev@example.com",
+        environmentIds: ["chrome"],
+        memo: "Repro on staging",
+        fixNote: "Patched in v1.2",
+      },
+    });
+
+    expect(md).toContain("dev@example.com");
+    expect(md).toContain("Repro on staging");
+    expect(md).toContain("Patched in v1.2");
+    expect(md).toContain("修正済み");
   });
 });

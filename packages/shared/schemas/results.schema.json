@@ -39,7 +39,7 @@
   "$defs": {
     "testStatus": {
       "type": "string",
-      "enum": ["OK", "SKIP", "OK_NG", "NG"]
+      "enum": ["OK", "SKIP", "NG"]
     },
     "testResultEntry": {
       "type": "object",

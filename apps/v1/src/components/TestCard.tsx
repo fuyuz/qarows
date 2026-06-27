@@ -19,7 +19,6 @@ const STATUS_LABELS: Record<TestStatus, string> = {
   OK: "OK",
   NG: "NG",
   SKIP: "SKIP",
-  OK_NG: "OK→NG",
 };
 
 function formatCategory(tc: TestCase): string {

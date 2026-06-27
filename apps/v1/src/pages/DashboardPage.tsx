@@ -35,7 +35,7 @@ export function DashboardPage() {
         overallStats: {
           total: 0,
           completed: 0,
-          buckets: { incomplete: 0, OK: 0, NG: 0, SKIP: 0, OK_NG: 0 },
+          buckets: { incomplete: 0, OK: 0, NG: 0, SKIP: 0 },
         },
         categoryRows: [],
       };

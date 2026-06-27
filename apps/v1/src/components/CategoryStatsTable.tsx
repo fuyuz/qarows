@@ -10,7 +10,7 @@ import {
 } from "@/components/ProgressRow";
 import { cn } from "@/lib/cn";
 
-const RATE_BUCKETS = ["OK", "NG", "SKIP", "OK_NG", "incomplete"] as const;
+const RATE_BUCKETS = ["OK", "NG", "SKIP", "incomplete"] as const;
 
 export function CategoryStatsTable({
   rows,
@@ -42,9 +42,6 @@ export function CategoryStatsTable({
             </th>
             <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
               SKIP率
-            </th>
-            <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
-              OK→NG率
             </th>
             <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
               未実施率
@@ -114,7 +111,7 @@ export function CategoryStatsLegend() {
       {PROGRESS_SEGMENT_ORDER.map((bucket) => (
         <span key={bucket} className="flex items-center gap-1.5">
           <span className={cn("size-2 rounded-full", progressBucketBgClass(bucket))} />
-          {bucket === "incomplete" ? "未実施" : bucket === "OK_NG" ? "OK→NG" : bucket}
+          {bucket === "incomplete" ? "未実施" : bucket}
         </span>
       ))}
     </div>

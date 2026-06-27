@@ -54,8 +54,8 @@ qarows/
 | `tests.yml` | YAML | テストケース、端末/環境リスト、プロジェクト設定 |
 | `results.json` | JSON | 実行結果（status, 実施日, 実施者, メモ）、バグ |
 
-- **ステータス**: `OK`, `NG`, `SKIP`, `OK→NG`（コード上は `OK_NG` 等の snake_case も検討）
-- **優先度（マージ時）**: `OK < SKIP < OK→NG < NG`
+- **ステータス**: `OK`, `NG`, `SKIP`
+- **優先度（マージ時）**: `OK < SKIP < NG`
 - **詳細**: [docs/data-format.md](docs/data-format.md)
 
 ## Phase 1 UX（最重要）

@@ -60,6 +60,21 @@ describe("aggregateValidTestStatus", () => {
 
     expect(aggregateValidTestStatus(testCase, ["chrome", "ios"], results)).toBe("OK");
   });
+
+  it("returns strongest status across valid environments", () => {
+    const results: TestResults = {
+      "TC-001": {
+        chrome: { status: "OK", version: 2 },
+        ios: { status: "NG", version: 2 },
+      },
+    };
+
+    expect(aggregateValidTestStatus(testCase, ["chrome", "ios"], results)).toBe("NG");
+  });
+
+  it("returns null when no valid results exist", () => {
+    expect(aggregateValidTestStatus(testCase, ["chrome"], {})).toBeNull();
+  });
 });
 
 describe("mergeResultsFiles", () => {

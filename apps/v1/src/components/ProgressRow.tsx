@@ -11,7 +11,6 @@ export function progressBucketBgClass(bucket: ProgressBucket): string {
   if (bucket === "OK") return "bg-green-600";
   if (bucket === "NG") return "bg-red-600";
   if (bucket === "SKIP") return "bg-stone-500";
-  if (bucket === "OK_NG") return "bg-orange-600";
   return "bg-border";
 }
 
@@ -19,7 +18,6 @@ export function progressBucketTextClass(bucket: ProgressBucket): string {
   if (bucket === "OK") return "text-green-600";
   if (bucket === "NG") return "text-red-600";
   if (bucket === "SKIP") return "text-stone-500";
-  if (bucket === "OK_NG") return "text-orange-600";
   return "text-muted-foreground";
 }
 
