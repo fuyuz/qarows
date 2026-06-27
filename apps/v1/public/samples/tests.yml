@@ -156,7 +156,7 @@ testCases:
       medium: "入力"
       minor: "自動移動"
     prerequisites: "テスト実行画面を表示中"
-    description: "結果入力後、自動で次のテストへ移動する。最後のテスト後は完了カードへ進む"
+    description: "テストケースの全端末入力完了後、約500ms待ってから次のテストへ自動移動する。最後のテスト後は完了カードへ進む"
 
   - id: TC-012
     category:

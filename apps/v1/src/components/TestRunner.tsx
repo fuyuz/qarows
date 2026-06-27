@@ -13,6 +13,8 @@ import {
 } from "@/lib/runner-keybindings";
 import { resolveRunnerTestCases } from "@/lib/utils";
 
+const AUTO_ADVANCE_DELAY_MS = 500;
+
 export function TestRunner() {
   const {
     definition,
@@ -32,6 +34,16 @@ export function TestRunner() {
   const [flashEnvId, setFlashEnvId] = useState<string | null>(null);
   const didRestoreSlide = useRef(false);
   const skipFilterSlideReset = useRef(true);
+  const mountedRef = useRef(true);
+  const advanceDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (advanceDelayRef.current) clearTimeout(advanceDelayRef.current);
+    };
+  }, []);
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
@@ -92,9 +104,17 @@ export function TestRunner() {
     setMemo(existing);
   }, [current, envTargets, results]);
 
+  const cancelPendingAdvance = useCallback(() => {
+    if (advanceDelayRef.current) {
+      clearTimeout(advanceDelayRef.current);
+      advanceDelayRef.current = null;
+    }
+  }, []);
+
   const goToSlide = useCallback(
     (slide: number) => {
       if (slide < 0 || slide > maxSlide) return;
+      cancelPendingAdvance();
       setSlideIndex(slide);
       if (slide >= 1 && slide <= targets.length) {
         void setRunnerIndex(slide - 1);
@@ -102,7 +122,7 @@ export function TestRunner() {
         void setRunnerIndex(-1);
       }
     },
-    [maxSlide, setRunnerIndex, targets.length],
+    [maxSlide, cancelPendingAdvance, setRunnerIndex, targets.length],
   );
 
   const flashEnvironment = useCallback((envId: string) => {
@@ -110,30 +130,51 @@ export function TestRunner() {
     setTimeout(() => setFlashEnvId(null), 300);
   }, []);
 
+  const waitBeforeAutoAdvance = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        cancelPendingAdvance();
+        advanceDelayRef.current = setTimeout(() => {
+          advanceDelayRef.current = null;
+          resolve();
+        }, AUTO_ADVANCE_DELAY_MS);
+      }),
+    [cancelPendingAdvance],
+  );
+
+  const advanceAfterComplete = useCallback(
+    async (nextSlide: number) => {
+      await waitBeforeAutoAdvance();
+      if (!mountedRef.current) return;
+      goToSlide(nextSlide);
+    },
+    [goToSlide, waitBeforeAutoAdvance],
+  );
+
   const applyBatch = useCallback(
     async (status: TestStatus) => {
       if (!current || !envTargets || busy || testSlideIndex == null) return;
+      cancelPendingAdvance();
       setBusy(true);
       try {
         await updateResultsBatch(current.id, envTargets.environmentIds, {
           status,
           memo: memo.trim() || undefined,
         });
-        if (testSlideIndex < targets.length - 1) {
-          goToSlide(testSlideIndex + 2);
-        } else {
-          goToSlide(targets.length + 1);
-        }
       } finally {
         setBusy(false);
       }
+      const nextSlide =
+        testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
+      void advanceAfterComplete(nextSlide);
     },
     [
       busy,
+      cancelPendingAdvance,
       current,
       envTargets,
-      goToSlide,
       memo,
+      advanceAfterComplete,
       targets.length,
       testSlideIndex,
       updateResultsBatch,
@@ -143,6 +184,7 @@ export function TestRunner() {
   const applySingle = useCallback(
     async (envId: string, status: TestStatus) => {
       if (!current || !session || !envTargets || !results || busy || testSlideIndex == null) return;
+      cancelPendingAdvance();
       setBusy(true);
       try {
         const existing = results.results[current.id]?.[envId];
@@ -164,11 +206,9 @@ export function TestRunner() {
             : envTargets.environmentIds.every((id) => nextByEnv[id]?.status);
 
         if (isComplete) {
-          if (testSlideIndex < targets.length - 1) {
-            goToSlide(testSlideIndex + 2);
-          } else {
-            goToSlide(targets.length + 1);
-          }
+          const nextSlide =
+            testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
+          void advanceAfterComplete(nextSlide);
         }
       } finally {
         setBusy(false);
@@ -176,10 +216,11 @@ export function TestRunner() {
     },
     [
       busy,
+      cancelPendingAdvance,
       current,
       envTargets,
       flashEnvironment,
-      goToSlide,
+      advanceAfterComplete,
       memo,
       results,
       session,
