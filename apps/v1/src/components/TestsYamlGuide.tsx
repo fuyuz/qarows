@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import { TESTS_YAML_AI_GUIDE } from "@/lib/tests-yaml-guide";
 
 export function TestsYamlGuide() {
@@ -31,22 +32,19 @@ export function TestsYamlGuide() {
       </div>
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="sm"
-        className="shrink-0"
+        className={cn(
+          "h-7 shrink-0 gap-1.5 px-2 text-xs transition-colors duration-150 motion-reduce:transition-none",
+          copied
+            ? "text-green-600 hover:text-green-600 dark:text-green-500 dark:hover:text-green-500"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+        aria-label={copied ? "クリップボードにコピー済み" : "tests.yml 仕様をコピー"}
         onClick={() => void handleCopy()}
       >
-        {copied ? (
-          <>
-            <Check className="size-3.5" aria-hidden />
-            コピー済み
-          </>
-        ) : (
-          <>
-            <Copy className="size-3.5" aria-hidden />
-            仕様をコピー
-          </>
-        )}
+        <Copy className="size-3.5" aria-hidden />
+        コピー
       </Button>
     </section>
   );

@@ -85,19 +85,31 @@ function classifyFile(file: File): "tests" | "results" | null {
 
 export function classifyDroppedFiles(files: File[]): {
   tests?: File;
-  results?: File;
+  results: File[];
   unknown: File[];
 } {
   let tests: File | undefined;
-  let results: File | undefined;
+  const results: File[] = [];
   const unknown: File[] = [];
 
   for (const file of files) {
     const kind = classifyFile(file);
     if (kind === "tests" && !tests) tests = file;
-    else if (kind === "results" && !results) results = file;
+    else if (kind === "results") results.push(file);
     else unknown.push(file);
   }
 
   return { tests, results, unknown };
+}
+
+export function classifyResultsFiles(files: File[]): { results: File[]; unknown: File[] } {
+  const results: File[] = [];
+  const unknown: File[] = [];
+
+  for (const file of files) {
+    if (classifyFile(file) === "results") results.push(file);
+    else unknown.push(file);
+  }
+
+  return { results, unknown };
 }

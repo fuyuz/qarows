@@ -33,6 +33,7 @@ interface AppContextValue {
   lastUpdatedTestId: string | null;
   loadProject: (yaml: string, resultsJson?: string) => Promise<string>;
   mergeResultsFromFile: (json: string) => Promise<void>;
+  mergeResultsFromFiles: (jsons: string[]) => Promise<void>;
   setSession: (session: SessionConfig) => Promise<void>;
   updateResults: (
     testCaseId: string,
@@ -50,6 +51,7 @@ interface AppContextValue {
     patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
   ) => Promise<void>;
   clearTestResult: (testCaseId: string, envId: string) => Promise<void>;
+  clearResults: () => Promise<void>;
   resetProject: () => Promise<void>;
 }
 
@@ -126,14 +128,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
-  const mergeResultsFromFile = useCallback(
-    async (json: string) => {
+  const mergeResultsFromFiles = useCallback(
+    async (jsons: string[]) => {
       if (!results) throw new Error("結果データが読み込まれていません");
-      const incoming = parseResultsJson(json);
-      const merged = mergeResultsFiles(results, incoming);
+      if (jsons.length === 0) return;
+      let merged = results;
+      for (const json of jsons) {
+        const incoming = parseResultsJson(json);
+        merged = mergeResultsFiles(merged, incoming);
+      }
       await persist({ results: merged });
     },
     [persist, results],
+  );
+
+  const mergeResultsFromFile = useCallback(
+    async (json: string) => {
+      await mergeResultsFromFiles([json]);
+    },
+    [mergeResultsFromFiles],
   );
 
   const setSession = useCallback(
@@ -248,6 +261,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [markTestUpdated, persist, results],
   );
 
+  const clearResults = useCallback(async () => {
+    if (!definition) return;
+    const projectId = definition.project.id ?? "project";
+    await persist({
+      results: createEmptyResults(projectId),
+      session: null,
+    });
+  }, [definition, persist]);
+
   const resetProject = useCallback(async () => {
     await clearState();
     setDefinition(null);
@@ -264,12 +286,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lastUpdatedTestId,
       loadProject,
       mergeResultsFromFile,
+      mergeResultsFromFiles,
       setSession,
       updateResults,
       updateResultsBatch,
       updateResultsFile,
       updateTestCase,
       clearTestResult,
+      clearResults,
       resetProject,
     }),
     [
@@ -280,12 +304,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lastUpdatedTestId,
       loadProject,
       mergeResultsFromFile,
+      mergeResultsFromFiles,
       setSession,
       updateResults,
       updateResultsBatch,
       updateResultsFile,
       updateTestCase,
       clearTestResult,
+      clearResults,
       resetProject,
     ],
   );

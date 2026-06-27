@@ -94,7 +94,31 @@ testCases:
       major: "ファイル読み込み"
       minor: "results.json"
     prerequisites: "tests.yml 読み込み済み"
-    description: "results.json を任意で追加読み込みできる"
+    description: "results.json を複数同時に選べ、読み込み時にマージされる"
+
+  - id: TC-057
+    category:
+      major: "ファイル読み込み"
+      medium: "results.json"
+      minor: "追加"
+    prerequisites: "プロジェクト読み込み済み、/load を表示中"
+    description: "「results.json を追加」で複数ファイルを選び「取り込む」すると、現在の結果にマージされる。メインのドロップゾーンから追加してもよい"
+
+  - id: TC-058
+    category:
+      major: "ファイル読み込み"
+      medium: "状態"
+      minor: "結果クリア"
+    prerequisites: "プロジェクト読み込み済み、/load を表示中"
+    description: "「テスト結果をクリア」で実行結果・バグ・セッション設定のみ削除でき、tests.yml は残る"
+
+  - id: TC-059
+    category:
+      major: "ファイル読み込み"
+      medium: "状態"
+      minor: "読み込み解除"
+    prerequisites: "プロジェクト読み込み済み、/load を表示中"
+    description: "「tests.yml の読み込みを解除」で tests.yml・実行結果・セッション設定をすべて削除し、未読み込みのファイル選択 UI に切り替わる"
 
   - id: TC-004
     category:
@@ -176,7 +200,7 @@ testCases:
       medium: "バグ"
       minor: "起票Dialog"
     prerequisites: "テスト実行画面を表示中"
-    description: "「バグ報告」ボタンまたは b キーで Dialog を開き、タイトル・重要度・ステータス・担当者・再現手順・期待・実際を入力して起票できる。関連 TC・端末は変更可能。Create more で連続起票できる"
+    description: "「バグ報告」ボタンまたは b キーで Dialog を開き、タイトル・重要度・ステータス・担当者・再現手順・期待・実際を入力して起票できる。担当者はセッションの実施者名で prefill される。関連 TC・端末は変更可能。Create more で連続起票できる"
 
   - id: TC-035
     category:

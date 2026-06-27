@@ -43,6 +43,7 @@ export interface BugDialogProps {
   initialEnvironmentIds: string[];
   createMore: boolean;
   formKey: number;
+  defaultAssignee?: string;
   busy?: boolean;
   onCreateMoreChange: (value: boolean) => void;
   onSubmit: (draft: BugDialogDraft) => void | Promise<void>;
@@ -53,6 +54,7 @@ function buildInitialDraft(
   testCase: TestCase,
   initialTestCaseLinked: boolean,
   initialEnvironmentIds: string[],
+  defaultAssignee = "",
 ): BugDialogDraft {
   const prefill = buildBugPrefillFromTestCase(testCase);
   return {
@@ -60,7 +62,7 @@ function buildInitialDraft(
     environmentIds: [...initialEnvironmentIds],
     title: "",
     severity: "medium",
-    assignee: "",
+    assignee: defaultAssignee,
     status: "open",
     steps: prefill.steps,
     expected: prefill.expected,
@@ -148,21 +150,24 @@ export function BugDialog({
   initialEnvironmentIds,
   createMore,
   formKey,
+  defaultAssignee = "",
   busy = false,
   onCreateMoreChange,
   onSubmit,
   onCancel,
 }: BugDialogProps) {
   const [draft, setDraft] = useState(() =>
-    buildInitialDraft(testCase, initialTestCaseLinked, initialEnvironmentIds),
+    buildInitialDraft(testCase, initialTestCaseLinked, initialEnvironmentIds, defaultAssignee),
   );
   const [titleError, setTitleError] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setDraft(buildInitialDraft(testCase, initialTestCaseLinked, initialEnvironmentIds));
+    setDraft(
+      buildInitialDraft(testCase, initialTestCaseLinked, initialEnvironmentIds, defaultAssignee),
+    );
     setTitleError(false);
-  }, [open, formKey, testCase, initialTestCaseLinked, initialEnvironmentIds]);
+  }, [defaultAssignee, open, formKey, testCase, initialTestCaseLinked, initialEnvironmentIds]);
 
   const handleSubmit = async () => {
     const normalized = normalizeBugDialogDraft(draft);

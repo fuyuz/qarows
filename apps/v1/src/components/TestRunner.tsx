@@ -510,6 +510,7 @@ export function TestRunner() {
           initialEnvironmentIds={bugDialogState.initialEnvironmentIds}
           createMore={bugCreateMore}
           formKey={bugFormKey}
+          defaultAssignee={session.executorName}
           busy={busy}
           onCreateMoreChange={setBugCreateMore}
           onSubmit={handleBugSubmit}
