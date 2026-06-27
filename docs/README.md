@@ -10,6 +10,7 @@ QA シート特化 Web アプリ **qarows** の設計・要件ドキュメント
 | [ui-ux.md](./ui-ux.md) | UI / UX デザイン方針（強調・アニメーション・HUD） |
 | [data-format.md](./data-format.md) | データファイル形式（`tests.yml` / `results.json`） |
 | [deployment.md](./deployment.md) | デプロイ方針・セキュリティ・リポジトリ構成 |
+| [deploy-v1.md](./deploy-v1.md) | Phase 1 公式デプロイ手順（メンテナ向け） |
 
 ## バージョン
 

@@ -1,0 +1,45 @@
+# Phase 1 を Cloudflare Pages にデプロイ。
+# 初回: CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID を Repository Secrets に登録し、
+#       wrangler pages project create <project> で Pages プロジェクトを作成すること。
+# Dashboard の Git 連携と併用すると二重デプロイになるため、どちらか一方のみ有効にすること。
+# 詳細: docs/deploy-v1.md
+
+name: Deploy Phase 1
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-v1
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    permissions:
+      contents: read
+      deployments: write
+    env:
+      CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'qarows' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/v1/dist --project-name=${{ env.CLOUDFLARE_PAGES_PROJECT }} --branch=main
