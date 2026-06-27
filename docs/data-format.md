@@ -216,7 +216,7 @@ testCases:
   },
   "bugs": [
     {
-      "id": "BUG-001",
+      "id": "BUG-k7m2x9",
       "testCaseId": "TC-001",
       "title": "iOS Safari でレイアウト崩れ",
       "severity": "high",
@@ -229,6 +229,8 @@ testCases:
   ]
 }
 ```
+
+アプリで新規起票するバグの `id` は `BUG-{6文字の英小文字・数字}`（例: `BUG-k7m2x9`）を自動採番する。並行作業での衝突を避けるため連番ではなくランダム suffix を使う。手動 import や旧データの `BUG-001` 形式もそのまま読み込める。
 
 ### ステータス
 

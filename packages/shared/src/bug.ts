@@ -44,11 +44,25 @@ export function buildBugPrefillFromTestCase(testCase: TestCase): {
   };
 }
 
-export function nextBugId(bugs: Bug[]): string {
-  let max = 0;
-  for (const bug of bugs) {
-    const match = /^BUG-(\d+)$/i.exec(bug.id);
-    if (match) max = Math.max(max, Number.parseInt(match[1], 10));
+const BUG_ID_SUFFIX_LENGTH = 6;
+const BUG_ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+function randomBugIdSuffix(): string {
+  const bytes = new Uint8Array(BUG_ID_SUFFIX_LENGTH);
+  crypto.getRandomValues(bytes);
+  let suffix = "";
+  for (let i = 0; i < BUG_ID_SUFFIX_LENGTH; i++) {
+    suffix += BUG_ID_CHARS[bytes[i]! % BUG_ID_CHARS.length];
   }
-  return `BUG-${String(max + 1).padStart(3, "0")}`;
+  return suffix;
+}
+
+/** 並行作業でも衝突しにくい BUG-{6文字} 形式の ID を返す */
+export function nextBugId(bugs: Bug[]): string {
+  const existing = new Set(bugs.map((bug) => bug.id.toLowerCase()));
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const id = `BUG-${randomBugIdSuffix()}`;
+    if (!existing.has(id.toLowerCase())) return id;
+  }
+  throw new Error("バグ ID を生成できませんでした");
 }
