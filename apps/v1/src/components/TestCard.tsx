@@ -44,79 +44,81 @@ export function TestCard({
   onSingle,
 }: TestCardProps) {
   return (
-    <article className="test-card">
-      <header className="test-card__header">
-        <span className="test-card__id">{testCase.id}</span>
-        <span className="test-card__category">{formatCategory(testCase)}</span>
-      </header>
+    <article className="test-card test-card--action">
+      <div className="test-card__body">
+        <header className="test-card__header">
+          <span className="test-card__id">{testCase.id}</span>
+          <span className="test-card__category">{formatCategory(testCase)}</span>
+        </header>
 
-      {testCase.prerequisites && (
+        {testCase.prerequisites && (
+          <section className="test-card__section">
+            <h2 className="test-card__label">前提条件</h2>
+            <p className="test-card__text">{testCase.prerequisites}</p>
+          </section>
+        )}
+
         <section className="test-card__section">
-          <h2 className="test-card__label">前提条件</h2>
-          <p className="test-card__text">{testCase.prerequisites}</p>
+          <h2 className="test-card__label">確認内容</h2>
+          <p className="test-card__text test-card__text--description">{testCase.description}</p>
         </section>
-      )}
 
-      <section className="test-card__section">
-        <h2 className="test-card__label">確認内容</h2>
-        <p className="test-card__text test-card__text--description">{testCase.description}</p>
-      </section>
+        <section className="test-card__section">
+          <h2 className="test-card__label">
+            対象端末
+            <span className="test-card__req-badge">
+              {envTargets.required === "any" ? "any" : "all"}
+            </span>
+          </h2>
+          <ul className="env-result-list">
+            {envTargets.environmentIds.map((envId) => {
+              const env = definition.environments.find((e) => e.id === envId);
+              const entry = results[testCase.id]?.[envId];
+              return (
+                <li key={envId} className="env-result-list__item">
+                  <div className="env-result-list__info">
+                    <span className="env-result-list__name">{env?.name ?? envId}</span>
+                    {entry?.status && (
+                      <span className={`status-badge ${statusBadgeClass(entry.status)}`}>
+                        {STATUS_LABELS[entry.status]}
+                      </span>
+                    )}
+                  </div>
+                  <div className="env-result-list__actions">
+                    {(["OK", "NG", "SKIP"] as const).map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        className={`btn btn--sm btn--status btn--status-${status.toLowerCase()}${
+                          entry?.status === status ? " btn--status-active" : ""
+                        }`}
+                        disabled={busy}
+                        onClick={() => onSingle(envId, status)}
+                      >
+                        {STATUS_LABELS[status]}
+                      </button>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
-      <section className="test-card__section">
-        <h2 className="test-card__label">
-          対象端末
-          <span className="test-card__req-badge">
-            {envTargets.required === "any" ? "any" : "all"}
-          </span>
-        </h2>
-        <ul className="env-result-list">
-          {envTargets.environmentIds.map((envId) => {
-            const env = definition.environments.find((e) => e.id === envId);
-            const entry = results[testCase.id]?.[envId];
-            return (
-              <li key={envId} className="env-result-list__item">
-                <div className="env-result-list__info">
-                  <span className="env-result-list__name">{env?.name ?? envId}</span>
-                  {entry?.status && (
-                    <span className={`status-badge ${statusBadgeClass(entry.status)}`}>
-                      {STATUS_LABELS[entry.status]}
-                    </span>
-                  )}
-                </div>
-                <div className="env-result-list__actions">
-                  {(["OK", "NG", "SKIP"] as const).map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      className={`btn btn--sm btn--status btn--status-${status.toLowerCase()}${
-                        entry?.status === status ? " btn--status-active" : ""
-                      }`}
-                      disabled={busy}
-                      onClick={() => onSingle(envId, status)}
-                    >
-                      {STATUS_LABELS[status]}
-                    </button>
-                  ))}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      <section className="test-card__section">
-        <label className="form-label" htmlFor={`test-memo-${testCase.id}`}>
-          メモ
-        </label>
-        <textarea
-          id={`test-memo-${testCase.id}`}
-          className="form-textarea"
-          rows={3}
-          placeholder="任意"
-          value={memo}
-          onChange={(e) => onMemoChange(e.target.value)}
-        />
-      </section>
+        <section className="test-card__section">
+          <label className="form-label" htmlFor={`test-memo-${testCase.id}`}>
+            メモ
+          </label>
+          <textarea
+            id={`test-memo-${testCase.id}`}
+            className="form-textarea"
+            rows={3}
+            placeholder="任意"
+            value={memo}
+            onChange={(e) => onMemoChange(e.target.value)}
+          />
+        </section>
+      </div>
 
       <footer className="test-card__footer">
         <button type="button" className="btn btn--ok" disabled={busy} onClick={() => onBatch("OK")}>

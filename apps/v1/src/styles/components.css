@@ -523,7 +523,7 @@
 
 .test-runner__stage {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 0.35rem;
   width: 100%;
@@ -533,6 +533,11 @@
   flex: none;
   width: min(88vw, 42rem);
   max-width: 100%;
+  min-height: 80vh;
+}
+
+.test-runner__card .test-card {
+  min-height: 80vh;
 }
 
 .test-runner__arrow {
@@ -581,6 +586,20 @@
   border-radius: 12px;
   padding: 1.25rem;
   box-shadow: 0 1px 3px rgb(0 0 0 / 5%);
+}
+
+.test-card--action {
+  display: flex;
+  flex-direction: column;
+  min-height: 80vh;
+  padding-bottom: 0;
+}
+
+.test-card__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 0.75rem;
 }
 
 .test-card--intro {
@@ -711,8 +730,11 @@
 .test-card__footer {
   display: flex;
   gap: 0.75rem;
-  padding-top: 0.5rem;
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: 0.85rem 0 1.25rem;
   border-top: 1px solid #f0f0ec;
+  background: #fff;
 }
 
 .btn--ok {
