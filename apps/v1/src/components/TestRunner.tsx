@@ -1,25 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { resolveSessionTestTargets, type TestCase, type TestStatus } from "@qarows/shared";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { resolveSessionTestTargets, type TestStatus } from "@qarows/shared";
+import { RunnerCompleteCard } from "@/components/RunnerCompleteCard";
+import { RunnerIntroCard } from "@/components/RunnerIntroCard";
+import { TestCard } from "@/components/TestCard";
 import { useApp } from "@/context/AppContext";
+import {
+  isRunnerNextKey,
+  isRunnerPrevKey,
+  isRunnerTypingTarget,
+  matchRunnerStatusKey,
+} from "@/lib/runner-keybindings";
 import { filterTestCases } from "@/lib/utils";
 
-const STATUS_LABELS: Record<TestStatus, string> = {
-  OK: "OK",
-  NG: "NG",
-  SKIP: "SKIP",
-  OK_NG: "OK→NG",
-};
-
-function statusBadgeClass(status: TestStatus): string {
-  if (status === "OK_NG") return "status-badge--ok-ng";
-  return `status-badge--${status.toLowerCase()}`;
-}
-
-function formatCategory(tc: TestCase): string {
-  const parts = [tc.category.major];
-  if (tc.category.medium) parts.push(tc.category.medium);
-  if (tc.category.minor) parts.push(tc.category.minor);
-  return parts.join(" › ");
+function getPositionLabel(slideIndex: number, testCount: number): string {
+  if (slideIndex === 0) return "使い方";
+  if (slideIndex === testCount + 1) return "完了";
+  return `${slideIndex} / ${testCount}`;
 }
 
 export function TestRunner() {
@@ -34,21 +30,45 @@ export function TestRunner() {
     updateResultsBatch,
   } = useApp();
 
+  const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
+  const didRestoreSlide = useRef(false);
+  const skipFilterSlideReset = useRef(true);
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
     return filterTestCases(definition, session, runnerFilters, results.results);
   }, [definition, results, session, runnerFilters]);
 
-  const safeIndex = targets.length === 0 ? 0 : Math.min(runnerIndex, targets.length - 1);
-  const current = targets[safeIndex];
+  const maxSlide = targets.length + 1;
+  const testSlideIndex = slideIndex >= 1 && slideIndex <= targets.length ? slideIndex - 1 : null;
+  const current = testSlideIndex != null ? targets[testSlideIndex] : undefined;
 
   const envTargets = useMemo(() => {
     if (!current || !definition || !session) return null;
     return resolveSessionTestTargets(current, definition, session.selectedEnvironmentIds);
   }, [current, definition, session]);
+
+  useEffect(() => {
+    if (didRestoreSlide.current) return;
+    didRestoreSlide.current = true;
+    if (runnerIndex > 0) {
+      setSlideIndex(Math.min(runnerIndex + 1, targets.length + 1));
+    }
+  }, [runnerIndex, targets.length]);
+
+  useEffect(() => {
+    setSlideIndex((prev) => Math.min(prev, targets.length + 1));
+  }, [targets.length]);
+
+  useEffect(() => {
+    if (skipFilterSlideReset.current) {
+      skipFilterSlideReset.current = false;
+      return;
+    }
+    setSlideIndex(targets.length > 0 ? 1 : 0);
+  }, [runnerFilters, targets.length]);
 
   useEffect(() => {
     if (targets.length > 0 && runnerIndex >= targets.length) {
@@ -68,25 +88,30 @@ export function TestRunner() {
     setMemo(existing);
   }, [current, envTargets, results]);
 
-  const goTo = useCallback(
-    (index: number) => {
-      if (index < 0 || index >= targets.length) return;
-      void setRunnerIndex(index);
+  const goToSlide = useCallback(
+    (slide: number) => {
+      if (slide < 0 || slide > maxSlide) return;
+      setSlideIndex(slide);
+      if (slide >= 1 && slide <= targets.length) {
+        void setRunnerIndex(slide - 1);
+      }
     },
-    [setRunnerIndex, targets.length],
+    [maxSlide, setRunnerIndex, targets.length],
   );
 
   const applyBatch = useCallback(
     async (status: TestStatus) => {
-      if (!current || !envTargets || busy) return;
+      if (!current || !envTargets || busy || testSlideIndex == null) return;
       setBusy(true);
       try {
         await updateResultsBatch(current.id, envTargets.environmentIds, {
           status,
           memo: memo.trim() || undefined,
         });
-        if (safeIndex < targets.length - 1) {
-          await setRunnerIndex(safeIndex + 1);
+        if (testSlideIndex < targets.length - 1) {
+          goToSlide(testSlideIndex + 2);
+        } else {
+          goToSlide(targets.length + 1);
         }
       } finally {
         setBusy(false);
@@ -96,17 +121,17 @@ export function TestRunner() {
       busy,
       current,
       envTargets,
+      goToSlide,
       memo,
-      safeIndex,
-      setRunnerIndex,
       targets.length,
+      testSlideIndex,
       updateResultsBatch,
     ],
   );
 
   const applySingle = useCallback(
     async (envId: string, status: TestStatus) => {
-      if (!current || !session || !envTargets || !results || busy) return;
+      if (!current || !session || !envTargets || !results || busy || testSlideIndex == null) return;
       setBusy(true);
       try {
         const existing = results.results[current.id]?.[envId];
@@ -126,8 +151,12 @@ export function TestRunner() {
             ? envTargets.environmentIds.some((id) => nextByEnv[id]?.status)
             : envTargets.environmentIds.every((id) => nextByEnv[id]?.status);
 
-        if (isComplete && safeIndex < targets.length - 1) {
-          await setRunnerIndex(safeIndex + 1);
+        if (isComplete) {
+          if (testSlideIndex < targets.length - 1) {
+            goToSlide(testSlideIndex + 2);
+          } else {
+            goToSlide(targets.length + 1);
+          }
         }
       } finally {
         setBusy(false);
@@ -137,145 +166,94 @@ export function TestRunner() {
       busy,
       current,
       envTargets,
+      goToSlide,
       memo,
       results,
-      safeIndex,
       session,
-      setRunnerIndex,
       targets.length,
+      testSlideIndex,
       updateResults,
     ],
   );
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (busy) return;
+      if (isRunnerTypingTarget(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (isRunnerPrevKey(e.key)) {
+        if (slideIndex > 0) {
+          e.preventDefault();
+          goToSlide(slideIndex - 1);
+        }
+        return;
+      }
+      if (isRunnerNextKey(e.key)) {
+        if (slideIndex < maxSlide) {
+          e.preventDefault();
+          goToSlide(slideIndex + 1);
+        }
+        return;
+      }
+
+      if (testSlideIndex == null) return;
+
+      const status = matchRunnerStatusKey(e.key);
+      if (status) {
+        e.preventDefault();
+        void applyBatch(status);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [applyBatch, busy, goToSlide, maxSlide, slideIndex, testSlideIndex]);
+
   if (!definition || !results || !session) return null;
-
-  if (targets.length === 0) {
-    return (
-      <div className="runner-empty">
-        <p>フィルタ条件に一致するテストがありません。</p>
-      </div>
-    );
-  }
-
-  if (!current || !envTargets) return null;
 
   return (
     <div className="test-runner">
-      <div className="test-runner__nav">
+      <p className="test-runner__position">{getPositionLabel(slideIndex, targets.length)}</p>
+
+      <div className="test-runner__stage">
         <button
           type="button"
-          className="btn btn--ghost btn--sm"
-          disabled={safeIndex === 0 || busy}
-          onClick={() => goTo(safeIndex - 1)}
+          className="test-runner__arrow"
+          disabled={slideIndex === 0 || busy}
+          aria-label="前へ"
+          onClick={() => goToSlide(slideIndex - 1)}
         >
-          ← 前へ
+          ‹
         </button>
-        <span className="test-runner__position">
-          {safeIndex + 1} / {targets.length}
-        </span>
+
+        <div className="test-runner__card">
+          {slideIndex === 0 && <RunnerIntroCard />}
+          {slideIndex === maxSlide && <RunnerCompleteCard testCount={targets.length} />}
+          {current && envTargets && (
+            <TestCard
+              testCase={current}
+              definition={definition}
+              results={results.results}
+              envTargets={envTargets}
+              memo={memo}
+              busy={busy}
+              onMemoChange={setMemo}
+              onBatch={(status) => void applyBatch(status)}
+              onSingle={(envId, status) => void applySingle(envId, status)}
+            />
+          )}
+        </div>
+
         <button
           type="button"
-          className="btn btn--ghost btn--sm"
-          disabled={safeIndex >= targets.length - 1 || busy}
-          onClick={() => goTo(safeIndex + 1)}
+          className="test-runner__arrow"
+          disabled={slideIndex >= maxSlide || busy}
+          aria-label="次へ"
+          onClick={() => goToSlide(slideIndex + 1)}
         >
-          次へ →
+          ›
         </button>
       </div>
-
-      <article className="test-card">
-        <header className="test-card__header">
-          <span className="test-card__id">{current.id}</span>
-          <span className="test-card__category">{formatCategory(current)}</span>
-        </header>
-
-        {current.prerequisites && (
-          <section className="test-card__section">
-            <h2 className="test-card__label">前提条件</h2>
-            <p className="test-card__text">{current.prerequisites}</p>
-          </section>
-        )}
-
-        <section className="test-card__section">
-          <h2 className="test-card__label">確認内容</h2>
-          <p className="test-card__text test-card__text--description">{current.description}</p>
-        </section>
-
-        <section className="test-card__section">
-          <h2 className="test-card__label">
-            対象端末
-            <span className="test-card__req-badge">
-              {envTargets.required === "any" ? "any" : "all"}
-            </span>
-          </h2>
-          <ul className="env-result-list">
-            {envTargets.environmentIds.map((envId) => {
-              const env = definition.environments.find((e) => e.id === envId);
-              const entry = results.results[current.id]?.[envId];
-              return (
-                <li key={envId} className="env-result-list__item">
-                  <div className="env-result-list__info">
-                    <span className="env-result-list__name">{env?.name ?? envId}</span>
-                    {entry?.status && (
-                      <span className={`status-badge ${statusBadgeClass(entry.status)}`}>
-                        {STATUS_LABELS[entry.status]}
-                      </span>
-                    )}
-                  </div>
-                  <div className="env-result-list__actions">
-                    {(["OK", "NG", "SKIP"] as const).map((status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        className={`btn btn--sm btn--status btn--status-${status.toLowerCase()}${
-                          entry?.status === status ? " btn--status-active" : ""
-                        }`}
-                        disabled={busy}
-                        onClick={() => void applySingle(envId, status)}
-                      >
-                        {STATUS_LABELS[status]}
-                      </button>
-                    ))}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        <section className="test-card__section">
-          <label className="form-label" htmlFor="test-memo">
-            メモ
-          </label>
-          <textarea
-            id="test-memo"
-            className="form-textarea"
-            rows={3}
-            placeholder="任意"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-          />
-        </section>
-
-        <footer className="test-card__footer">
-          <button
-            type="button"
-            className="btn btn--ok"
-            disabled={busy}
-            onClick={() => void applyBatch("OK")}
-          >
-            一括 OK
-          </button>
-          <button
-            type="button"
-            className="btn btn--ng"
-            disabled={busy}
-            onClick={() => void applyBatch("NG")}
-          >
-            一括 NG
-          </button>
-        </footer>
-      </article>
     </div>
   );
 }
