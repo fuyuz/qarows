@@ -55,7 +55,7 @@ function ProgressTrack({
     );
   }
 
-  const segments = PROGRESS_SEGMENT_ORDER.filter((key) => stats.buckets[key] > 0);
+  const segments = PROGRESS_SEGMENT_ORDER;
 
   return (
     <div
@@ -67,20 +67,25 @@ function ProgressTrack({
       aria-valuemax={stats.total}
       aria-label={progressSummary(stats)}
     >
-      {segments.map((key) => (
-        <div
-          key={key}
-          className={cn(
-            "h-full min-w-0.5 transition-[width,filter] duration-200",
-            bucketClass(key),
-            hoveredBucket === key && "brightness-110",
-          )}
-          style={{ width: `${(stats.buckets[key] / stats.total) * 100}%` }}
-          onMouseEnter={(event) =>
-            onHoverBucket(key, event.currentTarget.offsetLeft + event.currentTarget.offsetWidth / 2)
-          }
-        />
-      ))}
+      {segments.map((key) => {
+        const widthPct = (stats.buckets[key] / stats.total) * 100;
+        return (
+          <div
+            key={key}
+            className={cn(
+              "h-full transition-[width,filter] duration-600 ease-in-out",
+              widthPct > 0 ? "min-w-0.5" : "min-w-0",
+              bucketClass(key),
+              hoveredBucket === key && widthPct > 0 && "brightness-110",
+            )}
+            style={{ width: `${widthPct}%` }}
+            onMouseEnter={(event) => {
+              if (widthPct <= 0) return;
+              onHoverBucket(key, event.currentTarget.offsetLeft + event.currentTarget.offsetWidth / 2);
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -106,7 +111,7 @@ function ProgressRow({
         </span>
         <span
           key={`${stats.completed}-${stats.total}`}
-          className="animate-in fade-in duration-200 text-xs font-semibold tabular-nums"
+          className="animate-in fade-in duration-600 text-xs font-semibold tabular-nums"
         >
           <span className="text-foreground">{stats.completed}</span>
           <span className="text-muted-foreground"> / {stats.total}</span>
