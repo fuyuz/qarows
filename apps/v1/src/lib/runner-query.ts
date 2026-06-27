@@ -19,6 +19,7 @@ export const runnerQueryParsers = {
   scenario: parseAsString,
   incomplete: parseAsBoolean.withDefault(false),
   test: parseAsString,
+  bug: parseAsString,
 };
 
 export type RunnerQueryState = {
@@ -29,6 +30,7 @@ export type RunnerQueryState = {
   scenario: string | null;
   incomplete: boolean;
   test: string | null;
+  bug: string | null;
 };
 
 export function searchParamsToRunnerQuery(search: URLSearchParams): RunnerQueryState {
@@ -41,17 +43,20 @@ export function searchParamsToRunnerQuery(search: URLSearchParams): RunnerQueryS
     scenario: search.get("scenario"),
     incomplete: incompleteRaw === "1" || incompleteRaw === "true",
     test: search.get("test"),
+    bug: search.get("bug"),
   };
 }
 
 export function parseRunnerSearchParams(search: URLSearchParams): {
   filters: RunnerFilters;
   testId: string | null;
+  bugId: string | null;
 } {
   const query = searchParamsToRunnerQuery(search);
   return {
     filters: queryToRunnerFilters(query),
     testId: query.test,
+    bugId: query.bug,
   };
 }
 
@@ -108,10 +113,12 @@ export function runnerFiltersToQuery(
 export function runnerFiltersToSearchParams(
   filters?: RunnerFilters,
   testId?: string | null,
+  bugId?: string | null,
 ): URLSearchParams {
   const params = new URLSearchParams();
   if (!filters) {
     if (testId) params.set("test", testId);
+    if (bugId) params.set("bug", bugId);
     return params;
   }
   const query = runnerFiltersToQuery(filters);
@@ -122,6 +129,7 @@ export function runnerFiltersToSearchParams(
   if (query.scenario) params.set("scenario", query.scenario);
   if (query.incomplete) params.set("incomplete", "1");
   if (testId) params.set("test", testId);
+  if (bugId) params.set("bug", bugId);
   return params;
 }
 
@@ -133,4 +141,5 @@ export const runnerQueryKeys = {
   scenario: "scenario",
   incomplete: "incomplete",
   test: "test",
+  bug: "bug",
 } satisfies UrlKeys<typeof runnerQueryParsers>;

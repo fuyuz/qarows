@@ -1,7 +1,7 @@
 import type { RunnerFilters, TestDefinition } from "@qarows/shared";
 import { runnerFiltersToSearchParams } from "@/lib/runner-query";
 
-export type ProjectPage = "session" | "run" | "matrix" | "dashboard";
+export type ProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs";
 
 export function resolveProjectId(
   definition: TestDefinition | null | undefined,
@@ -15,8 +15,9 @@ export function projectPath(
   page: ProjectPage,
   filters?: RunnerFilters,
   testId?: string | null,
+  bugId?: string | null,
 ): string {
-  const params = runnerFiltersToSearchParams(filters, testId);
+  const params = runnerFiltersToSearchParams(filters, testId, bugId);
   const search = params.toString();
   const base = `/p/${encodeURIComponent(projectId)}/${page}`;
   return search ? `${base}?${search}` : base;

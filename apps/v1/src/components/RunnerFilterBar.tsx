@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { getRunnerTargetMode } from "@qarows/shared";
+import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,8 +13,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { RunnerCardTransition } from "@/components/RunnerCardTransition";
-import { getAllEnvironmentIds } from "@/lib/run-progress";
-import { resolveMatrixTestCases } from "@/lib/matrix-test-cases";
+import { BUG_SEVERITY_VALUES, BUG_STATUS_VALUES } from "@/lib/bug-query";
 import {
   getMajorCategories,
   getMediumCategories,
@@ -119,24 +118,57 @@ function RunnerModeSwitch({
   );
 }
 
+function BugMultiCheckFilter<T extends string>({
+  label,
+  options,
+  labels,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: readonly T[];
+  labels: Record<T, string>;
+  selected: readonly T[];
+  onToggle: (value: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <Label className="shrink-0 text-sm font-semibold">{label}</Label>
+      {options.map((value) => {
+        const checked = selected.includes(value);
+        return (
+          <label
+            key={value}
+            className={cn(
+              "flex cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-200",
+              checked && "bg-primary/10 text-primary",
+            )}
+          >
+            <Checkbox checked={checked} onCheckedChange={() => onToggle(value)} />
+            <span>{labels[value]}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export function RunnerFilterBar({
   className,
   maxWidthClass = "max-w-6xl",
+  variant = "runner",
 }: {
   className?: string;
   maxWidthClass?: string;
+  variant?: "runner" | "bugs";
 }) {
-  const { definition, results, session } = useApp();
-  const { runnerFilters, setRunnerFilters } = useRunnerQueryState();
+  const { definition } = useApp();
+  const { runnerFilters, setRunnerFilters, bugFilters, toggleBugPriority, toggleBugStatus } =
+    useRunnerQueryState();
 
   const mode = getRunnerTargetMode(runnerFilters);
   const scenarios = definition?.scenarios ?? [];
   const hasScenarios = scenarios.length > 0;
-
-  const allEnvIds = useMemo(
-    () => (definition ? getAllEnvironmentIds(definition) : []),
-    [definition],
-  );
 
   const majorCategories = useMemo(
     () => (definition ? getMajorCategories(definition) : []),
@@ -160,17 +192,6 @@ export function RunnerFilterBar({
         : [],
     [definition, runnerFilters.majorCategoryFilter, runnerFilters.mediumCategoryFilter],
   );
-
-  const targetCount = useMemo(() => {
-    if (!definition || !results) return null;
-    return resolveMatrixTestCases(
-      definition,
-      runnerFilters,
-      results.results,
-      allEnvIds,
-      session,
-    ).length;
-  }, [allEnvIds, definition, results, runnerFilters, session]);
 
   if (!definition) return null;
 
@@ -241,147 +262,161 @@ export function RunnerFilterBar({
     <div className={cn("border-b bg-card shadow-sm", className)}>
       <div
         className={cn(
-          "mx-auto flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-2.5 pr-16",
+          "mx-auto flex flex-col gap-2 px-5 py-2.5 pr-16",
           maxWidthClass,
         )}
       >
-        <RunnerModeSwitch
-          value={filterMode ? "filter" : "scenario"}
-          onFilter={switchToFilterMode}
-          onScenario={switchToScenarioMode}
-          hasScenarios={hasScenarios}
-        />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <RunnerModeSwitch
+            value={filterMode ? "filter" : "scenario"}
+            onFilter={switchToFilterMode}
+            onScenario={switchToScenarioMode}
+            hasScenarios={hasScenarios}
+          />
 
-        <div className="min-w-0 flex-1">
-          <RunnerCardTransition slideKey={filterMode ? "filter" : "scenario"}>
-            {filterMode ? (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <div className="flex items-center gap-2">
-                  <Label className="shrink-0 text-sm font-semibold">大分類</Label>
-                  <Select
-                    value={runnerFilters.majorCategoryFilter ?? ALL}
-                    onValueChange={updateMajorFilter}
-                  >
-                    <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL}>すべて</SelectItem>
-                      {majorCategories.map((major) => (
-                        <SelectItem key={major} value={major}>
-                          {major}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <div className="min-w-0 flex-1">
+            <RunnerCardTransition slideKey={filterMode ? "filter" : "scenario"}>
+              {filterMode ? (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="shrink-0 text-sm font-semibold">大分類</Label>
+                    <Select
+                      value={runnerFilters.majorCategoryFilter ?? ALL}
+                      onValueChange={updateMajorFilter}
+                    >
+                      <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>すべて</SelectItem>
+                        {majorCategories.map((major) => (
+                          <SelectItem key={major} value={major}>
+                            {major}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Label className="shrink-0 text-sm font-semibold">中分類</Label>
+                    <Select
+                      value={runnerFilters.mediumCategoryFilter ?? ALL}
+                      onValueChange={updateMediumFilter}
+                      disabled={mediumCategories.length === 0}
+                    >
+                      <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>すべて</SelectItem>
+                        {mediumCategories.map((medium) => (
+                          <SelectItem key={medium} value={medium}>
+                            {medium}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Label className="shrink-0 text-sm font-semibold">小分類</Label>
+                    <Select
+                      value={runnerFilters.minorCategoryFilter ?? ALL}
+                      onValueChange={(value) =>
+                        void setRunnerFilters({
+                          ...runnerFilters,
+                          targetMode: "filter",
+                          scenarioId: undefined,
+                          minorCategoryFilter: value === ALL ? undefined : value,
+                        })
+                      }
+                      disabled={minorCategories.length === 0}
+                    >
+                      <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>すべて</SelectItem>
+                        {minorCategories.map((minor) => (
+                          <SelectItem key={minor} value={minor}>
+                            {minor}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Label className="shrink-0 text-sm font-semibold">中分類</Label>
+              ) : (
+                <div className="flex min-w-40 flex-1 items-center gap-2">
+                  <Label className="shrink-0 text-sm font-semibold">シナリオ</Label>
                   <Select
-                    value={runnerFilters.mediumCategoryFilter ?? ALL}
-                    onValueChange={updateMediumFilter}
-                    disabled={mediumCategories.length === 0}
-                  >
-                    <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL}>すべて</SelectItem>
-                      {mediumCategories.map((medium) => (
-                        <SelectItem key={medium} value={medium}>
-                          {medium}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Label className="shrink-0 text-sm font-semibold">小分類</Label>
-                  <Select
-                    value={runnerFilters.minorCategoryFilter ?? ALL}
+                    value={runnerFilters.scenarioId ?? scenarios[0]?.id ?? ""}
                     onValueChange={(value) =>
                       void setRunnerFilters({
                         ...runnerFilters,
-                        targetMode: "filter",
-                        scenarioId: undefined,
-                        minorCategoryFilter: value === ALL ? undefined : value,
+                        targetMode: "scenario",
+                        scenarioId: value || undefined,
+                        majorCategoryFilter: undefined,
+                        mediumCategoryFilter: undefined,
+                        minorCategoryFilter: undefined,
                       })
                     }
-                    disabled={minorCategories.length === 0}
                   >
-                    <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                    <SelectTrigger className="h-auto min-w-48 max-w-72 flex-1 px-2.5 py-1.5 text-sm font-semibold">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={ALL}>すべて</SelectItem>
-                      {minorCategories.map((minor) => (
-                        <SelectItem key={minor} value={minor}>
-                          {minor}
+                      {scenarios.map((scenario) => (
+                        <SelectItem key={scenario.id} value={scenario.id}>
+                          {scenario.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            ) : (
-              <div className="flex min-w-40 flex-1 items-center gap-2">
-                <Label className="shrink-0 text-sm font-semibold">シナリオ</Label>
-                <Select
-                  value={runnerFilters.scenarioId ?? scenarios[0]?.id ?? ""}
-                  onValueChange={(value) =>
-                    void setRunnerFilters({
-                      ...runnerFilters,
-                      targetMode: "scenario",
-                      scenarioId: value || undefined,
-                      majorCategoryFilter: undefined,
-                      mediumCategoryFilter: undefined,
-                      minorCategoryFilter: undefined,
-                    })
-                  }
-                >
-                  <SelectTrigger className="h-auto min-w-48 max-w-72 flex-1 px-2.5 py-1.5 text-sm font-semibold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scenarios.map((scenario) => (
-                      <SelectItem key={scenario.id} value={scenario.id}>
-                        {scenario.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </RunnerCardTransition>
+              )}
+            </RunnerCardTransition>
+          </div>
+
+          {variant === "runner" && (
+            <label
+              className={cn(
+                "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
+                runnerFilters.onlyIncomplete && "bg-primary/10 text-primary",
+              )}
+            >
+              <Checkbox
+                checked={runnerFilters.onlyIncomplete}
+                onCheckedChange={(checked) =>
+                  void setRunnerFilters({
+                    ...runnerFilters,
+                    onlyIncomplete: checked === true,
+                  })
+                }
+              />
+              <span>未実施のみ</span>
+            </label>
+          )}
         </div>
 
-        <label
-          className={cn(
-            "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
-            runnerFilters.onlyIncomplete && "bg-primary/10 text-primary",
-          )}
-        >
-          <Checkbox
-            checked={runnerFilters.onlyIncomplete}
-            onCheckedChange={(checked) =>
-              void setRunnerFilters({
-                ...runnerFilters,
-                onlyIncomplete: checked === true,
-              })
-            }
-          />
-          <span>未実施のみ</span>
-        </label>
-
-        {targetCount !== null && (
-          <span
-            key={targetCount}
-            className="ml-auto animate-in fade-in duration-200 text-sm font-semibold text-primary tabular-nums"
-          >
-            {targetCount} 件
-          </span>
+        {variant === "bugs" && (
+          <>
+            <BugMultiCheckFilter
+              label="重要度"
+              options={BUG_SEVERITY_VALUES}
+              labels={BUG_SEVERITY_LABELS}
+              selected={bugFilters.priorities}
+              onToggle={toggleBugPriority}
+            />
+            <BugMultiCheckFilter
+              label="ステータス"
+              options={BUG_STATUS_VALUES}
+              labels={BUG_STATUS_LABELS}
+              selected={bugFilters.statuses}
+              onToggle={toggleBugStatus}
+            />
+          </>
         )}
       </div>
     </div>

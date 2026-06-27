@@ -9,6 +9,8 @@ import {
   runnerFiltersToQuery,
   runnerQueryParsers,
 } from "@/lib/runner-query";
+import { bugQueryParsers } from "@/lib/bug-query";
+import type { BugSeverity, BugStatus } from "@qarows/shared";
 
 function nuqsToRunnerFilters(query: {
   mode: "filter" | "scenario";
@@ -26,6 +28,7 @@ function nuqsToRunnerFilters(query: {
     scenario: query.scenario,
     incomplete: query.incomplete,
     test: null,
+    bug: null,
   });
 }
 
@@ -35,7 +38,10 @@ export function useRunnerQueryState() {
     () => parseRunnerSearchParams(searchParams),
     [searchParams],
   );
-  const [query, setQuery] = useQueryStates(runnerQueryParsers, { history: "replace" });
+  const [query, setQuery] = useQueryStates(
+    { ...runnerQueryParsers, ...bugQueryParsers },
+    { history: "replace" },
+  );
 
   const runnerFilters = useMemo(() => {
     const fromNuqs = nuqsToRunnerFilters(query);
@@ -45,16 +51,20 @@ export function useRunnerQueryState() {
   }, [query, urlState.filters]);
 
   const testId = query.test ?? urlState.testId;
+  const bugId = query.bug ?? urlState.bugId;
   const filtersSettled = useMemo(() => isRunnerFiltersSettled(runnerFilters), [runnerFilters]);
 
   const setRunnerFilters = useCallback(
-    (filters: RunnerFilters, options?: { testId?: string | null; keepTest?: boolean }) => {
+    (filters: RunnerFilters, options?: { testId?: string | null; bugId?: string | null; keepTest?: boolean; keepBug?: boolean }) => {
       void setQuery({
         ...runnerFiltersToQuery(filters),
         test: options?.keepTest ? (query.test ?? urlState.testId) : (options?.testId ?? null),
+        bug: options?.keepBug ? (query.bug ?? urlState.bugId) : (options?.bugId ?? null),
+        priority: query.priority,
+        status: query.status,
       });
     },
-    [query.test, setQuery, urlState.testId],
+    [query.bug, query.priority, query.status, query.test, setQuery, urlState.bugId, urlState.testId],
   );
 
   const setTestId = useCallback(
@@ -64,12 +74,54 @@ export function useRunnerQueryState() {
     [setQuery],
   );
 
+  const setBugId = useCallback(
+    (nextBugId: string | null) => {
+      void setQuery({ bug: nextBugId });
+    },
+    [setQuery],
+  );
+
+  const bugFilters = useMemo(
+    () => ({
+      priorities: query.priority,
+      statuses: query.status,
+    }),
+    [query.priority, query.status],
+  );
+
+  const toggleBugPriority = useCallback(
+    (priority: BugSeverity) => {
+      const current = query.priority;
+      const next = current.includes(priority)
+        ? current.filter((value) => value !== priority)
+        : [...current, priority];
+      void setQuery({ priority: next });
+    },
+    [query.priority, setQuery],
+  );
+
+  const toggleBugStatus = useCallback(
+    (status: BugStatus) => {
+      const current = query.status;
+      const next = current.includes(status)
+        ? current.filter((value) => value !== status)
+        : [...current, status];
+      void setQuery({ status: next });
+    },
+    [query.status, setQuery],
+  );
+
   return {
     runnerFilters,
     filtersSettled,
     testId,
+    bugId,
+    bugFilters,
     setRunnerFilters,
     setTestId,
+    setBugId,
+    toggleBugPriority,
+    toggleBugStatus,
     setQuery,
   };
 }

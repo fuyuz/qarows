@@ -5,6 +5,7 @@ import { HomePage } from "@/pages/HomePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { MatrixPage } from "@/pages/MatrixPage";
 import { RunPage } from "@/pages/RunPage";
+import { BugsPage } from "@/pages/BugsPage";
 import { SessionPage } from "@/pages/SessionPage";
 import { projectPath } from "@/lib/project-routes";
 import type { ReactNode } from "react";
@@ -109,12 +110,23 @@ function ProjectDashboardPage() {
   );
 }
 
+function ProjectBugsPage() {
+  return (
+    <RequireProjectMatch>
+      <RequireDefinition>
+        <BugsPage />
+      </RequireDefinition>
+    </RequireProjectMatch>
+  );
+}
+
 export const router = createBrowserRouter([
   { path: "/load", element: <LoadPage /> },
   { path: "/p/:projectId/session", element: <ProjectSessionPage /> },
   { path: "/p/:projectId/run", element: <ProjectRunPage /> },
   { path: "/p/:projectId/matrix", element: <ProjectMatrixPage /> },
   { path: "/p/:projectId/dashboard", element: <ProjectDashboardPage /> },
+  { path: "/p/:projectId/bugs", element: <ProjectBugsPage /> },
   { path: "/", element: <RootRedirect /> },
   { path: "*", element: <Navigate to="/load" replace /> },
 ]);

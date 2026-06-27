@@ -13,7 +13,7 @@ export function useProjectRoutes() {
   const projectId = routeProjectId ?? loadedProjectId;
 
   const path = useCallback(
-    (page: ProjectPage, filters?: RunnerFilters, testId?: string | null) => {
+    (page: ProjectPage, filters?: RunnerFilters, testId?: string | null, bugId?: string | null) => {
       if (!definition && !routeProjectId) return "/load";
 
       const id = resolveProjectId(definition, routeProjectId) ?? "project";
@@ -21,8 +21,9 @@ export function useProjectRoutes() {
 
       let resolvedFilters = filters;
       let resolvedTestId = testId;
+      let resolvedBugId = bugId;
 
-      const inheritsRunnerQuery = page === "run" || page === "matrix";
+      const inheritsRunnerQuery = page === "run" || page === "matrix" || page === "bugs";
 
       if (resolvedFilters === undefined && onProjectRoute && inheritsRunnerQuery) {
         resolvedFilters = parseRunnerSearchParams(new URLSearchParams(location.search)).filters;
@@ -32,11 +33,19 @@ export function useProjectRoutes() {
         resolvedTestId = new URLSearchParams(location.search).get("test");
       }
 
+      if (resolvedBugId === undefined && onProjectRoute && page === "bugs") {
+        resolvedBugId = new URLSearchParams(location.search).get("bug");
+      }
+
       if (resolvedTestId === undefined) {
         resolvedTestId = null;
       }
 
-      return projectPath(id, page, resolvedFilters, resolvedTestId);
+      if (resolvedBugId === undefined) {
+        resolvedBugId = null;
+      }
+
+      return projectPath(id, page, resolvedFilters, resolvedTestId, resolvedBugId);
     },
     [definition, location.pathname, location.search, routeProjectId],
   );

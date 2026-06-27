@@ -463,3 +463,35 @@ testCases:
       medium: "フィルタ"
     prerequisites: "テスト実行画面を表示中"
     description: "大分類・未実施のみ・表示中テスト（test=）が URL クエリに反映され、リロード後も同じ状態になる"
+
+  - id: TC-050
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "表示"
+    prerequisites: "tests.yml 読み込み済み、起票済みバグが1件以上あること"
+    description: "Compass メニューからバグ画面へ遷移し、左にバグ一覧・右にバグ詳細カードが表示される"
+
+  - id: TC-051
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "フィルタ"
+    prerequisites: "バグ画面を表示中、重要度・ステータスで絞り込めるバグが存在すること"
+    description: "大分類・シナリオ切替に加え、重要度・ステータスの複数選択チェックで OR 絞り込みができ、一覧とカードが連動する。未選択時はすべて表示"
+
+  - id: TC-052
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "テスト hover"
+    prerequisites: "バグ画面を表示中、関連テストケース付きのバグを選択していること"
+    description: "カード上の関連テスト ID に hover すると、テストケースの分類・前提・確認内容がツールチップ表示される"
+
+  - id: TC-053
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "ナビ"
+    prerequisites: "バグ画面を表示中、フィルタ内にバグが2件以上あること"
+    description: "左一覧のクリックまたはカードの前後ボタン・h/l キーでバグを切り替えられる。bug= が URL に反映される"

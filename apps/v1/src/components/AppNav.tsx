@@ -22,7 +22,7 @@ interface NavLinkItem {
 }
 
 function currentProjectPage(pathname: string): ProjectPage | "load" | null {
-  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard)$/);
+  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs)$/);
   if (match) return match[1] as ProjectPage;
   if (pathname === "/load") return "load";
   return null;
@@ -48,7 +48,7 @@ function workflowLinks(
     if (session && isValidSession(session)) {
       items.push({ label: "テスト実行", to: path("run") });
     }
-  } else if (page === "matrix" || page === "dashboard") {
+  } else if (page === "matrix" || page === "dashboard" || page === "bugs") {
     items.push({ label: "ファイル読み込み", to: "/load" });
     items.push({ label: "セッション設定", to: path("session") });
     if (session && isValidSession(session)) {
@@ -79,6 +79,7 @@ export function AppNav() {
       definition
         ? [
             { label: "ダッシュボード", to: path("dashboard") },
+            { label: "バグ", to: path("bugs") },
             { label: "マトリクス", to: path("matrix") },
           ]
         : [],
