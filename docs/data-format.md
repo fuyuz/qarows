@@ -2,7 +2,7 @@
 
 Phase 1 および Phase 2（インポート/エクスポート）で用いるデータファイルの概要。
 
-> **Note:** 正式スキーマ（JSON Schema）は未作成。実装前に確定する。
+> **Note:** 正式スキーマは [packages/shared/schemas/](../packages/shared/schemas/) に JSON Schema（draft 2020-12）として配置。パース実装は `@qarows/shared` の `parseTestsYaml` / `parseResultsJson` が正とする。
 
 ---
 
@@ -18,6 +18,15 @@ project/
 |---|---|---|---|
 | `tests.yml` | YAML | 低（定義変更時） | Phase 1: 対象外 |
 | `results.json` | JSON | 高（テスト実行中） | Phase 1: 対象 |
+
+### JSON Schema
+
+| ファイル | スキーマ |
+|---|---|
+| `tests.yml`（JSON 等価） | [`tests.schema.json`](../packages/shared/schemas/tests.schema.json) |
+| `results.json` | [`results.schema.json`](../packages/shared/schemas/results.schema.json) |
+
+インポート時、`parseResultsJson` は `tests.yml` 読み込み済みなら `testCaseId` / `environmentId` / `projectId` を定義と照合する。
 
 ---
 

@@ -168,12 +168,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const projectId = parsedDefinition.project.id ?? "project";
         let parsedResults = createEmptyResults(projectId);
         if (resultsJson) {
-          parsedResults = parseResultsJson(resultsJson);
-          if (parsedResults.projectId !== projectId) {
-            throw new Error(
-              `results.json の projectId (${parsedResults.projectId}) が tests.yml と一致しません`,
-            );
-          }
+          parsedResults = parseResultsJson(resultsJson, { definition: parsedDefinition });
         }
         await persist({
           definition: parsedDefinition,
@@ -193,8 +188,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!currentResults) throw new Error("結果データが読み込まれていません");
         if (jsons.length === 0) return;
         let merged = currentResults;
+        const currentDefinition = definitionRef.current;
+        if (!currentDefinition) throw new Error("プロジェクト定義が読み込まれていません");
         for (const json of jsons) {
-          const incoming = parseResultsJson(json);
+          const incoming = parseResultsJson(json, { definition: currentDefinition });
           merged = mergeResultsFiles(merged, incoming);
         }
         await persist({ results: merged });

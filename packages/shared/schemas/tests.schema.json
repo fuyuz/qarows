@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qarows.dev/schemas/tests.schema.json",
+  "title": "qarows tests.yml (JSON equivalent)",
+  "description": "tests.yml を JSON に変換したときの構造。実ファイルは YAML。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "environments", "testCases"],
+  "properties": {
+    "project": { "$ref": "#/$defs/project" },
+    "environments": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/environment" }
+    },
+    "categoryTargets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/categoryTarget" }
+    },
+    "scenarios": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scenario" }
+    },
+    "testCases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/testCase" }
+    }
+  },
+  "$defs": {
+    "targetRequirement": {
+      "type": "string",
+      "enum": ["all", "any"]
+    },
+    "targetEnvironmentSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": { "$ref": "#/$defs/targetRequirement" },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "URL 用 ID。name が slug 化できない場合は必須"
+        },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "environment": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "name": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "categoryMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major"],
+      "properties": {
+        "major": { "type": "string", "minLength": 1 },
+        "medium": { "type": "string", "minLength": 1 },
+        "minor": { "type": "string", "minLength": 1 }
+      }
+    },
+    "categoryTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["match"],
+      "properties": {
+        "match": { "$ref": "#/$defs/categoryMatch" },
+        "required": { "$ref": "#/$defs/targetRequirement" },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "steps"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "testCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "description"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 2 },
+        "category": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["major"],
+          "properties": {
+            "major": { "type": "string", "minLength": 1 },
+            "medium": { "type": "string", "minLength": 1 },
+            "minor": { "type": "string", "minLength": 1 }
+          }
+        },
+        "prerequisites": { "type": "string" },
+        "description": { "type": "string", "minLength": 1 },
+        "targetEnvironments": { "$ref": "#/$defs/targetEnvironmentSpec" }
+      }
+    }
+  }
+}

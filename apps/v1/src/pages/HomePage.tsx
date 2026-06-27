@@ -51,7 +51,7 @@ async function mergeResultsJsonStrings(yaml: string, jsons: string[]): Promise<s
   const projectId = parsedDefinition.project.id ?? "project";
   let merged = createEmptyResults(projectId);
   for (const json of jsons) {
-    merged = mergeResultsFiles(merged, parseResultsJson(json));
+    merged = mergeResultsFiles(merged, parseResultsJson(json, { definition: parsedDefinition }));
   }
   return serializeResultsJson(merged);
 }

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qarows.dev/schemas/results.schema.json",
+  "title": "qarows results.json",
+  "description": "Phase 1 実行結果ファイル。tests.yml の project.id と projectId が一致すること。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["projectId", "results", "bugs"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "results.json ファイル形式の版"
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "tests.yml の project.id と一致"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 日時"
+    },
+    "results": {
+      "type": "object",
+      "description": "testCaseId -> environmentId -> 結果",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "$ref": "#/$defs/testResultEntry" }
+      }
+    },
+    "bugs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/bug" }
+    }
+  },
+  "$defs": {
+    "testStatus": {
+      "type": "string",
+      "enum": ["OK", "SKIP", "OK_NG", "NG"]
+    },
+    "testResultEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "$ref": "#/$defs/testStatus" },
+        "version": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "記録時の tests.yml テストケース version。省略時 1"
+        },
+        "executedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "executedBy": { "type": "string" },
+        "memo": { "type": "string" }
+      }
+    },
+    "bugSeverity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "bugStatus": {
+      "type": "string",
+      "enum": ["open", "in_progress", "fixed", "resolved", "wont_fix"]
+    },
+    "bug": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "一意 ID（例: BUG-k7m2x9, BUG-001）"
+        },
+        "testCaseId": { "type": "string" },
+        "environmentIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "severity": { "$ref": "#/$defs/bugSeverity" },
+        "status": { "$ref": "#/$defs/bugStatus" },
+        "assignee": { "type": "string" },
+        "steps": { "type": "string" },
+        "expected": { "type": "string" },
+        "actual": { "type": "string" },
+        "fixNote": { "type": "string" },
+        "memo": { "type": "string" }
+      }
+    }
+  }
+}

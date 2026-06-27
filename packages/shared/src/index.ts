@@ -5,6 +5,7 @@ export * from "./types";
 export * from "./status";
 export * from "./parse-tests";
 export * from "./parse-results";
+export * from "./validate-iso-timestamp";
 export * from "./serialize-results";
 export * from "./merge-results";
 export * from "./clear-results";

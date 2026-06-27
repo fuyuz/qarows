@@ -1,20 +1,30 @@
+import { lazy, Suspense, type ComponentType, type ReactNode } from "react";
 import { Navigate, createBrowserRouter, useLocation, useParams } from "react-router-dom";
 import { isValidSession } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
-import { HomePage } from "@/pages/HomePage";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { MatrixPage } from "@/pages/MatrixPage";
-import { RunPage } from "@/pages/RunPage";
-import { BugsPage } from "@/pages/BugsPage";
-import { SessionPage } from "@/pages/SessionPage";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { projectPath } from "@/lib/project-routes";
-import type { ReactNode } from "react";
 
-function LoadingScreen() {
+const HomePage = lazy(() =>
+  import("@/pages/HomePage").then((m) => ({ default: m.HomePage })),
+);
+const SessionPage = lazy(() =>
+  import("@/pages/SessionPage").then((m) => ({ default: m.SessionPage })),
+);
+const RunPage = lazy(() => import("@/pages/RunPage").then((m) => ({ default: m.RunPage })));
+const MatrixPage = lazy(() =>
+  import("@/pages/MatrixPage").then((m) => ({ default: m.MatrixPage })),
+);
+const DashboardPage = lazy(() =>
+  import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
+);
+const BugsPage = lazy(() => import("@/pages/BugsPage").then((m) => ({ default: m.BugsPage })));
+
+function withSuspense(Component: ComponentType): ReactNode {
   return (
-    <main className="page" style={{ textAlign: "center" }}>
-      <p>読み込み中…</p>
-    </main>
+    <Suspense fallback={<LoadingScreen />}>
+      <Component />
+    </Suspense>
   );
 }
 
@@ -67,15 +77,13 @@ function RequireSession({ children }: { children: ReactNode }) {
 function LoadPage() {
   const { ready } = useApp();
   if (!ready) return <LoadingScreen />;
-  return <HomePage />;
+  return withSuspense(HomePage);
 }
 
 function ProjectSessionPage() {
   return (
     <RequireProjectMatch>
-      <RequireDefinition>
-        <SessionPage />
-      </RequireDefinition>
+      <RequireDefinition>{withSuspense(SessionPage)}</RequireDefinition>
     </RequireProjectMatch>
   );
 }
@@ -83,9 +91,7 @@ function ProjectSessionPage() {
 function ProjectRunPage() {
   return (
     <RequireProjectMatch>
-      <RequireSession>
-        <RunPage />
-      </RequireSession>
+      <RequireSession>{withSuspense(RunPage)}</RequireSession>
     </RequireProjectMatch>
   );
 }
@@ -93,9 +99,7 @@ function ProjectRunPage() {
 function ProjectMatrixPage() {
   return (
     <RequireProjectMatch>
-      <RequireDefinition>
-        <MatrixPage />
-      </RequireDefinition>
+      <RequireDefinition>{withSuspense(MatrixPage)}</RequireDefinition>
     </RequireProjectMatch>
   );
 }
@@ -103,9 +107,7 @@ function ProjectMatrixPage() {
 function ProjectDashboardPage() {
   return (
     <RequireProjectMatch>
-      <RequireDefinition>
-        <DashboardPage />
-      </RequireDefinition>
+      <RequireDefinition>{withSuspense(DashboardPage)}</RequireDefinition>
     </RequireProjectMatch>
   );
 }
@@ -113,9 +115,7 @@ function ProjectDashboardPage() {
 function ProjectBugsPage() {
   return (
     <RequireProjectMatch>
-      <RequireDefinition>
-        <BugsPage />
-      </RequireDefinition>
+      <RequireDefinition>{withSuspense(BugsPage)}</RequireDefinition>
     </RequireProjectMatch>
   );
 }
@@ -130,3 +130,13 @@ export const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
   { path: "*", element: <Navigate to="/load" replace /> },
 ]);
+
+/** ルート単位 lazy import のスモークテスト用 */
+export const lazyPageModules = {
+  HomePage: () => import("@/pages/HomePage"),
+  SessionPage: () => import("@/pages/SessionPage"),
+  RunPage: () => import("@/pages/RunPage"),
+  MatrixPage: () => import("@/pages/MatrixPage"),
+  DashboardPage: () => import("@/pages/DashboardPage"),
+  BugsPage: () => import("@/pages/BugsPage"),
+} as const;

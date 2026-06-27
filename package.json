@@ -14,6 +14,6 @@
     "preview:start": "bun run build && bun run preview",
     "preview:restart": "bash scripts/stop-dev.sh && bun run preview:start",
     "typecheck": "bun run --filter @qarows/shared typecheck && bun run --filter @qarows/v1 typecheck",
-    "test": "bun run --filter @qarows/shared test"
+    "test": "bun run --filter @qarows/shared test && bun run --filter @qarows/v1 test"
   }
 }
