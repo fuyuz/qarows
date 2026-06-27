@@ -234,13 +234,15 @@ export function TestCard({
               </Button>
             </div>
           </div>
-          <Textarea
-            id={`test-memo-${testCase.id}`}
-            rows={3}
-            placeholder="任意"
-            value={memo}
-            onChange={(e) => onMemoChange(e.target.value)}
-          />
+          <div className="px-[3px]">
+            <Textarea
+              id={`test-memo-${testCase.id}`}
+              rows={3}
+              placeholder="任意"
+              value={memo}
+              onChange={(e) => onMemoChange(e.target.value)}
+            />
+          </div>
         </section>
       </div>
 
