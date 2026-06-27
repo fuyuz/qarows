@@ -9,11 +9,14 @@ import {
   type RunProgressStats,
 } from "@/lib/run-progress";
 import { filterTestCases, formatRunnerFilterTitle } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 function bucketClass(bucket: ProgressBucket): string {
-  if (bucket === "OK_NG") return "ok-ng";
-  if (bucket === "incomplete") return "incomplete";
-  return bucket.toLowerCase();
+  if (bucket === "OK") return "bg-green-600";
+  if (bucket === "NG") return "bg-red-600";
+  if (bucket === "SKIP") return "bg-stone-500";
+  if (bucket === "OK_NG") return "bg-orange-600";
+  return "bg-border";
 }
 
 function progressSummary(stats: RunProgressStats): string {
@@ -37,7 +40,7 @@ function ProgressTrack({
   if (stats.total === 0) {
     return (
       <div
-        className="run-progress__track run-progress__track--empty"
+        className="flex h-2.5 overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-labelledby={labelId}
         aria-valuenow={0}
@@ -45,7 +48,7 @@ function ProgressTrack({
         aria-valuemax={0}
         onMouseEnter={(event) => onHoverTrack(event.currentTarget.offsetWidth / 2)}
       >
-        <div className="run-progress__segment run-progress__segment--incomplete" style={{ width: "100%" }} />
+        <div className="h-full w-full bg-border" />
       </div>
     );
   }
@@ -54,7 +57,7 @@ function ProgressTrack({
 
   return (
     <div
-      className="run-progress__track"
+      className="flex h-2.5 overflow-hidden rounded-full bg-muted"
       role="progressbar"
       aria-labelledby={labelId}
       aria-valuenow={stats.completed}
@@ -65,9 +68,11 @@ function ProgressTrack({
       {segments.map((key) => (
         <div
           key={key}
-          className={`run-progress__segment run-progress__segment--${bucketClass(key)}${
-            hoveredBucket === key ? " run-progress__segment--hovered" : ""
-          }`}
+          className={cn(
+            "h-full min-w-0.5 transition-[width,filter] duration-200",
+            bucketClass(key),
+            hoveredBucket === key && "brightness-110",
+          )}
           style={{ width: `${(stats.buckets[key] / stats.total) * 100}%` }}
           onMouseEnter={(event) =>
             onHoverBucket(key, event.currentTarget.offsetLeft + event.currentTarget.offsetWidth / 2)
@@ -92,19 +97,19 @@ function ProgressRow({
   );
 
   return (
-    <div className="run-progress__row">
-      <div
-        className="run-progress__track-wrap"
-        onMouseLeave={() => setHover(null)}
-      >
+    <div className="flex flex-col gap-1">
+      <div className="relative" onMouseLeave={() => setHover(null)}>
         {hover && (
-          <div className="run-progress__tooltip" style={{ left: hover.anchorX }}>
+          <div
+            className="pointer-events-none absolute bottom-[calc(100%+0.4rem)] z-10 flex -translate-x-1/2 flex-col items-center gap-0.5 rounded-md bg-stone-900 px-2 py-1 text-[0.72rem] font-medium whitespace-nowrap text-stone-50"
+            style={{ left: hover.anchorX }}
+          >
             {hover.bucket != null && (
-              <span className="run-progress__tooltip-segment">
+              <span className="font-semibold">
                 {PROGRESS_SEGMENT_LABELS[hover.bucket]} {stats.buckets[hover.bucket]}件
               </span>
             )}
-            <span className="run-progress__tooltip-summary">{progressSummary(stats)}</span>
+            <span className="text-[0.68rem] text-stone-300">{progressSummary(stats)}</span>
           </div>
         )}
         <ProgressTrack
@@ -115,7 +120,7 @@ function ProgressRow({
           onHoverTrack={(anchorX) => setHover({ bucket: null, anchorX })}
         />
       </div>
-      <span className="run-progress__row-title" id={id}>
+      <span className="text-xs font-semibold text-muted-foreground" id={id}>
         {title}
       </span>
     </div>
@@ -155,7 +160,7 @@ export function RunProgressBar() {
   const filterTitle = formatRunnerFilterTitle(definition, runnerFilters);
 
   return (
-    <footer className="run-progress" aria-label="テスト進捗">
+    <footer className="fixed inset-x-0 bottom-0 z-20 flex flex-col gap-1.5 border-t bg-card px-5 py-2 shadow-[0_-2px_10px_rgb(0_0_0/6%)]" aria-label="テスト進捗">
       <ProgressRow id="run-progress-filter" title={filterTitle} stats={filtered} />
       <ProgressRow id="run-progress-overall" title="全体" stats={overall} />
     </footer>

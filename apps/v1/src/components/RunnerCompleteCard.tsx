@@ -1,30 +1,33 @@
-import { RunnerCardFooter, type RunnerCardNavProps } from "@/components/RunnerCardFooter";
+import { RunnerCardFooter, testCardShellClass, type RunnerCardNavProps } from "@/components/RunnerCardFooter";
+import { Badge } from "@/components/ui/badge";
 
 export function RunnerCompleteCard({
   testCount,
   ...navProps
 }: { testCount: number } & RunnerCardNavProps) {
   return (
-    <article className="test-card test-card--complete test-card--nav-footer">
-      <div className="test-card__body">
-        <div className="test-card__celebrate" aria-hidden="true">
+    <article className={testCardShellClass("border-green-200 bg-gradient-to-b from-card to-green-50/80")}>
+      <div className="min-h-0 flex-1 overflow-y-auto pb-3 text-center">
+        <div className="mb-2 text-4xl leading-none" aria-hidden="true">
           🎉
         </div>
-        <header className="test-card__header test-card__header--center">
-          <span className="test-card__id test-card__id--complete">DONE</span>
+        <header className="mb-5 flex justify-center pb-3.5">
+          <Badge className="border-transparent bg-green-100 font-bold text-green-800 hover:bg-green-100">
+            DONE
+          </Badge>
         </header>
 
-        <section className="test-card__section">
-          <h2 className="test-card__label test-card__label--center">お疲れさまでした！</h2>
-          <p className="test-card__text test-card__text--description test-card__text--center">
+        <section className="mb-5">
+          <h2 className="mb-1.5 text-base font-semibold text-green-800">お疲れさまでした！</h2>
+          <p className="text-base leading-relaxed font-medium">
             {testCount > 0
               ? `表示中の ${testCount} 件のテストをすべて入力しました。`
               : "対象のテストはありませんでした。"}
           </p>
         </section>
 
-        <section className="test-card__section">
-          <p className="test-card__text test-card__text--center">
+        <section className="mb-5">
+          <p className="text-sm text-muted-foreground">
             結果は自動保存されています。フィルタを変えて続けるか、セッション設定からエクスポートできます。
           </p>
         </section>

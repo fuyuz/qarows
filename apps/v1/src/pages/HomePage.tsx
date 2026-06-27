@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppNav } from "@/components/AppNav";
 import { classifyDroppedFiles, FileDropZone } from "@/components/FileDropZone";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { readFileAsText } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 
@@ -57,60 +60,61 @@ export function HomePage() {
   return (
     <>
       <AppNav />
-      <main className="page">
-      <header className="page__header">
-        <h1 className="page__title">qarows</h1>
-        <p className="page__subtitle">
-          tests.yml と results.json（任意）を読み込んで、QA テストを開始します
-        </p>
-      </header>
+      <main className="mx-auto max-w-2xl px-5 py-8 pb-12">
+        <header className="mb-8">
+          <h1 className="mb-1 text-3xl font-bold tracking-tight">qarows</h1>
+          <p className="text-sm text-muted-foreground">
+            tests.yml と results.json（任意）を読み込んで、QA テストを開始します
+          </p>
+        </header>
 
-      {definition && (
-        <p className="page__notice">
-          現在のプロジェクト: <strong>{definition.project.name}</strong>
-          （新しいファイルを読み込むと置き換わります）
-        </p>
-      )}
+        {definition && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-900">
+            <AlertDescription>
+              現在のプロジェクト: <strong>{definition.project.name}</strong>
+              （新しいファイルを読み込むと置き換わります）
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <FileDropZone
-        title="ファイルをここにドロップ"
-        hint="tests.yml（必須）と results.json（任意）を同時にドロップできます"
-        accept=".yml,.yaml,.json"
-        onFiles={applyFiles}
-      />
+        <FileDropZone
+          title="ファイルをここにドロップ"
+          hint="tests.yml（必須）と results.json（任意）を同時にドロップできます"
+          accept=".yml,.yaml,.json"
+          onFiles={applyFiles}
+        />
 
-      {(testsFile || resultsFile) && (
-        <ul className="file-list">
-          {testsFile && (
-            <li className="file-list__item">
-              <span className="file-list__name">{testsFile.name}</span>
-              <span className="file-list__badge">必須</span>
-            </li>
-          )}
-          {resultsFile && (
-            <li className="file-list__item">
-              <span className="file-list__name">{resultsFile.name}</span>
-              <span className="file-list__badge file-list__badge--optional">任意</span>
-            </li>
-          )}
-        </ul>
-      )}
+        {(testsFile || resultsFile) && (
+          <ul className="mt-6 flex flex-col gap-2">
+            {testsFile && (
+              <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+                <span className="break-all font-medium">{testsFile.name}</span>
+                <Badge>必須</Badge>
+              </li>
+            )}
+            {resultsFile && (
+              <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+                <span className="break-all font-medium">{resultsFile.name}</span>
+                <Badge variant="secondary">任意</Badge>
+              </li>
+            )}
+          </ul>
+        )}
 
-      {error && <div className="error-banner">{error}</div>}
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      <footer className="page__footer">
-        <button
-          type="button"
-          className="btn btn--primary"
-          disabled={!testsFile || loading}
-          onClick={() => void handleStart()}
-        >
-          {loading ? "読み込み中…" : "テストを開始"}
-        </button>
-        <button type="button" className="btn btn--ghost" onClick={() => void loadSample()}>
-          サンプルを試す
-        </button>
-      </footer>
+        <footer className="mt-6 flex flex-wrap items-center gap-3">
+          <Button disabled={!testsFile || loading} onClick={() => void handleStart()}>
+            {loading ? "読み込み中…" : "テストを開始"}
+          </Button>
+          <Button variant="ghost" onClick={() => void loadSample()}>
+            サンプルを試す
+          </Button>
+        </footer>
       </main>
     </>
   );

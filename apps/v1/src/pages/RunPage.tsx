@@ -34,13 +34,16 @@ export function RunPage() {
       : undefined;
 
   return (
-    <div className="run-layout">
+    <div className="flex min-h-svh flex-col">
       <AppNav />
       <FilterBar />
-      <main className="page run-content">
-        <div className="run-workspace" style={workspaceStyle}>
+      <main className="flex-1 px-5 pb-24 pt-4">
+        <div
+          className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 md:flex-row"
+          style={workspaceStyle}
+        >
           <RunnerTaskList />
-          <div ref={mainRef} className="run-workspace__main">
+          <div ref={mainRef} className="min-h-0 min-w-0 flex-1">
             <TestRunner />
           </div>
         </div>

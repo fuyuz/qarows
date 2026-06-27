@@ -215,9 +215,9 @@ export function TestRunner() {
   if (!definition || !results || !session) return null;
 
   return (
-    <div className="test-runner">
-      <div className="test-runner__stage">
-        <div className="test-runner__card">
+    <div className="w-full">
+      <div className="flex w-full justify-center">
+        <div className="w-full min-h-[80vh] max-w-2xl">
           {slideIndex === 0 && (
             <RunnerIntroCard
               canPrev={slideIndex > 0}

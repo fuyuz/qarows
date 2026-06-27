@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { TestCase } from "@qarows/shared";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import type { ResultsFile, SessionConfig, TestCase, TestDefinition } from "@qarows/shared";
 import {
   getRunnerTargetMode,
   getTestCaseAggregateStatus,
   resolveRunnerTestCases,
 } from "@qarows/shared";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useApp } from "@/context/AppContext";
 import { formatRunnerFilterTitle } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 function formatCategory(testCase: TestCase): string {
   const parts = [testCase.category.major];
@@ -16,11 +20,11 @@ function formatCategory(testCase: TestCase): string {
 }
 
 function statusClass(status: ReturnType<typeof getTestCaseAggregateStatus>): string {
-  if (status === "incomplete") return "runner-task-list__status--pending";
-  if (status === "OK") return "runner-task-list__status--ok";
-  if (status === "NG") return "runner-task-list__status--ng";
-  if (status === "SKIP") return "runner-task-list__status--skip";
-  return "runner-task-list__status--ok-ng";
+  if (status === "incomplete") return "text-muted-foreground";
+  if (status === "OK") return "text-green-600";
+  if (status === "NG") return "text-red-600";
+  if (status === "SKIP") return "text-stone-500";
+  return "text-orange-600";
 }
 
 function statusSymbol(status: ReturnType<typeof getTestCaseAggregateStatus>): string {
@@ -29,6 +33,115 @@ function statusSymbol(status: ReturnType<typeof getTestCaseAggregateStatus>): st
   if (status === "NG") return "✗";
   if (status === "SKIP") return "–";
   return "!";
+}
+
+function TaskListPanel({
+  headerTitle,
+  headerDescription,
+  descriptionExpanded,
+  onToggleDescription,
+  completedCount,
+  targets,
+  definition,
+  session,
+  results,
+  runnerIndex,
+  onJump,
+  listRef,
+  activeItemRef,
+  className,
+}: {
+  headerTitle: string;
+  headerDescription?: string;
+  descriptionExpanded: boolean;
+  onToggleDescription: () => void;
+  completedCount: number;
+  targets: TestCase[];
+  definition: TestDefinition;
+  session: SessionConfig;
+  results: ResultsFile;
+  runnerIndex: number;
+  onJump: (index: number) => void;
+  listRef: RefObject<HTMLUListElement | null>;
+  activeItemRef: RefObject<HTMLLIElement | null>;
+  className?: string;
+}) {
+  return (
+    <aside className={cn("flex flex-col overflow-hidden rounded-xl border bg-muted/30", className)} aria-label="テスト一覧">
+      <div className="shrink-0 border-b bg-card px-3.5 py-3">
+        <h2 className="text-sm font-bold leading-snug">{headerTitle}</h2>
+        {headerDescription && (
+          <div className="mt-1.5">
+            <p
+              className={cn(
+                "text-xs leading-relaxed text-muted-foreground",
+                !descriptionExpanded && "line-clamp-3",
+              )}
+            >
+              {headerDescription}
+            </p>
+            {headerDescription.length > 80 && (
+              <button
+                type="button"
+                className="mt-1 text-xs font-semibold text-primary"
+                onClick={onToggleDescription}
+              >
+                {descriptionExpanded ? "閉じる" : "続きを読む"}
+              </button>
+            )}
+          </div>
+        )}
+        <p className="mt-2 text-xs font-semibold text-muted-foreground">
+          {completedCount} / {targets.length} 完了
+        </p>
+      </div>
+
+      <ScrollArea className="min-h-0 flex-1">
+        <ul ref={listRef} className="py-1">
+          {targets.length === 0 ? (
+            <li className="px-3.5 py-4 text-sm text-muted-foreground">対象テストがありません</li>
+          ) : (
+            targets.map((testCase, index) => {
+              const status = getTestCaseAggregateStatus(
+                testCase,
+                definition,
+                session.selectedEnvironmentIds,
+                results.results,
+              );
+              const isActive = runnerIndex === index && runnerIndex >= 0;
+
+              return (
+                <li
+                  key={testCase.id}
+                  ref={isActive ? activeItemRef : undefined}
+                  className={cn(isActive && "border-l-[3px] border-l-primary bg-primary/5")}
+                >
+                  <button
+                    type="button"
+                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/50"
+                    onClick={() => onJump(index)}
+                  >
+                    <span className={cn("w-4 shrink-0 text-center text-xs font-bold", statusClass(status))}>
+                      {statusSymbol(status)}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <span className="text-[0.72rem] font-bold text-primary">{testCase.id}</span>
+                        <span className="text-[0.68rem] text-muted-foreground">{formatCategory(testCase)}</span>
+                      </span>
+                      <span className="mt-0.5 line-clamp-3 text-xs leading-relaxed text-foreground/80">
+                        {testCase.description}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      </ScrollArea>
+    </aside>
+  );
 }
 
 export function RunnerTaskList() {
@@ -66,7 +179,7 @@ export function RunnerTaskList() {
     activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [runnerIndex, targets.length]);
 
-  if (!definition || !session) return null;
+  if (!definition || !session || !results) return null;
 
   const jumpToTest = (index: number) => {
     void setRunnerIndex(index);
@@ -79,98 +192,47 @@ export function RunnerTaskList() {
   const headerDescription =
     mode === "scenario" && scenario?.description ? scenario.description.trim() : undefined;
 
+  const panelProps = {
+    headerTitle,
+    headerDescription,
+    descriptionExpanded,
+    onToggleDescription: () => setDescriptionExpanded((expanded) => !expanded),
+    completedCount,
+    targets,
+    definition,
+    session,
+    results,
+    runnerIndex,
+    onJump: jumpToTest,
+    listRef,
+    activeItemRef,
+  };
+
   return (
     <>
-      <button
+      <Button
         type="button"
-        className="runner-task-list__mobile-toggle"
-        aria-expanded={mobileOpen}
-        onClick={() => setMobileOpen((open) => !open)}
+        variant="outline"
+        size="sm"
+        className="mb-2 md:hidden"
+        onClick={() => setMobileOpen(true)}
       >
         テスト一覧 ({targets.length})
-      </button>
+      </Button>
 
-      <aside
-        className={`runner-task-list${mobileOpen ? " runner-task-list--open" : ""}`}
-        aria-label="テスト一覧"
-      >
-        <div className="runner-task-list__header">
-          <h2 className="runner-task-list__title">{headerTitle}</h2>
-          {headerDescription && (
-            <div className="runner-task-list__description-wrap">
-              <p
-                className={`runner-task-list__description${
-                  descriptionExpanded ? " runner-task-list__description--expanded" : ""
-                }`}
-              >
-                {headerDescription}
-              </p>
-              {headerDescription.length > 80 && (
-                <button
-                  type="button"
-                  className="runner-task-list__description-toggle"
-                  onClick={() => setDescriptionExpanded((expanded) => !expanded)}
-                >
-                  {descriptionExpanded ? "閉じる" : "続きを読む"}
-                </button>
-              )}
-            </div>
-          )}
-          <p className="runner-task-list__progress">
-            {completedCount} / {targets.length} 完了
-          </p>
-        </div>
+      <TaskListPanel
+        {...panelProps}
+        className="hidden h-[var(--run-main-height,calc(100vh-9rem))] w-84 shrink-0 md:flex"
+      />
 
-        <ul className="runner-task-list__items" ref={listRef}>
-          {targets.length === 0 ? (
-            <li className="runner-task-list__empty">対象テストがありません</li>
-          ) : (
-            targets.map((testCase, index) => {
-              const status = getTestCaseAggregateStatus(
-                testCase,
-                definition,
-                session.selectedEnvironmentIds,
-                results?.results ?? {},
-              );
-              const isActive = runnerIndex === index && runnerIndex >= 0;
-
-              return (
-                <li
-                  key={testCase.id}
-                  ref={isActive ? activeItemRef : undefined}
-                  className={`runner-task-list__item${isActive ? " runner-task-list__item--active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="runner-task-list__button"
-                    onClick={() => jumpToTest(index)}
-                  >
-                    <span className={`runner-task-list__status ${statusClass(status)}`}>
-                      {statusSymbol(status)}
-                    </span>
-                    <span className="runner-task-list__meta">
-                      <span className="runner-task-list__head">
-                        <span className="runner-task-list__id">{testCase.id}</span>
-                        <span className="runner-task-list__category">{formatCategory(testCase)}</span>
-                      </span>
-                      <span className="runner-task-list__description">{testCase.description}</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })
-          )}
-        </ul>
-      </aside>
-
-      {mobileOpen && (
-        <button
-          type="button"
-          className="runner-task-list__backdrop"
-          aria-label="テスト一覧を閉じる"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-[min(100vw-1.5rem,22rem)] p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>テスト一覧</SheetTitle>
+          </SheetHeader>
+          <TaskListPanel {...panelProps} className="h-full border-0 rounded-none bg-background" />
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

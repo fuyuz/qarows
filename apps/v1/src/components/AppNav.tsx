@@ -1,26 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Compass } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isValidSession } from "@qarows/shared";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useApp } from "@/context/AppContext";
 
 interface NavLinkItem {
   label: string;
   to: string;
-}
-
-function NavIcon() {
-  return (
-    <svg className="app-nav__icon" viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.75" />
-      <path
-        d="M12 5.5 13.8 13.2 12 12 10.2 13.2Z"
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="0.35"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
 
 export function AppNav() {
@@ -55,60 +49,38 @@ export function AppNav() {
     setOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
   if (links.length === 0) return null;
 
   return (
-    <div ref={rootRef} className={`app-nav${open ? " app-nav--open" : ""}`}>
-      <button
-        type="button"
-        className="app-nav__trigger"
-        aria-label="ナビゲーション"
-        aria-expanded={open}
-        aria-controls="app-nav-panel"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <NavIcon />
-      </button>
-      <nav id="app-nav-panel" className="app-nav__panel" aria-label="ページ移動">
-        <p className="app-nav__title">移動</p>
-        <ul className="app-nav__list">
+    <div ref={rootRef} className="fixed top-3.5 right-5 z-40">
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-9 rounded-full shadow-sm"
+            aria-label="ナビゲーション"
+          >
+            <Compass className="size-4.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-44">
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+            移動
+          </DropdownMenuLabel>
           {links.map((link) => (
-            <li key={link.to}>
-              <button
-                type="button"
-                className="app-nav__link"
-                onClick={() => {
-                  setOpen(false);
-                  navigate(link.to);
-                }}
-              >
-                {link.label}
-              </button>
-            </li>
+            <DropdownMenuItem
+              key={link.to}
+              onSelect={() => {
+                setOpen(false);
+                navigate(link.to);
+              }}
+            >
+              {link.label}
+            </DropdownMenuItem>
           ))}
-        </ul>
-      </nav>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

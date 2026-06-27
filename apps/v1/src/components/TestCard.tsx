@@ -1,6 +1,16 @@
 import type { SessionTestTargets, TestCase, TestDefinition, TestResults, TestStatus } from "@qarows/shared";
 import { RUNNER_KEYBINDINGS } from "@/lib/runner-keybindings";
-import { RunnerCardFooter, type RunnerCardNavProps } from "@/components/RunnerCardFooter";
+import { Kbd, StatusBadge } from "@/components/qa-ui";
+import {
+  RunnerCardFooter,
+  statusButtonClass,
+  testCardShellClass,
+  type RunnerCardNavProps,
+} from "@/components/RunnerCardFooter";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/cn";
 
 const STATUS_LABELS: Record<TestStatus, string> = {
   OK: "OK",
@@ -8,11 +18,6 @@ const STATUS_LABELS: Record<TestStatus, string> = {
   SKIP: "SKIP",
   OK_NG: "OK→NG",
 };
-
-function statusBadgeClass(status: TestStatus): string {
-  if (status === "OK_NG") return "status-badge--ok-ng";
-  return `status-badge--${status.toLowerCase()}`;
-}
 
 function formatCategory(tc: TestCase): string {
   const parts = [tc.category.major];
@@ -48,59 +53,61 @@ export function TestCard({
   onSingle,
 }: TestCardProps) {
   return (
-    <article className="test-card test-card--action">
-      <div className="test-card__body">
-        <header className="test-card__header">
-          <span className="test-card__id">{testCase.id}</span>
-          <span className="test-card__category">{formatCategory(testCase)}</span>
+    <article className={testCardShellClass()}>
+      <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        <header className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b pb-3.5">
+          <Badge variant="secondary" className="bg-primary/10 font-bold text-primary">
+            {testCase.id}
+          </Badge>
+          <span className="text-sm text-muted-foreground">{formatCategory(testCase)}</span>
         </header>
 
         {testCase.prerequisites && (
-          <section className="test-card__section">
-            <h2 className="test-card__label">前提条件</h2>
-            <p className="test-card__text">{testCase.prerequisites}</p>
+          <section className="mb-5">
+            <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              前提条件
+            </h2>
+            <p className="text-sm leading-relaxed text-foreground/90">{testCase.prerequisites}</p>
           </section>
         )}
 
-        <section className="test-card__section">
-          <h2 className="test-card__label">確認内容</h2>
-          <p className="test-card__text test-card__text--description">{testCase.description}</p>
+        <section className="mb-5">
+          <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            確認内容
+          </h2>
+          <p className="text-base leading-relaxed font-medium">{testCase.description}</p>
         </section>
 
-        <section className="test-card__section">
-          <h2 className="test-card__label">
+        <section className="mb-5">
+          <h2 className="mb-1.5 flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             対象端末
-            <span className="test-card__req-badge">
+            <Badge variant="outline" className="text-[0.65rem] font-bold lowercase">
               {envTargets.required === "any" ? "any" : "all"}
-            </span>
+            </Badge>
           </h2>
-          <ul className="env-result-list">
+          <ul className="flex flex-col gap-2">
             {envTargets.environmentIds.map((envId) => {
               const env = definition.environments.find((e) => e.id === envId);
               const entry = results[testCase.id]?.[envId];
               return (
-                <li key={envId} className="env-result-list__item">
-                  <div className="env-result-list__info">
-                    <span className="env-result-list__name">{env?.name ?? envId}</span>
-                    {entry?.status && (
-                      <span className={`status-badge ${statusBadgeClass(entry.status)}`}>
-                        {STATUS_LABELS[entry.status]}
-                      </span>
-                    )}
+                <li key={envId} className="rounded-lg border bg-muted/30 px-3 py-2.5">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{env?.name ?? envId}</span>
+                    {entry?.status && <StatusBadge status={entry.status} />}
                   </div>
-                  <div className="env-result-list__actions">
+                  <div className="flex gap-1.5">
                     {(["OK", "NG", "SKIP"] as const).map((status) => (
-                      <button
+                      <Button
                         key={status}
                         type="button"
-                        className={`btn btn--sm btn--status btn--status-${status.toLowerCase()}${
-                          entry?.status === status ? " btn--status-active" : ""
-                        }`}
+                        variant="outline"
+                        size="sm"
+                        className={cn("h-auto flex-1 py-1.5", statusButtonClass(status, entry?.status === status))}
                         disabled={busy}
                         onClick={() => onSingle(envId, status)}
                       >
                         {STATUS_LABELS[status]}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </li>
@@ -109,13 +116,12 @@ export function TestCard({
           </ul>
         </section>
 
-        <section className="test-card__section">
-          <label className="form-label" htmlFor={`test-memo-${testCase.id}`}>
+        <section className="mb-5">
+          <label className="mb-1.5 block text-xs font-semibold tracking-wide text-muted-foreground uppercase" htmlFor={`test-memo-${testCase.id}`}>
             メモ
           </label>
-          <textarea
+          <Textarea
             id={`test-memo-${testCase.id}`}
-            className="form-textarea"
             rows={3}
             placeholder="任意"
             value={memo}
@@ -131,12 +137,22 @@ export function TestCard({
         onPrev={onPrev}
         onNext={onNext}
       >
-        <button type="button" className="btn btn--ok" disabled={busy} onClick={() => onBatch("OK")}>
-          一括 OK <kbd className="kbd">{RUNNER_KEYBINDINGS.ok[0]}</kbd>
-        </button>
-        <button type="button" className="btn btn--ng" disabled={busy} onClick={() => onBatch("NG")}>
-          一括 NG <kbd className="kbd">{RUNNER_KEYBINDINGS.ng[0]}</kbd>
-        </button>
+        <Button
+          variant="ok"
+          className="h-auto flex-1 py-2.5 font-semibold"
+          disabled={busy}
+          onClick={() => onBatch("OK")}
+        >
+          一括 OK <Kbd className="ml-1 border-white/30 bg-white/20 text-inherit">{RUNNER_KEYBINDINGS.ok[0]}</Kbd>
+        </Button>
+        <Button
+          variant="ng"
+          className="h-auto flex-1 py-2.5 font-semibold"
+          disabled={busy}
+          onClick={() => onBatch("NG")}
+        >
+          一括 NG <Kbd className="ml-1 border-white/30 bg-white/20 text-inherit">{RUNNER_KEYBINDINGS.ng[0]}</Kbd>
+        </Button>
       </RunnerCardFooter>
     </article>
   );

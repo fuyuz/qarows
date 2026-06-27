@@ -1,12 +1,24 @@
 import { useMemo } from "react";
 import { getRunnerTargetMode } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   getMajorCategories,
   getMediumCategories,
   getMinorCategories,
   resolveRunnerTestCases,
 } from "@/lib/utils";
+
+const ALL = "__all__";
 
 export function FilterBar() {
   const { definition, results, session, runnerFilters, setRunnerFilters } = useApp();
@@ -78,7 +90,8 @@ export function FilterBar() {
     });
   };
 
-  const updateMajorFilter = (major: string | undefined) => {
+  const updateMajorFilter = (value: string) => {
+    const major = value === ALL ? undefined : value;
     const nextMedium =
       major && runnerFilters.mediumCategoryFilter
         ? getMediumCategories(definition, major).includes(runnerFilters.mediumCategoryFilter)
@@ -96,7 +109,8 @@ export function FilterBar() {
     });
   };
 
-  const updateMediumFilter = (medium: string | undefined) => {
+  const updateMediumFilter = (value: string) => {
+    const medium = value === ALL ? undefined : value;
     void setRunnerFilters({
       ...runnerFilters,
       targetMode: "filter",
@@ -109,122 +123,138 @@ export function FilterBar() {
   const filterMode = mode === "filter";
 
   return (
-    <div className="filter-bar">
-      <div className="filter-bar__inner">
-        <div className="filter-bar__mode" role="group" aria-label="対象の選び方">
-          <button
-            type="button"
-            className={`filter-bar__mode-btn${filterMode ? " filter-bar__mode-btn--active" : ""}`}
-            aria-pressed={filterMode}
-            onClick={switchToFilterMode}
-          >
+    <div className="sticky top-0 z-10 border-b bg-card shadow-sm">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-2.5 pr-16">
+        <ToggleGroup
+          type="single"
+          value={filterMode ? "filter" : "scenario"}
+          onValueChange={(value) => {
+            if (value === "filter") switchToFilterMode();
+            if (value === "scenario") switchToScenarioMode();
+          }}
+          aria-label="対象の選び方"
+        >
+          <ToggleGroupItem value="filter" className="px-3 text-sm font-semibold">
             フィルタ
-          </button>
-          <button
-            type="button"
-            className={`filter-bar__mode-btn${!filterMode ? " filter-bar__mode-btn--active" : ""}`}
-            aria-pressed={!filterMode}
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="scenario"
             disabled={!hasScenarios}
             title={hasScenarios ? undefined : "tests.yml に scenarios がありません"}
-            onClick={switchToScenarioMode}
+            className="px-3 text-sm font-semibold"
           >
             シナリオ
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
 
         {filterMode ? (
           <>
-            <label className="filter-bar__field">
-              <span className="filter-bar__label">大分類</span>
-              <select
-                className="filter-bar__select"
-                value={runnerFilters.majorCategoryFilter ?? ""}
-                onChange={(e) => updateMajorFilter(e.target.value || undefined)}
+            <div className="flex items-center gap-2">
+              <Label className="shrink-0 text-sm font-semibold">大分類</Label>
+              <Select
+                value={runnerFilters.majorCategoryFilter ?? ALL}
+                onValueChange={updateMajorFilter}
               >
-                <option value="">すべて</option>
-                {majorCategories.map((major) => (
-                  <option key={major} value={major}>
-                    {major}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>すべて</SelectItem>
+                  {majorCategories.map((major) => (
+                    <SelectItem key={major} value={major}>
+                      {major}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <label className="filter-bar__field">
-              <span className="filter-bar__label">中分類</span>
-              <select
-                className="filter-bar__select"
-                value={runnerFilters.mediumCategoryFilter ?? ""}
+            <div className="flex items-center gap-2">
+              <Label className="shrink-0 text-sm font-semibold">中分類</Label>
+              <Select
+                value={runnerFilters.mediumCategoryFilter ?? ALL}
+                onValueChange={updateMediumFilter}
                 disabled={mediumCategories.length === 0}
-                onChange={(e) => updateMediumFilter(e.target.value || undefined)}
               >
-                <option value="">すべて</option>
-                {mediumCategories.map((medium) => (
-                  <option key={medium} value={medium}>
-                    {medium}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>すべて</SelectItem>
+                  {mediumCategories.map((medium) => (
+                    <SelectItem key={medium} value={medium}>
+                      {medium}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <label className="filter-bar__field">
-              <span className="filter-bar__label">小分類</span>
-              <select
-                className="filter-bar__select"
-                value={runnerFilters.minorCategoryFilter ?? ""}
-                disabled={minorCategories.length === 0}
-                onChange={(e) =>
+            <div className="flex items-center gap-2">
+              <Label className="shrink-0 text-sm font-semibold">小分類</Label>
+              <Select
+                value={runnerFilters.minorCategoryFilter ?? ALL}
+                onValueChange={(value) =>
                   void setRunnerFilters({
                     ...runnerFilters,
                     targetMode: "filter",
                     scenarioId: undefined,
-                    minorCategoryFilter: e.target.value || undefined,
+                    minorCategoryFilter: value === ALL ? undefined : value,
                   })
                 }
+                disabled={minorCategories.length === 0}
               >
-                <option value="">すべて</option>
-                {minorCategories.map((minor) => (
-                  <option key={minor} value={minor}>
-                    {minor}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>すべて</SelectItem>
+                  {minorCategories.map((minor) => (
+                    <SelectItem key={minor} value={minor}>
+                      {minor}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </>
         ) : (
-          <label className="filter-bar__field filter-bar__field--grow">
-            <span className="filter-bar__label">シナリオ</span>
-            <select
-              className="filter-bar__select filter-bar__select--wide"
-              value={runnerFilters.scenarioId ?? ""}
-              onChange={(e) =>
+          <div className="flex min-w-40 flex-1 items-center gap-2">
+            <Label className="shrink-0 text-sm font-semibold">シナリオ</Label>
+            <Select
+              value={runnerFilters.scenarioId ?? scenarios[0]?.id ?? ""}
+              onValueChange={(value) =>
                 void setRunnerFilters({
                   ...runnerFilters,
                   targetMode: "scenario",
-                  scenarioId: e.target.value || undefined,
+                  scenarioId: value || undefined,
                   majorCategoryFilter: undefined,
                   mediumCategoryFilter: undefined,
                   minorCategoryFilter: undefined,
                 })
               }
             >
-              {scenarios.map((scenario) => (
-                <option key={scenario.id} value={scenario.id}>
-                  {scenario.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              <SelectTrigger className="h-auto min-w-48 max-w-72 flex-1 px-2.5 py-1.5 text-sm font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {scenarios.map((scenario) => (
+                  <SelectItem key={scenario.id} value={scenario.id}>
+                    {scenario.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
 
-        <label className="filter-bar__toggle">
-          <input
-            type="checkbox"
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap">
+          <Checkbox
             checked={runnerFilters.onlyIncomplete}
-            onChange={(e) =>
+            onCheckedChange={(checked) =>
               void setRunnerFilters({
                 ...runnerFilters,
-                onlyIncomplete: e.target.checked,
+                onlyIncomplete: checked === true,
               })
             }
           />
@@ -232,7 +262,7 @@ export function FilterBar() {
         </label>
 
         {targetCount !== null && (
-          <span className="filter-bar__count">{targetCount} 件</span>
+          <span className="ml-auto text-sm font-semibold text-primary">{targetCount} 件</span>
         )}
       </div>
     </div>

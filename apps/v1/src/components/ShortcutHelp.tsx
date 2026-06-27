@@ -1,4 +1,14 @@
 import { formatRunnerKeys, RUNNER_KEYBINDINGS } from "@/lib/runner-keybindings";
+import { Kbd } from "@/components/qa-ui";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const SHORTCUT_ROWS = [
   { label: "前のテスト", keys: RUNNER_KEYBINDINGS.prev },
@@ -10,29 +20,34 @@ const SHORTCUT_ROWS = [
 
 export function ShortcutHelp() {
   return (
-    <div className="shortcut-help">
-      <button
-        type="button"
-        className="shortcut-help__trigger"
-        aria-label="キーボードショートカット"
-        aria-describedby="shortcut-help-panel"
-      >
-        ?
-      </button>
-      <div id="shortcut-help-panel" className="shortcut-help__panel" role="tooltip">
-        <p className="shortcut-help__title">キーボードショートカット</p>
-        <dl className="shortcut-help__list">
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed right-5 bottom-20 z-30 size-9 rounded-full text-base font-bold shadow-sm"
+          aria-label="キーボードショートカット"
+        >
+          ?
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xs">
+        <DialogHeader>
+          <DialogTitle>キーボードショートカット</DialogTitle>
+          <DialogDescription className="sr-only">テスト実行画面で使えるショートカット一覧</DialogDescription>
+        </DialogHeader>
+        <dl className="space-y-2">
           {SHORTCUT_ROWS.map((row) => (
-            <div key={row.label} className="shortcut-help__row">
-              <dt>{row.label}</dt>
+            <div key={row.label} className="flex items-center justify-between gap-4 text-sm">
+              <dt className="text-muted-foreground">{row.label}</dt>
               <dd>
-                <kbd className="kbd">{formatRunnerKeys(row.keys)}</kbd>
+                <Kbd>{formatRunnerKeys(row.keys)}</Kbd>
               </dd>
             </div>
           ))}
         </dl>
-        <p className="shortcut-help__note">メモ入力中は無効</p>
-      </div>
-    </div>
+        <p className="border-t pt-3 text-xs text-muted-foreground">メモ入力中は無効</p>
+      </DialogContent>
+    </Dialog>
   );
 }

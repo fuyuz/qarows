@@ -1,4 +1,6 @@
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
+import { Upload } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 interface FileDropZoneProps {
   title: string;
@@ -40,7 +42,10 @@ export function FileDropZone({
 
   return (
     <div
-      className={`drop-zone${active ? " drop-zone--active" : ""}`}
+      className={cn(
+        "cursor-pointer rounded-xl border-2 border-dashed bg-card px-6 py-10 text-center transition-colors",
+        active ? "border-primary bg-primary/5" : "border-border hover:border-primary/60 hover:bg-primary/5",
+      )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -54,11 +59,9 @@ export function FileDropZone({
         }
       }}
     >
-      <div className="drop-zone__icon" aria-hidden>
-        ↑
-      </div>
-      <p className="drop-zone__title">{title}</p>
-      <p className="drop-zone__hint">{hint}</p>
+      <Upload className="mx-auto mb-3 size-8 text-muted-foreground/60" aria-hidden />
+      <p className="mb-1 text-base font-semibold">{title}</p>
+      <p className="text-sm text-muted-foreground">{hint}</p>
       {children}
       <input
         ref={inputRef}
