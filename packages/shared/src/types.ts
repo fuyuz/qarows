@@ -48,7 +48,15 @@ export interface TestDefinition {
   };
   environments: Environment[];
   categoryTargets?: CategoryTarget[];
+  scenarios?: TestScenario[];
   testCases: TestCase[];
+}
+
+export interface TestScenario {
+  id: string;
+  name: string;
+  description?: string;
+  steps: string[];
 }
 
 export interface TestResultEntry {
@@ -87,9 +95,14 @@ export interface SessionConfig {
 }
 
 /** テスト実行中に切り替えるフィルタ（セッション設定とは別） */
+export type RunnerTargetMode = "filter" | "scenario";
+
 export interface RunnerFilters {
+  targetMode?: RunnerTargetMode;
   majorCategoryFilter?: string;
   mediumCategoryFilter?: string;
+  minorCategoryFilter?: string;
+  scenarioId?: string;
   onlyIncomplete: boolean;
 }
 

@@ -31,6 +31,45 @@ categoryTargets:
       - firefox-desktop
       - safari-desktop
 
+scenarios:
+  - id: first-time-setup
+    name: "初回セットアップ"
+    description: |
+      未読み込み状態から tests.yml を読み込み、セッションを開始し、
+      ランナーで1件目の結果入力までを通しで確認する。
+    steps:
+      - TC-001
+      - TC-002
+      - TC-007
+      - TC-009
+      - TC-010
+
+  - id: filter-and-progress
+    name: "フィルタと進捗"
+    description: |
+      大・中・小分類フィルタと進捗バーが連動することを、
+      意図した順で触って確認する。
+    steps:
+      - TC-015
+      - TC-016
+      - TC-022
+      - TC-018
+      - TC-019
+
+  - id: runner-full
+    name: "ランナー一通り"
+    description: |
+      使い方カードから完了カードまで、ランナーの画面・入力・操作を
+      一通り確認する。
+    steps:
+      - TC-009
+      - TC-010
+      - TC-011
+      - TC-014
+      - TC-020
+      - TC-021
+      - TC-012
+
 testCases:
   - id: TC-001
     category:
@@ -159,6 +198,14 @@ testCases:
     prerequisites: "テスト実行画面 (/run) を表示中"
     description: "中分類を選ぶと対象件数がさらに絞り込まれる。大分類変更時は無効な中分類がクリアされる"
 
+  - id: TC-022
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "小分類"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "小分類を選ぶと対象件数がさらに絞り込まれる。大分類・中分類変更時は無効な小分類がクリアされる"
+
   - id: TC-017
     category:
       major: "テスト実行"
@@ -198,3 +245,19 @@ testCases:
       minor: "ショートカットヘルプ"
     prerequisites: "テスト実行画面 (/run) を表示中"
     description: "画面右下の ? にホバーするとキーボードショートカット一覧が表示される"
+
+  - id: TC-023
+    category:
+      major: "テスト実行"
+      medium: "シナリオ"
+      minor: "モード切替"
+    prerequisites: "tests.yml に scenarios が定義されていること"
+    description: "フィルタとシナリオを排他で切り替えられ、シナリオ選択時は分類フィルタが無効になる"
+
+  - id: TC-024
+    category:
+      major: "テスト実行"
+      medium: "シナリオ"
+      minor: "タスク一覧"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "左のテスト一覧にシナリオの steps 順で項目が並び、name/description・進行状況が表示され、クリックでジャンプできる"

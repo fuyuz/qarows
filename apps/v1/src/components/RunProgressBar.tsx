@@ -8,7 +8,7 @@ import {
   type ProgressBucket,
   type RunProgressStats,
 } from "@/lib/run-progress";
-import { filterTestCases } from "@/lib/utils";
+import { filterTestCases, formatRunnerFilterTitle } from "@/lib/utils";
 
 function bucketClass(bucket: ProgressBucket): string {
   if (bucket === "OK_NG") return "ok-ng";
@@ -19,15 +19,6 @@ function bucketClass(bucket: ProgressBucket): string {
 function progressSummary(stats: RunProgressStats): string {
   if (stats.total === 0) return "0 件";
   return `${stats.completed} / ${stats.total} 完了`;
-}
-
-function formatFilterTitle(filters: {
-  majorCategoryFilter?: string;
-  mediumCategoryFilter?: string;
-}): string {
-  const parts = [filters.majorCategoryFilter, filters.mediumCategoryFilter].filter(Boolean);
-  if (parts.length === 0) return "フィルタ";
-  return `フィルタ（${parts.join(" › ")}）`;
 }
 
 function ProgressTrack({
@@ -161,7 +152,7 @@ export function RunProgressBar() {
 
   if (!definition || !session || overall.total === 0) return null;
 
-  const filterTitle = formatFilterTitle(runnerFilters);
+  const filterTitle = formatRunnerFilterTitle(definition, runnerFilters);
 
   return (
     <footer className="run-progress" aria-label="テスト進捗">

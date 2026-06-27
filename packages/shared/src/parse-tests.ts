@@ -6,6 +6,7 @@ import type {
   TargetRequirement,
   TestCase,
   TestDefinition,
+  TestScenario,
 } from "./types";
 
 function parseTargetRequirement(raw: unknown, context: string): TargetRequirement {
@@ -127,6 +128,33 @@ function parseTestCase(raw: unknown, index: number): TestCase {
   };
 }
 
+function parseScenario(raw: unknown, index: number): TestScenario {
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error(`scenarios[${index}] の形式が不正です`);
+  }
+  const obj = raw as Record<string, unknown>;
+  const id = String(obj.id ?? "").trim();
+  const name = String(obj.name ?? "").trim();
+  if (!id) throw new Error(`scenarios[${index}].id は必須です`);
+  if (!name) throw new Error(`scenarios[${index}].name は必須です`);
+
+  const stepsRaw = obj.steps;
+  if (!Array.isArray(stepsRaw) || stepsRaw.length === 0) {
+    throw new Error(`scenarios[${index}].steps は1件以上必要です`);
+  }
+  const steps = stepsRaw.map((step, stepIndex) => {
+    if (typeof step !== "string" || !step.trim()) {
+      throw new Error(`scenarios[${index}].steps[${stepIndex}] は空でない文字列である必要があります`);
+    }
+    return step.trim();
+  });
+
+  const description =
+    obj.description != null ? String(obj.description).trim() || undefined : undefined;
+
+  return { id, name, ...(description != null ? { description } : {}), steps };
+}
+
 function validateTargetEnvironmentIds(
   ids: string[] | undefined,
   context: string,
@@ -202,6 +230,27 @@ export function parseTestsYaml(content: string): TestDefinition {
     ids.add(tc.id);
   }
 
+  const scenariosRaw = root.scenarios;
+  let scenarios: TestScenario[] | undefined;
+  if (scenariosRaw != null) {
+    if (!Array.isArray(scenariosRaw)) {
+      throw new Error("scenarios は配列である必要があります");
+    }
+    scenarios = scenariosRaw.map(parseScenario);
+    const scenarioIds = new Set<string>();
+    for (const scenario of scenarios) {
+      if (scenarioIds.has(scenario.id)) {
+        throw new Error(`重複したシナリオ ID: ${scenario.id}`);
+      }
+      scenarioIds.add(scenario.id);
+      for (const stepId of scenario.steps) {
+        if (!ids.has(stepId)) {
+          throw new Error(`scenarios "${scenario.id}" に未知の testCase id "${stepId}" があります`);
+        }
+      }
+    }
+  }
+
   return {
     project: {
       name: projectName,
@@ -210,6 +259,7 @@ export function parseTestsYaml(content: string): TestDefinition {
     },
     environments,
     ...(categoryTargets != null ? { categoryTargets } : {}),
+    ...(scenarios != null ? { scenarios } : {}),
     testCases,
   };
 }

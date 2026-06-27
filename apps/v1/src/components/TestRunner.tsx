@@ -10,7 +10,7 @@ import {
   isRunnerTypingTarget,
   matchRunnerStatusKey,
 } from "@/lib/runner-keybindings";
-import { filterTestCases } from "@/lib/utils";
+import { resolveRunnerTestCases } from "@/lib/utils";
 
 export function TestRunner() {
   const {
@@ -32,7 +32,7 @@ export function TestRunner() {
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
-    return filterTestCases(definition, session, runnerFilters, results.results);
+    return resolveRunnerTestCases(definition, session, runnerFilters, results.results);
   }, [definition, results, session, runnerFilters]);
 
   const maxSlide = targets.length + 1;
@@ -45,11 +45,18 @@ export function TestRunner() {
   }, [current, definition, session]);
 
   useEffect(() => {
-    if (didRestoreSlide.current) return;
-    didRestoreSlide.current = true;
-    if (runnerIndex > 0) {
-      setSlideIndex(Math.min(runnerIndex + 1, targets.length + 1));
+    if (!didRestoreSlide.current) {
+      didRestoreSlide.current = true;
+      if (runnerIndex > 0) {
+        setSlideIndex(Math.min(runnerIndex + 1, targets.length + 1));
+      }
+      return;
     }
+    if (runnerIndex < 0) {
+      setSlideIndex((prev) => (prev > targets.length ? prev : 0));
+      return;
+    }
+    setSlideIndex(Math.min(runnerIndex + 1, targets.length + 1));
   }, [runnerIndex, targets.length]);
 
   useEffect(() => {
@@ -88,6 +95,8 @@ export function TestRunner() {
       setSlideIndex(slide);
       if (slide >= 1 && slide <= targets.length) {
         void setRunnerIndex(slide - 1);
+      } else {
+        void setRunnerIndex(-1);
       }
     },
     [maxSlide, setRunnerIndex, targets.length],
@@ -208,19 +217,26 @@ export function TestRunner() {
   return (
     <div className="test-runner">
       <div className="test-runner__stage">
-        <button
-          type="button"
-          className="test-runner__arrow"
-          disabled={slideIndex === 0 || busy}
-          aria-label="前へ"
-          onClick={() => goToSlide(slideIndex - 1)}
-        >
-          ‹
-        </button>
-
         <div className="test-runner__card">
-          {slideIndex === 0 && <RunnerIntroCard />}
-          {slideIndex === maxSlide && <RunnerCompleteCard testCount={targets.length} />}
+          {slideIndex === 0 && (
+            <RunnerIntroCard
+              canPrev={slideIndex > 0}
+              canNext={slideIndex < maxSlide}
+              busy={busy}
+              onPrev={() => goToSlide(slideIndex - 1)}
+              onNext={() => goToSlide(slideIndex + 1)}
+            />
+          )}
+          {slideIndex === maxSlide && (
+            <RunnerCompleteCard
+              testCount={targets.length}
+              canPrev={slideIndex > 0}
+              canNext={slideIndex < maxSlide}
+              busy={busy}
+              onPrev={() => goToSlide(slideIndex - 1)}
+              onNext={() => goToSlide(slideIndex + 1)}
+            />
+          )}
           {current && envTargets && (
             <TestCard
               testCase={current}
@@ -229,22 +245,16 @@ export function TestRunner() {
               envTargets={envTargets}
               memo={memo}
               busy={busy}
+              canPrev={slideIndex > 0}
+              canNext={slideIndex < maxSlide}
+              onPrev={() => goToSlide(slideIndex - 1)}
+              onNext={() => goToSlide(slideIndex + 1)}
               onMemoChange={setMemo}
               onBatch={(status) => void applyBatch(status)}
               onSingle={(envId, status) => void applySingle(envId, status)}
             />
           )}
         </div>
-
-        <button
-          type="button"
-          className="test-runner__arrow"
-          disabled={slideIndex >= maxSlide || busy}
-          aria-label="次へ"
-          onClick={() => goToSlide(slideIndex + 1)}
-        >
-          ›
-        </button>
       </div>
     </div>
   );

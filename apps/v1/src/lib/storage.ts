@@ -7,6 +7,7 @@ import type {
 } from "@qarows/shared";
 
 export const defaultRunnerFilters: RunnerFilters = {
+  targetMode: "filter",
   onlyIncomplete: false,
 };
 

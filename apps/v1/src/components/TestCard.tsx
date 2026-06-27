@@ -1,5 +1,6 @@
 import type { SessionTestTargets, TestCase, TestDefinition, TestResults, TestStatus } from "@qarows/shared";
 import { RUNNER_KEYBINDINGS } from "@/lib/runner-keybindings";
+import { RunnerCardFooter, type RunnerCardNavProps } from "@/components/RunnerCardFooter";
 
 const STATUS_LABELS: Record<TestStatus, string> = {
   OK: "OK",
@@ -20,13 +21,12 @@ function formatCategory(tc: TestCase): string {
   return parts.join(" › ");
 }
 
-export interface TestCardProps {
+export interface TestCardProps extends RunnerCardNavProps {
   testCase: TestCase;
   definition: TestDefinition;
   results: TestResults;
   envTargets: SessionTestTargets;
   memo: string;
-  busy: boolean;
   onMemoChange: (value: string) => void;
   onBatch: (status: TestStatus) => void;
   onSingle: (envId: string, status: TestStatus) => void;
@@ -39,6 +39,10 @@ export function TestCard({
   envTargets,
   memo,
   busy,
+  canPrev,
+  canNext,
+  onPrev,
+  onNext,
   onMemoChange,
   onBatch,
   onSingle,
@@ -120,14 +124,20 @@ export function TestCard({
         </section>
       </div>
 
-      <footer className="test-card__footer">
+      <RunnerCardFooter
+        canPrev={canPrev}
+        canNext={canNext}
+        busy={busy}
+        onPrev={onPrev}
+        onNext={onNext}
+      >
         <button type="button" className="btn btn--ok" disabled={busy} onClick={() => onBatch("OK")}>
           一括 OK <kbd className="kbd">{RUNNER_KEYBINDINGS.ok[0]}</kbd>
         </button>
         <button type="button" className="btn btn--ng" disabled={busy} onClick={() => onBatch("NG")}>
           一括 NG <kbd className="kbd">{RUNNER_KEYBINDINGS.ng[0]}</kbd>
         </button>
-      </footer>
+      </RunnerCardFooter>
     </article>
   );
 }

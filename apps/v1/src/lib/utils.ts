@@ -1,11 +1,10 @@
 import {
-  isTestIncomplete,
-  isTestInScope,
+  resolveRunnerTestCases,
+  type RunnerFilters,
   type SessionConfig,
   type TestCase,
   type TestDefinition,
   type TestResults,
-  type RunnerFilters,
 } from "@qarows/shared";
 
 export function getMajorCategories(definition: TestDefinition): string[] {
@@ -28,33 +27,38 @@ export function getMediumCategories(
   return [...set].sort();
 }
 
+export function getMinorCategories(
+  definition: TestDefinition,
+  majorFilter?: string,
+  mediumFilter?: string,
+): string[] {
+  const set = new Set<string>();
+  for (const tc of definition.testCases) {
+    if (majorFilter && tc.category.major !== majorFilter) continue;
+    if (mediumFilter && tc.category.medium !== mediumFilter) continue;
+    if (tc.category.minor) set.add(tc.category.minor);
+  }
+  return [...set].sort();
+}
+
+/** @deprecated resolveRunnerTestCases を使用 */
 export function filterTestCases(
   definition: TestDefinition,
   session: SessionConfig,
   filters: RunnerFilters,
   results: TestResults,
 ): TestCase[] {
-  return definition.testCases.filter((tc) => {
-    if (!isTestInScope(tc, definition, session.selectedEnvironmentIds)) {
-      return false;
-    }
-    if (filters.majorCategoryFilter && tc.category.major !== filters.majorCategoryFilter) {
-      return false;
-    }
-    if (filters.mediumCategoryFilter && tc.category.medium !== filters.mediumCategoryFilter) {
-      return false;
-    }
-    if (
-      filters.onlyIncomplete &&
-      !isTestIncomplete(tc, definition, session.selectedEnvironmentIds, results)
-    ) {
-      return false;
-    }
-    return true;
-  });
+  return resolveRunnerTestCases(definition, session, filters, results);
 }
 
-export { isTestIncomplete, isTestInScope };
+export {
+  formatTestCaseLabel,
+  getRunnerTargetMode,
+  getTestCaseAggregateStatus,
+  isTestInScope,
+  isTestIncomplete,
+  resolveRunnerTestCases,
+} from "@qarows/shared";
 
 export function downloadText(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime });
@@ -73,4 +77,23 @@ export function readFileAsText(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error("ファイル読み込みに失敗しました"));
     reader.readAsText(file);
   });
+}
+
+export function formatRunnerFilterTitle(
+  definition: TestDefinition | null,
+  filters: RunnerFilters,
+): string {
+  const mode = filters.targetMode ?? "filter";
+  if (mode === "scenario") {
+    const scenario = definition?.scenarios?.find((entry) => entry.id === filters.scenarioId);
+    return scenario ? `シナリオ（${scenario.name}）` : "シナリオ";
+  }
+
+  const parts = [
+    filters.majorCategoryFilter,
+    filters.mediumCategoryFilter,
+    filters.minorCategoryFilter,
+  ].filter(Boolean);
+  if (parts.length === 0) return "フィルタ";
+  return `フィルタ（${parts.join(" › ")}）`;
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AppNav } from "@/components/AppNav";
 import { useApp } from "@/context/AppContext";
 
 export function SessionPage() {
@@ -52,7 +53,9 @@ export function SessionPage() {
   };
 
   return (
-    <main className="page">
+    <>
+      <AppNav />
+      <main className="page">
       <header className="page__header">
         <h1 className="page__title">セッション設定</h1>
         <p className="page__subtitle">
@@ -117,10 +120,8 @@ export function SessionPage() {
         >
           {submitting ? "開始中…" : "テスト実行を開始"}
         </button>
-        <button type="button" className="btn btn--ghost" onClick={() => navigate("/load")}>
-          ← ファイル読み込みに戻る
-        </button>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }

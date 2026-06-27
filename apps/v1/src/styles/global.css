@@ -5,7 +5,16 @@
 }
 
 :root {
-  font-family: "IBM Plex Sans JP", system-ui, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic UI",
+    "Yu Gothic",
+    Meiryo,
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color: #1a1a1a;

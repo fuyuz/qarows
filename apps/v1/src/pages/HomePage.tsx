@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { AppNav } from "@/components/AppNav";
 import { classifyDroppedFiles, FileDropZone } from "@/components/FileDropZone";
 import { readFileAsText } from "@/lib/utils";
+import { useApp } from "@/context/AppContext";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -54,7 +55,9 @@ export function HomePage() {
   };
 
   return (
-    <main className="page">
+    <>
+      <AppNav />
+      <main className="page">
       <header className="page__header">
         <h1 className="page__title">qarows</h1>
         <p className="page__subtitle">
@@ -108,6 +111,7 @@ export function HomePage() {
           サンプルを試す
         </button>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }
