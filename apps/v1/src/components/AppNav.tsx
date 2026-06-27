@@ -33,7 +33,7 @@ function workflowLinks(
   page: ProjectPage | "load" | null,
   session: ReturnType<typeof useApp>["session"],
 ): NavLinkItem[] {
-  const items: NavLinkItem[] = [];
+  const items: NavLinkItem[] = [{ label: "トップ", to: "/" }];
 
   if (page === "run") {
     items.push({ label: "セッション設定", to: path("session") });

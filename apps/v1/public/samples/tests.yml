@@ -582,3 +582,11 @@ testCases:
       minor: "表示"
     prerequisites: "プロジェクト未読み込み、IndexedDB 空（/ を表示）"
     description: "トップページにできること・GitHub リンク・データはローカルのみの説明が表示され、「はじめる」で /load へ進める"
+
+  - id: TC-061
+    category:
+      major: "閲覧"
+      medium: "ナビ"
+      minor: "トップ"
+    prerequisites: "tests.yml 読み込み済み、プロジェクト画面を表示中"
+    description: "Compass メニューの「移動」から「トップ」を選ぶと / に遷移する。プロジェクトは IndexedDB に保持され「作業を続ける」で再開できる"

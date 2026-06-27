@@ -21,4 +21,13 @@ test.describe("viewing pages", () => {
     await page.getByRole("menuitem", { name: "バグ" }).click();
     await expect(page).toHaveURL(/\/p\/qarows\/bugs$/);
   });
+
+  test("navigates to top from compass menu", async ({ page }) => {
+    await loadSampleAndStartRun(page);
+
+    await openNavMenu(page);
+    await page.getByRole("menuitem", { name: "トップ" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("link", { name: "作業を続ける" })).toBeVisible();
+  });
 });

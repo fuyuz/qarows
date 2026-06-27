@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -84,7 +83,6 @@ export function LandingPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-base">できること</CardTitle>
-            <CardDescription>Phase 1（ブラウザ完結・ファイル連携）</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-2.5 text-sm leading-relaxed">
