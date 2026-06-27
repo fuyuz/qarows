@@ -108,17 +108,17 @@ qarows/
 
 | コマンド | URL | 用途 |
 |---|---|---|
-| `bun run dev` | http://localhost:5173 | 開発（HMR） |
-| `bun run build && bun run preview` | http://localhost:4173 | 本番ビルドの確認 |
+| `bun run preview:start` | http://localhost:5173 | 本番ビルドの確認（常時起動用） |
+| `bun run dev` | http://localhost:5174 | 開発（HMR） |
 
-5173 が「古いコードのまま」になる場合は、**既存プロセスが残っている**ことが多い。ターミナルで dev を Ctrl+C してから再起動する。
+5173 は **preview 専用**。開発中は 5174 を使う。
 
 ```bash
-# 5173 を掴んでいるプロセスを止める（必要なとき）
-lsof -ti :5173 | xargs kill -9
+# 5173 / 5174 を掴んでいるプロセスを止める
+bun run dev:stop
 
-cd /Users/yuyafutamura/Documents/qarows
-bun run dev
+# preview をビルドして 5173 で起動
+bun run preview:start
 ```
 
 ## ドキュメント

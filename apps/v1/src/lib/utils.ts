@@ -1,4 +1,12 @@
-import type { SessionConfig, TestCase, TestDefinition, TestResults } from "@qarows/shared";
+import {
+  isTestIncomplete,
+  isTestInScope,
+  type SessionConfig,
+  type TestCase,
+  type TestDefinition,
+  type TestResults,
+  type RunnerFilters,
+} from "@qarows/shared";
 
 export function getMajorCategories(definition: TestDefinition): string[] {
   const set = new Set<string>();
@@ -8,33 +16,30 @@ export function getMajorCategories(definition: TestDefinition): string[] {
   return [...set].sort();
 }
 
-export function isTestIncomplete(
-  testCase: TestCase,
-  environmentIds: string[],
-  results: TestResults,
-): boolean {
-  const byEnv = results[testCase.id] ?? {};
-  return environmentIds.some((envId) => !byEnv[envId]?.status);
-}
-
 export function filterTestCases(
   definition: TestDefinition,
   session: SessionConfig,
+  filters: RunnerFilters,
   results: TestResults,
 ): TestCase[] {
   return definition.testCases.filter((tc) => {
-    if (session.majorCategoryFilter && tc.category.major !== session.majorCategoryFilter) {
+    if (!isTestInScope(tc, definition, session.selectedEnvironmentIds)) {
+      return false;
+    }
+    if (filters.majorCategoryFilter && tc.category.major !== filters.majorCategoryFilter) {
       return false;
     }
     if (
-      session.onlyIncomplete &&
-      !isTestIncomplete(tc, session.selectedEnvironmentIds, results)
+      filters.onlyIncomplete &&
+      !isTestIncomplete(tc, definition, session.selectedEnvironmentIds, results)
     ) {
       return false;
     }
     return true;
   });
 }
+
+export { isTestIncomplete, isTestInScope };
 
 export function downloadText(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime });

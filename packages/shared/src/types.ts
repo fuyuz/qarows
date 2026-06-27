@@ -4,19 +4,40 @@ export type BugStatus = "open" | "in_progress" | "fixed";
 
 export type BugSeverity = "low" | "medium" | "high" | "critical";
 
+export type TargetRequirement = "all" | "any";
+
 export interface Environment {
   id: string;
   name: string;
+}
+
+export interface TargetEnvironmentSpec {
+  required: TargetRequirement;
+  targets?: string[];
+}
+
+export interface CategoryMatch {
+  major: string;
+  medium?: string;
+  minor?: string;
+}
+
+export interface CategoryTarget {
+  match: CategoryMatch;
+  required?: TargetRequirement;
+  targets?: string[];
 }
 
 export interface TestCase {
   id: string;
   category: {
     major: string;
+    medium?: string;
     minor?: string;
   };
   prerequisites?: string;
   description: string;
+  targetEnvironments?: TargetEnvironmentSpec;
 }
 
 export interface TestDefinition {
@@ -26,6 +47,7 @@ export interface TestDefinition {
     version?: number;
   };
   environments: Environment[];
+  categoryTargets?: CategoryTarget[];
   testCases: TestCase[];
 }
 
@@ -61,7 +83,22 @@ export interface ResultsFile {
 
 export interface SessionConfig {
   selectedEnvironmentIds: string[];
+  executorName: string;
+}
+
+/** テスト実行中に切り替えるフィルタ（セッション設定とは別） */
+export interface RunnerFilters {
   majorCategoryFilter?: string;
   onlyIncomplete: boolean;
-  executorName: string;
+}
+
+export interface ResolvedTestTargets {
+  /** プロジェクト内で解決された対象端末（セッション交差前） */
+  environmentIds: string[];
+  required: TargetRequirement;
+}
+
+export interface SessionTestTargets extends ResolvedTestTargets {
+  /** セッション選択との交差後。空ならそのセッションでは対象外 */
+  inScope: boolean;
 }

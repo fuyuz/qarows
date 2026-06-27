@@ -3,4 +3,4 @@ set -euo pipefail
 
 bash "$(cd "$(dirname "$0")/../../.." && pwd)/scripts/stop-dev.sh"
 sleep 0.5
-exec vite --port 5174 --strictPort
+exec vite preview --port 5173 --strictPort

@@ -11,7 +11,7 @@ stop_listeners() {
   fi
 }
 
-for port in 5173 5174 4173; do
+for port in 5173 5174; do
   stop_listeners "$port"
 done
 

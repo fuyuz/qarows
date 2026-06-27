@@ -11,6 +11,18 @@ environments:
   - id: safari-desktop
     name: "Safari (Desktop)"
 
+categoryTargets:
+  - match:
+      major: "ファイル読み込み"
+    required: all
+
+  - match:
+      major: "セッション"
+    required: any
+    targets:
+      - chrome-desktop
+      - firefox-desktop
+
 testCases:
   - id: TC-001
     category:
@@ -39,3 +51,35 @@ testCases:
       minor: "IndexedDB"
     prerequisites: "tests.yml 読み込み済み"
     description: "ページをリロードしてもプロジェクト状態が復元される"
+
+  - id: TC-005
+    category:
+      major: "セッション"
+      minor: "環境選択"
+    prerequisites: "tests.yml 読み込み済み、セッション未開始"
+    description: "端末/環境をチェックボックスで選択できる"
+
+  - id: TC-006
+    category:
+      major: "セッション"
+      minor: "フィルタ"
+    prerequisites: "セッション設定画面を表示中"
+    description: "大分類フィルタと未実施のみで対象件数が変わる"
+
+  - id: TC-007
+    category:
+      major: "セッション"
+      minor: "開始"
+    prerequisites: "実施者名と端末/環境を選択済み"
+    description: "テスト実行を開始して /run に遷移する"
+
+  - id: TC-008
+    category:
+      major: "対象端末"
+      medium: "解決"
+      minor: "categoryTargets"
+    description: "categoryTargets と targetEnvironments で対象端末が解決される"
+    targetEnvironments:
+      required: any
+      targets:
+        - safari-desktop
