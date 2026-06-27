@@ -1,0 +1,16 @@
+{
+  "name": "qarows",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @qarows/v1 dev",
+    "dev:stop": "bash scripts/stop-dev.sh",
+    "dev:restart": "bash scripts/stop-dev.sh && bun run dev",
+    "build": "bun run --filter @qarows/v1 build",
+    "preview": "bun run --filter @qarows/v1 preview",
+    "typecheck": "bun run --filter @qarows/shared typecheck && bun run --filter @qarows/v1 typecheck"
+  }
+}

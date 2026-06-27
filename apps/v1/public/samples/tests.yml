@@ -1,0 +1,41 @@
+project:
+  name: "qarows"
+  id: qarows
+  version: 1
+
+environments:
+  - id: chrome-desktop
+    name: "Chrome (Desktop)"
+  - id: firefox-desktop
+    name: "Firefox (Desktop)"
+  - id: safari-desktop
+    name: "Safari (Desktop)"
+
+testCases:
+  - id: TC-001
+    category:
+      major: "ファイル読み込み"
+      minor: "ドロップ"
+    prerequisites: "プロジェクト未読み込みの状態"
+    description: "tests.yml をドロップゾーンにドロップしてファイル名が表示される"
+
+  - id: TC-002
+    category:
+      major: "ファイル読み込み"
+      minor: "サンプル"
+    prerequisites: "プロジェクト未読み込みの状態"
+    description: "「サンプルを試す」で tests.yml が読み込まれテスト開始できる"
+
+  - id: TC-003
+    category:
+      major: "ファイル読み込み"
+      minor: "results.json"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "results.json を任意で追加読み込みできる"
+
+  - id: TC-004
+    category:
+      major: "永続化"
+      minor: "IndexedDB"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "ページをリロードしてもプロジェクト状態が復元される"
