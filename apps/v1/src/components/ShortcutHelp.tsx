@@ -1,14 +1,6 @@
 import { formatRunnerKeys, RUNNER_KEYBINDINGS } from "@/lib/runner-keybindings";
 import { Kbd } from "@/components/qa-ui";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 const SHORTCUT_ROWS = [
   { label: "前のテスト", keys: RUNNER_KEYBINDINGS.prev },
@@ -20,22 +12,22 @@ const SHORTCUT_ROWS = [
 
 export function ShortcutHelp() {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="fixed right-5 bottom-20 z-30 size-9 rounded-full text-base font-bold shadow-sm"
-          aria-label="キーボードショートカット"
-        >
-          ?
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-xs">
-        <DialogHeader>
-          <DialogTitle>キーボードショートカット</DialogTitle>
-          <DialogDescription className="sr-only">テスト実行画面で使えるショートカット一覧</DialogDescription>
-        </DialogHeader>
+    <div className="group fixed right-5 bottom-20 z-30">
+      <Button
+        variant="outline"
+        size="icon"
+        className="size-9 rounded-full text-base font-bold shadow-sm"
+        aria-label="キーボードショートカット"
+        aria-describedby="shortcut-help-panel"
+      >
+        ?
+      </Button>
+      <div
+        id="shortcut-help-panel"
+        role="tooltip"
+        className="pointer-events-none absolute right-0 bottom-[calc(100%+0.5rem)] hidden min-w-52 rounded-lg border bg-popover px-4 py-3 text-popover-foreground shadow-md group-focus-within:block group-hover:block"
+      >
+        <p className="mb-2.5 text-sm font-semibold">キーボードショートカット</p>
         <dl className="space-y-2">
           {SHORTCUT_ROWS.map((row) => (
             <div key={row.label} className="flex items-center justify-between gap-4 text-sm">
@@ -46,8 +38,8 @@ export function ShortcutHelp() {
             </div>
           ))}
         </dl>
-        <p className="border-t pt-3 text-xs text-muted-foreground">メモ入力中は無効</p>
-      </DialogContent>
-    </Dialog>
+        <p className="mt-2.5 border-t pt-2.5 text-xs text-muted-foreground">メモ入力中は無効</p>
+      </div>
+    </div>
   );
 }
