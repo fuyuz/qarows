@@ -16,6 +16,18 @@ export function getMajorCategories(definition: TestDefinition): string[] {
   return [...set].sort();
 }
 
+export function getMediumCategories(
+  definition: TestDefinition,
+  majorFilter?: string,
+): string[] {
+  const set = new Set<string>();
+  for (const tc of definition.testCases) {
+    if (majorFilter && tc.category.major !== majorFilter) continue;
+    if (tc.category.medium) set.add(tc.category.medium);
+  }
+  return [...set].sort();
+}
+
 export function filterTestCases(
   definition: TestDefinition,
   session: SessionConfig,
@@ -27,6 +39,9 @@ export function filterTestCases(
       return false;
     }
     if (filters.majorCategoryFilter && tc.category.major !== filters.majorCategoryFilter) {
+      return false;
+    }
+    if (filters.mediumCategoryFilter && tc.category.medium !== filters.mediumCategoryFilter) {
       return false;
     }
     if (

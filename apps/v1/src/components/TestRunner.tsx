@@ -12,12 +12,6 @@ import {
 } from "@/lib/runner-keybindings";
 import { filterTestCases } from "@/lib/utils";
 
-function getPositionLabel(slideIndex: number, testCount: number): string {
-  if (slideIndex === 0) return "使い方";
-  if (slideIndex === testCount + 1) return "完了";
-  return `${slideIndex} / ${testCount}`;
-}
-
 export function TestRunner() {
   const {
     definition,
@@ -213,8 +207,6 @@ export function TestRunner() {
 
   return (
     <div className="test-runner">
-      <p className="test-runner__position">{getPositionLabel(slideIndex, targets.length)}</p>
-
       <div className="test-runner__stage">
         <button
           type="button"

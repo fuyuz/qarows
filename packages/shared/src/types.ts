@@ -89,6 +89,7 @@ export interface SessionConfig {
 /** テスト実行中に切り替えるフィルタ（セッション設定とは別） */
 export interface RunnerFilters {
   majorCategoryFilter?: string;
+  mediumCategoryFilter?: string;
   onlyIncomplete: boolean;
 }
 

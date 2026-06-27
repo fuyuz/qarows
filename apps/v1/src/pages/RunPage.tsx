@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { FilterBar } from "@/components/FilterBar";
+import { RunProgressBar } from "@/components/RunProgressBar";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { TestRunner } from "@/components/TestRunner";
 import { useApp } from "@/context/AppContext";
@@ -22,6 +23,7 @@ export function RunPage() {
           </button>
         </footer>
       </main>
+      <RunProgressBar />
       <ShortcutHelp />
     </div>
   );

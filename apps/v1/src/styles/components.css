@@ -302,6 +302,8 @@
 
 .run-content {
   flex: 1;
+  padding-bottom: 5.5rem;
+  max-width: none;
 }
 
 .filter-bar {
@@ -342,6 +344,12 @@
   border-radius: 6px;
   background: #fff;
   font-size: 0.9rem;
+}
+
+.filter-bar__select:disabled {
+  background: #f5f5f4;
+  color: #a8a29e;
+  cursor: not-allowed;
 }
 
 .filter-bar__toggle {
@@ -388,12 +396,103 @@
   font-size: 0.95rem;
 }
 
-.test-runner__position {
-  margin: 0 0 0.75rem;
-  text-align: center;
-  font-size: 0.9rem;
+.run-progress {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: #fff;
+  border-top: 1px solid #e5e5e0;
+  box-shadow: 0 -2px 10px rgb(0 0 0 / 6%);
+  padding: 0.55rem 1.25rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.run-progress__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.run-progress__row-title {
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #444;
+  color: #666;
+}
+
+.run-progress__track-wrap {
+  position: relative;
+}
+
+.run-progress__tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  background: #1c1917;
+  color: #fafaf9;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.run-progress__tooltip-segment {
+  font-weight: 600;
+}
+
+.run-progress__tooltip-summary {
+  color: #d6d3d1;
+  font-size: 0.68rem;
+}
+
+.run-progress__track {
+  display: flex;
+  height: 0.55rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e5e5e0;
+  cursor: default;
+}
+
+.run-progress__segment {
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.2s ease, filter 0.15s ease;
+}
+
+.run-progress__segment--hovered {
+  filter: brightness(1.08);
+}
+
+.run-progress__segment--ok {
+  background: #16a34a;
+}
+
+.run-progress__segment--ng {
+  background: #dc2626;
+}
+
+.run-progress__segment--skip {
+  background: #78716c;
+}
+
+.run-progress__segment--ok-ng {
+  background: #ea580c;
+}
+
+.run-progress__segment--incomplete {
+  background: #d4d4d0;
 }
 
 .kbd {
@@ -418,15 +517,22 @@
   color: inherit;
 }
 
+.test-runner {
+  width: 100%;
+}
+
 .test-runner__stage {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
+  width: 100%;
 }
 
 .test-runner__card {
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  width: min(88vw, 42rem);
+  max-width: 100%;
 }
 
 .test-runner__arrow {
@@ -726,7 +832,7 @@
 .shortcut-help {
   position: fixed;
   right: 1.25rem;
-  bottom: 1.25rem;
+  bottom: 4.75rem;
   z-index: 30;
 }
 

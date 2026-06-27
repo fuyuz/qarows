@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useApp } from "@/context/AppContext";
-import { filterTestCases, getMajorCategories } from "@/lib/utils";
+import { filterTestCases, getMajorCategories, getMediumCategories } from "@/lib/utils";
 
 export function FilterBar() {
   const { definition, results, session, runnerFilters, setRunnerFilters } = useApp();
@@ -10,12 +10,35 @@ export function FilterBar() {
     [definition],
   );
 
+  const mediumCategories = useMemo(
+    () =>
+      definition
+        ? getMediumCategories(definition, runnerFilters.majorCategoryFilter)
+        : [],
+    [definition, runnerFilters.majorCategoryFilter],
+  );
+
   const targetCount = useMemo(() => {
     if (!definition || !results || !session) return null;
     return filterTestCases(definition, session, runnerFilters, results.results).length;
   }, [definition, results, session, runnerFilters]);
 
   if (!definition || !session) return null;
+
+  const updateMajorFilter = (major: string | undefined) => {
+    const nextMedium =
+      major && runnerFilters.mediumCategoryFilter
+        ? getMediumCategories(definition, major).includes(runnerFilters.mediumCategoryFilter)
+          ? runnerFilters.mediumCategoryFilter
+          : undefined
+        : runnerFilters.mediumCategoryFilter;
+
+    void setRunnerFilters({
+      ...runnerFilters,
+      majorCategoryFilter: major,
+      mediumCategoryFilter: nextMedium,
+    });
+  };
 
   return (
     <div className="filter-bar">
@@ -25,17 +48,34 @@ export function FilterBar() {
           <select
             className="filter-bar__select"
             value={runnerFilters.majorCategoryFilter ?? ""}
-            onChange={(e) =>
-              void setRunnerFilters({
-                ...runnerFilters,
-                majorCategoryFilter: e.target.value || undefined,
-              })
-            }
+            onChange={(e) => updateMajorFilter(e.target.value || undefined)}
           >
             <option value="">すべて</option>
             {majorCategories.map((major) => (
               <option key={major} value={major}>
                 {major}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="filter-bar__field">
+          <span className="filter-bar__label">中分類</span>
+          <select
+            className="filter-bar__select"
+            value={runnerFilters.mediumCategoryFilter ?? ""}
+            disabled={mediumCategories.length === 0}
+            onChange={(e) =>
+              void setRunnerFilters({
+                ...runnerFilters,
+                mediumCategoryFilter: e.target.value || undefined,
+              })
+            }
+          >
+            <option value="">すべて</option>
+            {mediumCategories.map((medium) => (
+              <option key={medium} value={medium}>
+                {medium}
               </option>
             ))}
           </select>
