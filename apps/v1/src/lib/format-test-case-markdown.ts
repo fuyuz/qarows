@@ -32,6 +32,7 @@ function formatBugSection(bugs: Bug[]): string {
     if (bug.steps) lines.push(`- Steps:\n${bug.steps}`);
     if (bug.expected) lines.push(`- Expected:\n${bug.expected}`);
     if (bug.actual) lines.push(`- Actual:\n${bug.actual}`);
+    if (bug.fixNote) lines.push(`- Fix:\n${bug.fixNote}`);
     lines.push("");
   }
 

@@ -176,7 +176,7 @@ testCases:
       medium: "バグ"
       minor: "起票Dialog"
     prerequisites: "テスト実行画面を表示中"
-    description: "「バグ」ボタンまたは b キーで Dialog を開き、タイトル・重要度・ステータス・担当者・再現手順・期待・実際を入力して起票できる。関連 TC・端末は変更可能。Create more で連続起票できる"
+    description: "「バグ報告」ボタンまたは b キーで Dialog を開き、タイトル・重要度・ステータス・担当者・再現手順・期待・実際を入力して起票できる。関連 TC・端末は変更可能。Create more で連続起票できる"
 
   - id: TC-035
     category:
@@ -190,9 +190,9 @@ testCases:
     category:
       major: "テスト実行"
       medium: "バグ"
-      minor: "関連不具合"
+      minor: "関連バグ"
     prerequisites: "表示中のテストケースに紐づく起票済みバグが1件以上あること"
-    description: "「不具合 (n)」ボタンで関連バグ一覧 Dialog が開き、左右ボタンまたは h/l で切り替え・編集できる。変更がないとき保存は無効、保存後も Dialog は開いたまま保存ボタンが再び無効になる"
+    description: "「バグ (n)」ボタンで関連バグ一覧 Dialog が開き、左右ボタンまたは h/l で切り替え・編集できる。変更がないとき保存は無効、保存後も Dialog は開いたまま保存ボタンが再び無効になる"
 
   - id: TC-012
     category:
@@ -495,3 +495,27 @@ testCases:
       minor: "ナビ"
     prerequisites: "バグ画面を表示中、フィルタ内にバグが2件以上あること"
     description: "左一覧のクリックまたはカードの前後ボタン・h/l キーでバグを切り替えられる。bug= が URL に反映される"
+
+  - id: TC-054
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "ステータス"
+    prerequisites: "バグ画面を表示中、バグを1件選択していること"
+    description: "カード上の対応状況ドロップダウンでステータスを変更できる（未対応/修正中/修正済み/修正確認済み/対応しない）。修正済み選択時は修正内容入力ダイアログが開く"
+
+  - id: TC-055
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "編集"
+    prerequisites: "バグ画面を表示中、バグを1件選択していること"
+    description: "「編集」からバグ内容を変更して保存できる。メモ欄に自由記入でき、修正済み以降のステータスでは修正内容フィールドも編集できる"
+
+  - id: TC-056
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "Markdown コピー"
+    prerequisites: "バグ画面を表示中、バグを1件選択していること"
+    description: "「コピー」で Markdown 形式のバグ内容（ステータス・手順・修正内容等）がクリップボードにコピーされる"

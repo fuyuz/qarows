@@ -4,8 +4,8 @@ export const BUG_STATUS_LABELS: Record<BugStatus, string> = {
   open: "未対応",
   in_progress: "修正中",
   fixed: "修正済み",
-  pending_verification: "修正確認待ち",
-  resolved: "解決済み",
+  resolved: "修正確認済み",
+  wont_fix: "対応しない",
 };
 
 export const BUG_SEVERITY_LABELS: Record<BugSeverity, string> = {
@@ -17,8 +17,18 @@ export const BUG_SEVERITY_LABELS: Record<BugSeverity, string> = {
 
 const BUG_STATUSES = new Set<string>(Object.keys(BUG_STATUS_LABELS));
 
+const LEGACY_BUG_STATUS_MAP: Record<string, BugStatus> = {
+  pending_verification: "fixed",
+};
+
 export function normalizeBugStatus(raw: string): BugStatus {
+  const mapped = LEGACY_BUG_STATUS_MAP[raw];
+  if (mapped) return mapped;
   return BUG_STATUSES.has(raw) ? (raw as BugStatus) : "open";
+}
+
+export function isBugClosed(status: BugStatus): boolean {
+  return status === "resolved" || status === "wont_fix";
 }
 
 export function buildBugPrefillFromTestCase(testCase: TestCase): {

@@ -30,6 +30,8 @@ export interface BugDialogDraft {
   steps: string;
   expected: string;
   actual: string;
+  fixNote: string;
+  memo: string;
 }
 
 export interface BugDialogProps {
@@ -63,6 +65,8 @@ function buildInitialDraft(
     steps: prefill.steps,
     expected: prefill.expected,
     actual: "",
+    fixNote: "",
+    memo: "",
   };
 }
 
@@ -77,6 +81,8 @@ export function bugToDraft(bug: Bug): BugDialogDraft {
     steps: bug.steps ?? "",
     expected: bug.expected ?? "",
     actual: bug.actual ?? "",
+    fixNote: bug.fixNote ?? "",
+    memo: bug.memo ?? "",
   };
 }
 
@@ -88,6 +94,8 @@ export function normalizeBugDialogDraft(draft: BugDialogDraft): BugDialogDraft {
     steps: draft.steps.trim(),
     expected: draft.expected.trim(),
     actual: draft.actual.trim(),
+    fixNote: draft.fixNote.trim(),
+    memo: draft.memo.trim(),
   };
 }
 
@@ -104,6 +112,8 @@ export function bugDraftToBug(id: string, draft: BugDialogDraft): Bug {
     steps: normalized.steps || undefined,
     expected: normalized.expected || undefined,
     actual: normalized.actual || undefined,
+    fixNote: normalized.fixNote || undefined,
+    memo: normalized.memo || undefined,
   };
 }
 
@@ -123,6 +133,8 @@ export function isBugDraftDirty(bug: Bug, draft: BugDialogDraft): boolean {
     (saved.steps ?? "") !== (next.steps ?? "") ||
     (saved.expected ?? "") !== (next.expected ?? "") ||
     (saved.actual ?? "") !== (next.actual ?? "") ||
+    (saved.fixNote ?? "") !== (next.fixNote ?? "") ||
+    (saved.memo ?? "") !== (next.memo ?? "") ||
     sortedEnvKey(saved.environmentIds) !== sortedEnvKey(next.environmentIds)
   );
 }

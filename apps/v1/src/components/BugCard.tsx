@@ -1,5 +1,7 @@
-import type { Bug, TestCase, TestDefinition } from "@qarows/shared";
+import type { Bug, BugStatus, TestCase, TestDefinition } from "@qarows/shared";
 import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS } from "@qarows/shared";
+import { Copy, Pencil } from "lucide-react";
+import { useCallback, useState } from "react";
 import {
   RunnerCardFooter,
   testCardShellClass,
@@ -7,21 +9,24 @@ import {
 } from "@/components/RunnerCardFooter";
 import { TestCaseHoverPreview } from "@/components/TestCaseHoverPreview";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatBugMarkdown } from "@/lib/format-bug-markdown";
+import { cn } from "@/lib/cn";
+
+const BUG_STATUS_OPTIONS = Object.keys(BUG_STATUS_LABELS) as BugStatus[];
 
 function severityBadgeClass(severity: Bug["severity"]): string {
   if (severity === "critical") return "border-transparent bg-red-600 text-white";
   if (severity === "high") return "border-transparent bg-orange-100 text-orange-900";
   if (severity === "medium") return "border-transparent bg-amber-100 text-amber-900";
   return "border-transparent bg-muted text-muted-foreground";
-}
-
-function statusBadgeClass(status: Bug["status"]): string {
-  if (status === "resolved") return "border-transparent bg-green-100 text-green-800";
-  if (status === "fixed" || status === "pending_verification") {
-    return "border-transparent bg-blue-100 text-blue-800";
-  }
-  if (status === "in_progress") return "border-transparent bg-orange-100 text-orange-900";
-  return "border-transparent bg-red-100 text-red-800";
 }
 
 function BugField({
@@ -55,15 +60,32 @@ export function BugCard({
   canNext,
   onPrev,
   onNext,
+  onStatusChange,
+  onEdit,
 }: {
   bug: Bug;
   definition: TestDefinition;
   relatedTestCase?: TestCase;
+  onStatusChange: (status: BugStatus) => void;
+  onEdit: () => void;
   busy?: boolean;
 } & RunnerCardNavProps) {
+  const [copied, setCopied] = useState(false);
+
   const envNames = (bug.environmentIds ?? [])
     .map((id) => definition.environments.find((env) => env.id === id)?.name ?? id)
     .join("、");
+
+  const handleCopy = useCallback(async () => {
+    try {
+      const markdown = formatBugMarkdown({ definition, bug, relatedTestCase });
+      await navigator.clipboard.writeText(markdown);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }, [bug, definition, relatedTestCase]);
 
   return (
     <article className={testCardShellClass()}>
@@ -75,7 +97,55 @@ export function BugCard({
           <Badge className={severityBadgeClass(bug.severity)}>
             {BUG_SEVERITY_LABELS[bug.severity]}
           </Badge>
-          <Badge className={statusBadgeClass(bug.status)}>{BUG_STATUS_LABELS[bug.status]}</Badge>
+          <div className="flex min-w-36 items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">対応状況</span>
+            <Select
+              value={bug.status}
+              disabled={busy}
+              onValueChange={(value) => onStatusChange(value as BugStatus)}
+            >
+              <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BUG_STATUS_OPTIONS.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {BUG_STATUS_LABELS[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              disabled={busy}
+              onClick={onEdit}
+            >
+              <Pencil className="size-3.5" aria-hidden />
+              編集
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-7 gap-1.5 px-2 text-xs transition-colors duration-150 motion-reduce:transition-none",
+                copied
+                  ? "text-green-600 hover:text-green-600 dark:text-green-500 dark:hover:text-green-500"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              disabled={busy}
+              aria-label={copied ? "クリップボードにコピー済み" : "Markdown をコピー"}
+              onClick={() => void handleCopy()}
+            >
+              <Copy className="size-3.5" aria-hidden />
+              コピー
+            </Button>
+          </div>
         </div>
         <h1 className="mt-3 text-lg leading-snug font-semibold text-foreground">{bug.title}</h1>
       </header>
@@ -122,6 +192,8 @@ export function BugCard({
         <BugField label="再現手順" value={bug.steps} />
         <BugField label="期待" value={bug.expected} />
         <BugField label="実際" value={bug.actual} placeholder="—" />
+        <BugField label="メモ" value={bug.memo} placeholder="—" />
+        {bug.fixNote && <BugField label="修正内容" value={bug.fixNote} />}
       </div>
 
       <RunnerCardFooter

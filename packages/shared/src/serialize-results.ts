@@ -35,6 +35,8 @@ function serializeBug(bug: Bug): Record<string, unknown> {
   if (bug.steps) obj.steps = bug.steps;
   if (bug.expected) obj.expected = bug.expected;
   if (bug.actual) obj.actual = bug.actual;
+  if (bug.fixNote) obj.fixNote = bug.fixNote;
+  if (bug.memo) obj.memo = bug.memo;
   return obj;
 }
 

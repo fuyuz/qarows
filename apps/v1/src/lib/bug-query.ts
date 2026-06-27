@@ -6,8 +6,8 @@ export const BUG_STATUS_VALUES = [
   "open",
   "in_progress",
   "fixed",
-  "pending_verification",
   "resolved",
+  "wont_fix",
 ] as const satisfies readonly BugStatus[];
 
 export interface BugFilters {

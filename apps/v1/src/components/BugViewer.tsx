@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Bug, BugStatus } from "@qarows/shared";
+import { isValidSession } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { BugCard } from "@/components/BugCard";
+import { BugEditDialog } from "@/components/BugEditDialog";
+import { BugFixNoteDialog } from "@/components/BugFixNoteDialog";
 import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
 import { resolveFilteredBugs } from "@/lib/bug-filter";
@@ -22,13 +26,23 @@ function BugEmptyCard() {
 }
 
 export function BugViewer() {
-  const { definition, results, session } = useApp();
+  const { definition, results, session, updateResultsFile } = useApp();
   const { runnerFilters, filtersSettled, bugId, setBugId, bugFilters } = useRunnerQueryState();
+  const [busy, setBusy] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [fixNoteDialog, setFixNoteDialog] = useState<{ bugId: string; initialNote: string } | null>(
+    null,
+  );
 
   const allEnvIds = useMemo(
     () => (definition ? getAllEnvironmentIds(definition) : []),
     [definition],
   );
+
+  const availableEnvironmentIds = useMemo(() => {
+    if (session && isValidSession(session)) return session.selectedEnvironmentIds;
+    return allEnvIds;
+  }, [allEnvIds, session]);
 
   const targets = useMemo(() => {
     if (!definition || !results) return [];
@@ -57,6 +71,11 @@ export function BugViewer() {
   }, [current?.testCaseId, definition]);
 
   useEffect(() => {
+    setEditDialogOpen(false);
+    setFixNoteDialog(null);
+  }, [current?.id]);
+
+  useEffect(() => {
     if (!filtersSettled) return;
     if (targets.length === 0) {
       if (bugId) void setBugId(null);
@@ -67,6 +86,62 @@ export function BugViewer() {
     const index = targets.findIndex((bug) => bug.id === bugId);
     if (index < 0) void setBugId(null);
   }, [bugId, filtersSettled, setBugId, targets]);
+
+  const saveBug = useCallback(
+    async (nextBug: Bug) => {
+      setBusy(true);
+      try {
+        await updateResultsFile((prev) => ({
+          ...prev,
+          updatedAt: new Date().toISOString(),
+          bugs: prev.bugs.map((bug) => (bug.id === nextBug.id ? nextBug : bug)),
+        }));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [updateResultsFile],
+  );
+
+  const handleStatusChange = useCallback(
+    (nextStatus: BugStatus) => {
+      if (!current || busy) return;
+      if (nextStatus === current.status) return;
+      if (nextStatus === "fixed") {
+        setFixNoteDialog({ bugId: current.id, initialNote: current.fixNote ?? "" });
+        return;
+      }
+      void saveBug({ ...current, status: nextStatus });
+    },
+    [busy, current, saveBug],
+  );
+
+  const handleFixNoteConfirm = useCallback(
+    async (fixNote: string) => {
+      if (!results || !fixNoteDialog) return;
+      const bug = results.bugs.find((entry) => entry.id === fixNoteDialog.bugId);
+      if (!bug) {
+        setFixNoteDialog(null);
+        return;
+      }
+      const trimmed = fixNote.trim();
+      await saveBug({
+        ...bug,
+        status: "fixed",
+        fixNote: trimmed || undefined,
+      });
+      setFixNoteDialog(null);
+    },
+    [fixNoteDialog, results, saveBug],
+  );
+
+  const handleEditSave = useCallback(
+    async (nextBug: Bug) => {
+      await saveBug(nextBug);
+      setEditDialogOpen(false);
+    },
+    [saveBug],
+  );
 
   const goToIndex = useCallback(
     (index: number) => {
@@ -105,22 +180,50 @@ export function BugViewer() {
   if (!definition || !results) return null;
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <RunnerCardTransition slideKey={current?.id ?? "empty"}>
-        {current ? (
-          <BugCard
-            bug={current}
-            definition={definition}
-            relatedTestCase={relatedTestCase}
-            canPrev={bugIndex > 0}
-            canNext={bugIndex >= 0 && bugIndex < targets.length - 1}
-            onPrev={goPrev}
-            onNext={goNext}
-          />
-        ) : (
-          <BugEmptyCard />
-        )}
-      </RunnerCardTransition>
-    </div>
+    <>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <RunnerCardTransition slideKey={current?.id ?? "empty"}>
+          {current ? (
+            <BugCard
+              bug={current}
+              definition={definition}
+              relatedTestCase={relatedTestCase}
+              busy={busy}
+              canPrev={bugIndex > 0}
+              canNext={bugIndex >= 0 && bugIndex < targets.length - 1}
+              onPrev={goPrev}
+              onNext={goNext}
+              onStatusChange={handleStatusChange}
+              onEdit={() => setEditDialogOpen(true)}
+            />
+          ) : (
+            <BugEmptyCard />
+          )}
+        </RunnerCardTransition>
+      </div>
+
+      {current && (
+        <BugEditDialog
+          open={editDialogOpen}
+          bug={current}
+          definition={definition}
+          availableEnvironmentIds={availableEnvironmentIds}
+          busy={busy}
+          onSave={handleEditSave}
+          onClose={() => setEditDialogOpen(false)}
+        />
+      )}
+
+      {fixNoteDialog && (
+        <BugFixNoteDialog
+          open
+          bugId={fixNoteDialog.bugId}
+          initialNote={fixNoteDialog.initialNote}
+          busy={busy}
+          onConfirm={handleFixNoteConfirm}
+          onCancel={() => setFixNoteDialog(null)}
+        />
+      )}
+    </>
   );
 }

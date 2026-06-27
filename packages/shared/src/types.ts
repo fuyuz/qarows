@@ -4,8 +4,8 @@ export type BugStatus =
   | "open"
   | "in_progress"
   | "fixed"
-  | "pending_verification"
-  | "resolved";
+  | "resolved"
+  | "wont_fix";
 
 export type BugSeverity = "low" | "medium" | "high" | "critical";
 
@@ -89,6 +89,10 @@ export interface Bug {
   steps?: string;
   expected?: string;
   actual?: string;
+  /** 修正済みにした際の修正内容 */
+  fixNote?: string;
+  /** 自由記入メモ */
+  memo?: string;
 }
 
 export interface ResultsFile {

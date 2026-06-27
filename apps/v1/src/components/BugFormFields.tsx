@@ -19,6 +19,7 @@ const NONE_TEST_CASE = "__none__";
 export function BugFormFields({
   idPrefix,
   testCase,
+  testCases,
   environments,
   availableEnvironmentIds,
   draft,
@@ -27,7 +28,8 @@ export function BugFormFields({
   setTitleError,
 }: {
   idPrefix: string;
-  testCase: TestCase;
+  testCase?: TestCase;
+  testCases?: TestCase[];
   environments: Environment[];
   availableEnvironmentIds: string[];
   draft: BugDialogDraft;
@@ -36,6 +38,8 @@ export function BugFormFields({
   setTitleError: (value: boolean) => void;
 }) {
   const envNameById = new Map(environments.map((env) => [env.id, env.name]));
+  const selectableTestCases = testCases ?? (testCase ? [testCase] : []);
+  const showFixNote = draft.status === "fixed" || draft.status === "resolved";
 
   const toggleEnvironment = (envId: string, checked: boolean) => {
     setDraft((prev) => ({
@@ -63,9 +67,11 @@ export function BugFormFields({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={testCase.id}>
-              {testCase.id} — {testCase.description}
-            </SelectItem>
+            {selectableTestCases.map((entry) => (
+              <SelectItem key={entry.id} value={entry.id}>
+                {entry.id} — {entry.description}
+              </SelectItem>
+            ))}
             <SelectItem value={NONE_TEST_CASE}>なし</SelectItem>
           </SelectContent>
         </Select>
@@ -161,6 +167,17 @@ export function BugFormFields({
       </div>
 
       <div className="grid gap-2">
+        <Label htmlFor={`${idPrefix}-memo`}>メモ</Label>
+        <Textarea
+          id={`${idPrefix}-memo`}
+          rows={3}
+          value={draft.memo}
+          placeholder="任意（自由記入）"
+          onChange={(e) => setDraft((prev) => ({ ...prev, memo: e.target.value }))}
+        />
+      </div>
+
+      <div className="grid gap-2">
         <Label htmlFor={`${idPrefix}-steps`}>再現手順</Label>
         <Textarea
           id={`${idPrefix}-steps`}
@@ -190,6 +207,19 @@ export function BugFormFields({
           onChange={(e) => setDraft((prev) => ({ ...prev, actual: e.target.value }))}
         />
       </div>
+
+      {showFixNote && (
+        <div className="grid gap-2">
+          <Label htmlFor={`${idPrefix}-fix-note`}>修正内容</Label>
+          <Textarea
+            id={`${idPrefix}-fix-note`}
+            rows={3}
+            value={draft.fixNote}
+            placeholder="修正内容を記録（任意）"
+            onChange={(e) => setDraft((prev) => ({ ...prev, fixNote: e.target.value }))}
+          />
+        </div>
+      )}
     </div>
   );
 }

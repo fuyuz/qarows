@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode, type Bug, type TestDefinition } from "@qarows/shared";
+import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode, isBugClosed, type Bug, type TestDefinition } from "@qarows/shared";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,14 +14,16 @@ const TASK_BAR_ANIM_MS = 320;
 
 function statusSymbol(status: Bug["status"]): string {
   if (status === "resolved") return "✓";
-  if (status === "fixed" || status === "pending_verification") return "◐";
+  if (status === "wont_fix") return "—";
+  if (status === "fixed") return "◐";
   if (status === "in_progress") return "▶";
   return "●";
 }
 
 function statusClass(status: Bug["status"]): string {
   if (status === "resolved") return "text-green-600";
-  if (status === "fixed" || status === "pending_verification") return "text-blue-600";
+  if (status === "wont_fix") return "text-stone-500";
+  if (status === "fixed") return "text-blue-600";
   if (status === "in_progress") return "text-orange-600";
   return "text-red-600";
 }
@@ -121,7 +123,7 @@ function BugListPanel({
               const phase = barPhase[index];
               const showBar = isActive || phase === "exit";
               const relatedTestCase = bug.testCaseId ? testCaseById.get(bug.testCaseId) : undefined;
-              const isOpen = bug.status !== "resolved";
+              const isOpen = !isBugClosed(bug.status);
 
               return (
                 <li
@@ -218,7 +220,7 @@ export function BugTaskList() {
   }, [targets, bugId]);
 
   const openCount = useMemo(
-    () => targets.filter((bug) => bug.status !== "resolved").length,
+    () => targets.filter((bug) => !isBugClosed(bug.status)).length,
     [targets],
   );
 

@@ -1,6 +1,7 @@
 import type { Bug, Environment, TestCase } from "@qarows/shared";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BugFormFields } from "@/components/BugFormFields";
 import {
   bugDraftToBug,
@@ -19,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { isRunnerTypingTarget } from "@/lib/runner-keybindings";
+import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 import { cn } from "@/lib/cn";
 
 function emptyRelatedBugDraft(): BugDialogDraft {
@@ -31,6 +33,8 @@ function emptyRelatedBugDraft(): BugDialogDraft {
     steps: "",
     expected: "",
     actual: "",
+    fixNote: "",
+    memo: "",
   };
 }
 
@@ -59,6 +63,8 @@ export function RelatedBugsDialog({
   );
   const [titleError, setTitleError] = useState(false);
   const wasOpenRef = useRef(false);
+  const navigate = useNavigate();
+  const { path } = useProjectRoutes();
 
   const currentBug = bugs[index];
   const hasMultiple = bugs.length > 1;
@@ -138,6 +144,12 @@ export function RelatedBugsDialog({
     await onSave(bugDraftToBug(currentBug.id, normalized));
   };
 
+  const openInBugView = useCallback(() => {
+    if (!currentBug) return;
+    onClose();
+    navigate(path("bugs", undefined, null, currentBug.id));
+  }, [currentBug, navigate, onClose, path]);
+
   if (!open || !currentBug) return null;
 
   return (
@@ -151,7 +163,7 @@ export function RelatedBugsDialog({
         <DialogHeader className="shrink-0 border-b px-6 py-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <DialogTitle>関連する不具合</DialogTitle>
+              <DialogTitle>関連するバグ</DialogTitle>
               <DialogDescription>
                 {testCase.id} に紐づく起票済みバグ（{bugs.length} 件）
               </DialogDescription>
@@ -163,7 +175,7 @@ export function RelatedBugsDialog({
                   variant="outline"
                   size="icon"
                   className="size-8"
-                  aria-label="前の不具合"
+                  aria-label="前のバグ"
                   disabled={busy}
                   onClick={goPrev}
                 >
@@ -177,7 +189,7 @@ export function RelatedBugsDialog({
                   variant="outline"
                   size="icon"
                   className="size-8"
-                  aria-label="次の不具合"
+                  aria-label="次のバグ"
                   disabled={busy}
                   onClick={goNext}
                 >
@@ -197,7 +209,13 @@ export function RelatedBugsDialog({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-          <p className="mb-4 text-xs font-bold text-primary">{currentBug.id}</p>
+          <button
+            type="button"
+            className="mb-4 text-xs font-bold text-primary hover:underline"
+            onClick={openInBugView}
+          >
+            {currentBug.id}
+          </button>
           <BugFormFields
             idPrefix={`related-bug-${currentBug.id}`}
             testCase={testCase}

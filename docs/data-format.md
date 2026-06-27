@@ -243,13 +243,17 @@ testCases:
 
 各結果エントリは、記録時の `tests.yml` テストケース `version` を `version` フィールドで保持する（省略時 `1`）。テストケースの `version` と一致しない結果は未実施扱い（再テスト対象）。旧版の結果はファイル内に残してよい。
 
-### バグステータス（例）
+### バグステータス
 
 | 値 | 説明 |
 |---|---|
 | `open` | 未対応 |
-| `in_progress` | 対応中 |
+| `in_progress` | 修正中 |
 | `fixed` | 修正済み |
+| `resolved` | 修正確認済み |
+| `wont_fix` | 対応しない |
+
+旧形式の `pending_verification` は読み込み時に `fixed` へ正規化される。
 
 ---
 

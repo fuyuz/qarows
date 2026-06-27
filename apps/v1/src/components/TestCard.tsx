@@ -220,7 +220,7 @@ export function TestCard({
                   onClick={onViewRelatedBugs}
                 >
                   <ClipboardList className="size-3.5" aria-hidden />
-                  不具合 ({relatedBugCount})
+                  バグ ({relatedBugCount})
                 </Button>
               )}
               <Button
@@ -232,7 +232,7 @@ export function TestCard({
                 onClick={onOpenBug}
               >
                 <Bug className="size-3.5" aria-hidden />
-                バグ
+                バグ報告
               </Button>
             </div>
           </div>

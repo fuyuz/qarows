@@ -4,6 +4,7 @@ import { AppNav } from "@/components/AppNav";
 import { CategoryStatsLegend, CategoryStatsTable } from "@/components/CategoryStatsTable";
 import { ProgressRow } from "@/components/ProgressRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isBugClosed } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 import { projectPath } from "@/lib/project-routes";
@@ -13,8 +14,8 @@ import {
   getAllEnvironmentIds,
 } from "@/lib/run-progress";
 
-function countOpenBugs(bugs: { status: string }[]): number {
-  return bugs.filter((bug) => bug.status !== "resolved").length;
+function countOpenBugs(bugs: { status: Parameters<typeof isBugClosed>[0] }[]): number {
+  return bugs.filter((bug) => !isBugClosed(bug.status)).length;
 }
 
 export function DashboardPage() {

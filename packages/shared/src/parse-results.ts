@@ -73,6 +73,8 @@ function parseBug(raw: unknown, index: number): Bug {
     steps: obj.steps != null ? String(obj.steps) : undefined,
     expected: obj.expected != null ? String(obj.expected) : undefined,
     actual: obj.actual != null ? String(obj.actual) : undefined,
+    fixNote: obj.fixNote != null ? String(obj.fixNote) : undefined,
+    memo: obj.memo != null ? String(obj.memo) : undefined,
   };
 }
 

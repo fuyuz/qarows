@@ -11,16 +11,16 @@ const STATUS_ORDER: BugStatus[] = [
   "open",
   "in_progress",
   "fixed",
-  "pending_verification",
   "resolved",
+  "wont_fix",
 ];
 
 const STATUS_COLORS: Record<BugStatus, string> = {
   open: "bg-red-500",
   in_progress: "bg-orange-500",
   fixed: "bg-blue-500",
-  pending_verification: "bg-sky-500",
   resolved: "bg-green-500",
+  wont_fix: "bg-stone-400",
 };
 
 function countByStatus(bugs: Bug[]): Record<BugStatus, number> {
@@ -28,8 +28,8 @@ function countByStatus(bugs: Bug[]): Record<BugStatus, number> {
     open: 0,
     in_progress: 0,
     fixed: 0,
-    pending_verification: 0,
     resolved: 0,
+    wont_fix: 0,
   };
   for (const bug of bugs) {
     counts[bug.status] += 1;
