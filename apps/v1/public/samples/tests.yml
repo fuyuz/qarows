@@ -181,7 +181,7 @@ testCases:
       medium: "設定"
       minor: "開始"
     prerequisites: "実施者名と端末/環境を1つ以上選択済み"
-    description: "テスト実行を開始して /run に遷移する。有効なセッションがあれば / から /run に直接復帰する"
+    description: "テスト実行を開始して /run に遷移する。有効なセッションがあれば / のトップから「作業を続ける」で /run に進める"
 
   - id: TC-008
     category:
@@ -575,3 +575,10 @@ testCases:
       minor: "Markdown コピー"
     prerequisites: "バグ画面を表示中、バグを1件選択していること"
     description: "「コピー」で Markdown 形式のバグ内容（ステータス・手順・修正内容等）がクリップボードにコピーされる"
+
+  - id: TC-060
+    category:
+      major: "トップ"
+      minor: "表示"
+    prerequisites: "プロジェクト未読み込み、IndexedDB 空（/ を表示）"
+    description: "トップページにできること・GitHub リンク・データはローカルのみの説明が表示され、「はじめる」で /load へ進める"

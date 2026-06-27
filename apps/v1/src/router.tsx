@@ -8,6 +8,9 @@ import { projectPath } from "@/lib/project-routes";
 const HomePage = lazy(() =>
   import("@/pages/HomePage").then((m) => ({ default: m.HomePage })),
 );
+const LandingPage = lazy(() =>
+  import("@/pages/LandingPage").then((m) => ({ default: m.LandingPage })),
+);
 const SessionPage = lazy(() =>
   import("@/pages/SessionPage").then((m) => ({ default: m.SessionPage })),
 );
@@ -28,15 +31,10 @@ function withSuspense(Component: ComponentType): ReactNode {
   );
 }
 
-function RootRedirect() {
-  const { ready, definition, session } = useApp();
+function LandingRoute() {
+  const { ready } = useApp();
   if (!ready) return <LoadingScreen />;
-  if (!definition) return <Navigate to="/load" replace />;
-  const projectId = definition.project.id ?? "project";
-  if (session && isValidSession(session)) {
-    return <Navigate to={projectPath(projectId, "run")} replace />;
-  }
-  return <Navigate to={projectPath(projectId, "session")} replace />;
+  return withSuspense(LandingPage);
 }
 
 function RequireDefinition({ children }: { children: ReactNode }) {
@@ -127,12 +125,13 @@ export const router = createBrowserRouter([
   { path: "/p/:projectId/matrix", element: <ProjectMatrixPage /> },
   { path: "/p/:projectId/dashboard", element: <ProjectDashboardPage /> },
   { path: "/p/:projectId/bugs", element: <ProjectBugsPage /> },
-  { path: "/", element: <RootRedirect /> },
+  { path: "/", element: <LandingRoute /> },
   { path: "*", element: <Navigate to="/load" replace /> },
 ]);
 
 /** ルート単位 lazy import のスモークテスト用 */
 export const lazyPageModules = {
+  LandingPage: () => import("@/pages/LandingPage"),
   HomePage: () => import("@/pages/HomePage"),
   SessionPage: () => import("@/pages/SessionPage"),
   RunPage: () => import("@/pages/RunPage"),

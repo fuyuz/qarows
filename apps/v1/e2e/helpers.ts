@@ -1,5 +1,15 @@
 import { expect, type Page } from "@playwright/test";
 
+export async function openLanding(page: Page) {
+  await page.goto("/");
+}
+
+export async function startFromLanding(page: Page) {
+  await openLanding(page);
+  await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page).toHaveURL(/\/load$/);
+}
+
 export async function loadSampleProject(page: Page) {
   await page.getByRole("button", { name: "サンプルを試す" }).click();
   await expect(page.getByText("tests.yml", { exact: true })).toBeVisible();
@@ -15,10 +25,12 @@ export async function startSession(page: Page, executorName = "e2e-tester") {
 }
 
 export async function skipIntroCard(page: Page) {
-  const startButton = page.getByRole("button", { name: "はじめる" });
+  const introStart = page.getByRole("article").filter({ hasText: "START" }).getByRole("button", {
+    name: "はじめる",
+  });
   try {
-    await startButton.waitFor({ state: "visible", timeout: 5_000 });
-    await startButton.click();
+    await introStart.waitFor({ state: "visible", timeout: 5_000 });
+    await introStart.click();
   } catch {
     // セッション復帰などで使い方カードが省略されている場合はそのまま続行
   }

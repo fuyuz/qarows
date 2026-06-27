@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { loadSampleAndStartRun, skipIntroCard } from "./helpers";
+import { loadSampleAndStartRun, skipIntroCard, startFromLanding } from "./helpers";
 
 /**
  * tests.yml scenarios.first-time-setup の主要ステップ:
@@ -7,8 +7,12 @@ import { loadSampleAndStartRun, skipIntroCard } from "./helpers";
  */
 test.describe("first-time setup", () => {
   test("loads sample, starts session, and records first test result", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "qarows" })).toBeVisible();
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /テストケース × 端末/ })).toBeVisible();
+    await expect(page.getByText("データはローカルのみ")).toBeVisible();
+    await expect(page.getByRole("link", { name: "GitHub", exact: true })).toBeVisible();
 
+    await startFromLanding(page);
     await loadSampleAndStartRun(page);
     await skipIntroCard(page);
 
