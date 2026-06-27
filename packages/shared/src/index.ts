@@ -3,6 +3,8 @@ export * from "./types";
 export * from "./status";
 export * from "./parse-tests";
 export * from "./parse-results";
+export * from "./serialize-results";
 export * from "./merge-results";
+export * from "./clear-results";
 export * from "./resolve-test-targets";
 export * from "./resolve-runner-targets";

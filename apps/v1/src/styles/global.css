@@ -145,7 +145,41 @@
   }
 }
 
+@keyframes runner-card-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes runner-card-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @layer utilities {
+  .runner-card-crossfade {
+    isolation: isolate;
+  }
+
+  .runner-card-crossfade__exit {
+    z-index: 1;
+    mix-blend-mode: plus-lighter;
+    animation: runner-card-fade-out 400ms ease-in-out both;
+  }
+
+  .runner-card-crossfade__enter {
+    z-index: 0;
+    mix-blend-mode: plus-lighter;
+    animation: runner-card-fade-in 400ms ease-in-out both;
+  }
+
   .animate-ui-shake {
     animation: ui-shake 300ms ease-in-out;
   }
@@ -169,7 +203,9 @@
   .animate-ui-highlight-ok,
   .animate-ui-highlight-ng,
   .animate-in,
-  .animate-out {
+  .animate-out,
+  .runner-card-crossfade__exit,
+  .runner-card-crossfade__enter {
     animation: none !important;
     transition: none !important;
   }

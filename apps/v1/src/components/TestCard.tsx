@@ -1,6 +1,6 @@
 import type { SessionTestTargets, TestCase, TestDefinition, TestResults, TestStatus } from "@qarows/shared";
 import { RUNNER_KEYBINDINGS } from "@/lib/runner-keybindings";
-import { Kbd, StatusBadge } from "@/components/qa-ui";
+import { Kbd } from "@/components/qa-ui";
 import {
   RunnerCardFooter,
   statusButtonClass,
@@ -36,6 +36,7 @@ export interface TestCardProps extends RunnerCardNavProps {
   onMemoChange: (value: string) => void;
   onBatch: (status: TestStatus) => void;
   onSingle: (envId: string, status: TestStatus) => void;
+  onClear: (envId: string) => void;
 }
 
 export function TestCard({
@@ -53,6 +54,7 @@ export function TestCard({
   onMemoChange,
   onBatch,
   onSingle,
+  onClear,
 }: TestCardProps) {
   return (
     <article className={testCardShellClass()}>
@@ -115,7 +117,16 @@ export function TestCard({
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{env?.name ?? envId}</span>
-                    {entry?.status && <StatusBadge status={entry.status} />}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                      disabled={busy || !entry?.status}
+                      onClick={() => onClear(envId)}
+                    >
+                      クリア
+                    </Button>
                   </div>
                   <div className="flex gap-1.5">
                     {(["OK", "NG", "SKIP"] as const).map((status) => (

@@ -268,7 +268,7 @@ testCases:
       medium: "フィードバック"
       minor: "入力"
     prerequisites: "テスト実行画面を表示中、複数端末のテストを表示中"
-    description: "OK/NG 入力時にステータスバッジが切り替わり、一覧の該当行が一瞬ハイライトされ、次のテストへスライド遷移する"
+    description: "OK/NG 入力時にステータスバッジが切り替わり、一覧の該当行が一瞬ハイライトされ、次のテストへクロスフェード遷移する"
 
   - id: TC-026
     category:
@@ -293,3 +293,19 @@ testCases:
       minor: "バリデーション"
     prerequisites: "セッション設定画面を表示中"
     description: "実施者名未入力で開始しようとすると入力欄が軽く揺れ、エラーメッセージが表示される"
+
+  - id: TC-029
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "結果クリア"
+    prerequisites: "テスト実行画面を表示中、表示中のテストケースに入力済みの端末があること"
+    description: "テストカードの端末行ごとに「クリア」が常に表示され、入力済みの端末のみ押せる。そのテストケース × 端末の結果だけを削除できる"
+
+  - id: TC-030
+    category:
+      major: "エクスポート"
+      medium: "results.json"
+      minor: "ダウンロード"
+    prerequisites: "tests.yml 読み込み済み、結果が1件以上あること"
+    description: "ナビメニューから results.json をエクスポートでき、再読み込みして内容が復元される"

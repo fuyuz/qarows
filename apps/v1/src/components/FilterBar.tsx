@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getRunnerTargetMode } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/cn";
 import {
   getMajorCategories,
@@ -20,6 +19,102 @@ import {
 } from "@/lib/utils";
 
 const ALL = "__all__";
+
+type RunnerMode = "filter" | "scenario";
+
+const modeSwitchButtonClass = cn(
+  "relative z-10 h-8 rounded-md px-3 text-sm font-semibold transition-[color,transform] duration-200 ease-out motion-reduce:transition-none",
+  "active:scale-[0.97] active:duration-100",
+);
+
+function RunnerModeSwitch({
+  value,
+  onFilter,
+  onScenario,
+  hasScenarios,
+}: {
+  value: RunnerMode;
+  onFilter: () => void;
+  onScenario: () => void;
+  hasScenarios: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLButtonElement>(null);
+  const scenarioRef = useRef<HTMLButtonElement>(null);
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+
+  const syncIndicator = useCallback(() => {
+    const activeRef = value === "filter" ? filterRef : scenarioRef;
+    const active = activeRef.current;
+    if (!active) return;
+    setIndicator({
+      left: active.offsetLeft,
+      width: active.offsetWidth,
+    });
+  }, [value]);
+
+  useLayoutEffect(() => {
+    syncIndicator();
+  }, [syncIndicator]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => syncIndicator());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [syncIndicator]);
+
+  return (
+    <div
+      ref={containerRef}
+      role="group"
+      aria-label="対象の選び方"
+      className="relative inline-flex gap-1 rounded-lg border border-input bg-muted/80 p-1 shadow-xs"
+    >
+      {indicator && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-1 bottom-1 rounded-md bg-primary shadow-sm transition-[left,width] duration-200 ease-out motion-reduce:transition-none"
+          style={{
+            left: indicator.left,
+            width: indicator.width,
+          }}
+        />
+      )}
+      <button
+        ref={filterRef}
+        type="button"
+        aria-pressed={value === "filter"}
+        onClick={onFilter}
+        className={cn(
+          modeSwitchButtonClass,
+          value === "filter"
+            ? "text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        フィルタ
+      </button>
+      <button
+        ref={scenarioRef}
+        type="button"
+        aria-pressed={value === "scenario"}
+        disabled={!hasScenarios}
+        title={hasScenarios ? undefined : "tests.yml に scenarios がありません"}
+        onClick={onScenario}
+        className={cn(
+          modeSwitchButtonClass,
+          value === "scenario"
+            ? "text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        シナリオ
+      </button>
+    </div>
+  );
+}
 
 export function FilterBar() {
   const { definition, results, session, runnerFilters, setRunnerFilters } = useApp();
@@ -126,30 +221,18 @@ export function FilterBar() {
   return (
     <div className="sticky top-0 z-10 border-b bg-card shadow-sm">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-2.5 pr-16">
-        <ToggleGroup
-          type="single"
+        <RunnerModeSwitch
           value={filterMode ? "filter" : "scenario"}
-          onValueChange={(value) => {
-            if (value === "filter") switchToFilterMode();
-            if (value === "scenario") switchToScenarioMode();
-          }}
-          aria-label="対象の選び方"
-        >
-          <ToggleGroupItem value="filter" className="px-3 text-sm font-semibold">
-            フィルタ
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="scenario"
-            disabled={!hasScenarios}
-            title={hasScenarios ? undefined : "tests.yml に scenarios がありません"}
-            className="px-3 text-sm font-semibold"
-          >
-            シナリオ
-          </ToggleGroupItem>
-        </ToggleGroup>
+          onFilter={switchToFilterMode}
+          onScenario={switchToScenarioMode}
+          hasScenarios={hasScenarios}
+        />
 
         {filterMode ? (
-          <>
+          <div
+            key="filter-controls"
+            className="flex flex-wrap items-center gap-x-4 gap-y-2 animate-in fade-in slide-in-from-left-2 duration-200 fill-mode-both"
+          >
             <div className="flex items-center gap-2">
               <Label className="shrink-0 text-sm font-semibold">大分類</Label>
               <Select
@@ -218,9 +301,12 @@ export function FilterBar() {
                 </SelectContent>
               </Select>
             </div>
-          </>
+          </div>
         ) : (
-          <div className="flex min-w-40 flex-1 items-center gap-2">
+          <div
+            key="scenario-controls"
+            className="flex min-w-40 flex-1 items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200 fill-mode-both"
+          >
             <Label className="shrink-0 text-sm font-semibold">シナリオ</Label>
             <Select
               value={runnerFilters.scenarioId ?? scenarios[0]?.id ?? ""}

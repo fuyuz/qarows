@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Compass } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isValidSession } from "@qarows/shared";
+import { isValidSession, serializeResultsJson } from "@qarows/shared";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApp } from "@/context/AppContext";
+import { downloadText } from "@/lib/utils";
 
 interface NavLinkItem {
   label: string;
@@ -20,7 +22,7 @@ interface NavLinkItem {
 export function AppNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { definition, session } = useApp();
+  const { definition, results, session } = useApp();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -45,11 +47,20 @@ export function AppNav() {
     return items;
   }, [definition, location.pathname, session]);
 
+  const canExport = definition != null && results != null;
+
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
-  if (links.length === 0) return null;
+  if (!definition) return null;
+
+  const handleExport = () => {
+    if (!results) return;
+    const json = serializeResultsJson(results);
+    downloadText(json, "results.json", "application/json");
+    setOpen(false);
+  };
 
   return (
     <div ref={rootRef} className="fixed top-3.5 right-5 z-40">
@@ -65,20 +76,33 @@ export function AppNav() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
-          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-            移動
-          </DropdownMenuLabel>
-          {links.map((link) => (
-            <DropdownMenuItem
-              key={link.to}
-              onSelect={() => {
-                setOpen(false);
-                navigate(link.to);
-              }}
-            >
-              {link.label}
-            </DropdownMenuItem>
-          ))}
+          {links.length > 0 && (
+            <>
+              <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+                移動
+              </DropdownMenuLabel>
+              {links.map((link) => (
+                <DropdownMenuItem
+                  key={link.to}
+                  onSelect={() => {
+                    setOpen(false);
+                    navigate(link.to);
+                  }}
+                >
+                  {link.label}
+                </DropdownMenuItem>
+              ))}
+            </>
+          )}
+          {canExport && (
+            <>
+              {links.length > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+                データ
+              </DropdownMenuLabel>
+              <DropdownMenuItem onSelect={handleExport}>results.json をエクスポート</DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

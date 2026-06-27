@@ -23,10 +23,10 @@ export function TestRunner() {
     setRunnerIndex,
     updateResults,
     updateResultsBatch,
+    clearTestResult,
   } = useApp();
 
   const [slideIndex, setSlideIndex] = useState(0);
-  const [transitionDirection, setTransitionDirection] = useState(1);
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
   const [flashEnvId, setFlashEnvId] = useState<string | null>(null);
@@ -95,7 +95,6 @@ export function TestRunner() {
   const goToSlide = useCallback(
     (slide: number) => {
       if (slide < 0 || slide > maxSlide) return;
-      setTransitionDirection(slide > slideIndex ? 1 : slide < slideIndex ? -1 : transitionDirection);
       setSlideIndex(slide);
       if (slide >= 1 && slide <= targets.length) {
         void setRunnerIndex(slide - 1);
@@ -103,7 +102,7 @@ export function TestRunner() {
         void setRunnerIndex(-1);
       }
     },
-    [maxSlide, setRunnerIndex, slideIndex, targets.length, transitionDirection],
+    [maxSlide, setRunnerIndex, targets.length],
   );
 
   const flashEnvironment = useCallback((envId: string) => {
@@ -190,6 +189,19 @@ export function TestRunner() {
     ],
   );
 
+  const applyClear = useCallback(
+    async (envId: string) => {
+      if (!current || busy || testSlideIndex == null) return;
+      setBusy(true);
+      try {
+        await clearTestResult(current.id, envId);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, clearTestResult, current, testSlideIndex],
+  );
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (busy) return;
@@ -229,7 +241,7 @@ export function TestRunner() {
     <div className="w-full">
       <div className="flex w-full justify-center">
         <div className="w-full min-h-[80vh] max-w-2xl">
-          <RunnerCardTransition key={slideIndex} direction={transitionDirection}>
+          <RunnerCardTransition slideKey={slideIndex}>
             {slideIndex === 0 && (
               <RunnerIntroCard
                 canPrev={slideIndex > 0}
@@ -265,6 +277,7 @@ export function TestRunner() {
                 onMemoChange={setMemo}
                 onBatch={(status) => void applyBatch(status)}
                 onSingle={(envId, status) => void applySingle(envId, status)}
+                onClear={(envId) => void applyClear(envId)}
               />
             )}
           </RunnerCardTransition>

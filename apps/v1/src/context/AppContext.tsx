@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  clearTestCaseEnvironmentResult,
   createEmptyResults,
   mergeResultsFiles,
   parseResultsJson,
@@ -47,6 +48,7 @@ interface AppContextValue {
     partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
   ) => Promise<void>;
   updateResultsFile: (updater: (prev: ResultsFile) => ResultsFile) => Promise<void>;
+  clearTestResult: (testCaseId: string, envId: string) => Promise<void>;
   resetProject: () => Promise<void>;
 }
 
@@ -227,6 +229,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [persist, results],
   );
 
+  const clearTestResult = useCallback(
+    async (testCaseId: string, envId: string) => {
+      if (!results) return;
+      const next = clearTestCaseEnvironmentResult(results, testCaseId, envId);
+      if (next === results) return;
+      await persist({ results: next });
+      markTestUpdated(testCaseId);
+    },
+    [markTestUpdated, persist, results],
+  );
+
   const resetProject = useCallback(async () => {
     await clearState();
     setDefinition(null);
@@ -253,6 +266,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateResults,
       updateResultsBatch,
       updateResultsFile,
+      clearTestResult,
       resetProject,
     }),
     [
@@ -271,6 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateResults,
       updateResultsBatch,
       updateResultsFile,
+      clearTestResult,
       resetProject,
     ],
   );
