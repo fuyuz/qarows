@@ -32,7 +32,6 @@ export interface TestCardProps extends RunnerCardNavProps {
   results: TestResults;
   envTargets: SessionTestTargets;
   memo: string;
-  flashEnvId?: string | null;
   onMemoChange: (value: string) => void;
   onBatch: (status: TestStatus) => void;
   onSingle: (envId: string, status: TestStatus) => void;
@@ -45,7 +44,6 @@ export function TestCard({
   results,
   envTargets,
   memo,
-  flashEnvId,
   busy,
   canPrev,
   canNext,
@@ -94,25 +92,15 @@ export function TestCard({
               const env = definition.environments.find((e) => e.id === envId);
               const entry = results[testCase.id]?.[envId];
               const isIncomplete = !entry?.status;
-              const isFlashing = flashEnvId === envId;
-              const flashClass =
-                isFlashing && entry?.status === "NG"
-                  ? "animate-ui-highlight-ng"
-                  : isFlashing && entry?.status === "OK"
-                    ? "animate-ui-highlight-ok"
-                    : isFlashing
-                      ? "animate-ui-highlight"
-                      : undefined;
 
               return (
                 <li
                   key={envId}
                   className={cn(
-                    "rounded-lg border px-3 py-2.5 transition-colors duration-200",
+                    "rounded-lg border px-3 py-2.5 transition-[background-color,border-color] duration-300 ease-in-out motion-reduce:transition-none",
                     isIncomplete
                       ? "border-primary/35 bg-card shadow-sm"
                       : "border-border bg-muted/30",
-                    flashClass,
                   )}
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">

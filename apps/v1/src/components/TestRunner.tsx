@@ -31,7 +31,6 @@ export function TestRunner() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
-  const [flashEnvId, setFlashEnvId] = useState<string | null>(null);
   const didRestoreSlide = useRef(false);
   const skipFilterSlideReset = useRef(true);
   const mountedRef = useRef(true);
@@ -125,11 +124,6 @@ export function TestRunner() {
     [maxSlide, cancelPendingAdvance, setRunnerIndex, targets.length],
   );
 
-  const flashEnvironment = useCallback((envId: string) => {
-    setFlashEnvId(envId);
-    setTimeout(() => setFlashEnvId(null), 300);
-  }, []);
-
   const waitBeforeAutoAdvance = useCallback(
     () =>
       new Promise<void>((resolve) => {
@@ -194,7 +188,6 @@ export function TestRunner() {
           executedAt: new Date().toISOString(),
           executedBy: session.executorName,
         });
-        flashEnvironment(envId);
 
         const nextByEnv = {
           ...(results.results[current.id] ?? {}),
@@ -219,7 +212,6 @@ export function TestRunner() {
       cancelPendingAdvance,
       current,
       envTargets,
-      flashEnvironment,
       advanceAfterComplete,
       memo,
       results,
@@ -309,7 +301,6 @@ export function TestRunner() {
                 results={results.results}
                 envTargets={envTargets}
                 memo={memo}
-                flashEnvId={flashEnvId}
                 busy={busy}
                 canPrev={slideIndex > 0}
                 canNext={slideIndex < maxSlide}

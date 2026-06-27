@@ -93,7 +93,8 @@ export function RunnerCardFooter({
 }
 
 export function statusButtonClass(status: "OK" | "NG" | "SKIP", active: boolean): string {
-  const base = "flex-1 text-xs font-medium shadow-none transition-all duration-150";
+  const base =
+    "flex-1 text-xs font-medium shadow-none transition-[background-color,border-color,color] duration-300 ease-in-out motion-reduce:transition-none";
   if (!active) {
     return cn(base, "border bg-background hover:bg-muted");
   }

@@ -67,7 +67,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const markTestUpdated = useCallback((testCaseId: string) => {
     setLastUpdatedTestId(testCaseId);
     if (highlightClearTimerRef.current) clearTimeout(highlightClearTimerRef.current);
-    highlightClearTimerRef.current = setTimeout(() => setLastUpdatedTestId(null), 300);
+    highlightClearTimerRef.current = setTimeout(() => setLastUpdatedTestId(null), 600);
   }, []);
 
   useEffect(() => {

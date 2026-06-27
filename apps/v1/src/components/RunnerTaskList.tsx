@@ -35,6 +35,8 @@ function statusSymbol(status: ReturnType<typeof getTestCaseAggregateStatus>): st
   return "!";
 }
 
+const TASK_BAR_ANIM_MS = 320;
+
 function TaskListPanel({
   headerTitle,
   headerDescription,
@@ -49,7 +51,7 @@ function TaskListPanel({
   lastUpdatedTestId,
   onJump,
   listRef,
-  activeItemRef,
+  itemRefs,
   className,
 }: {
   headerTitle: string;
@@ -65,9 +67,26 @@ function TaskListPanel({
   lastUpdatedTestId: string | null;
   onJump: (index: number) => void;
   listRef: RefObject<HTMLUListElement | null>;
-  activeItemRef: RefObject<HTMLLIElement | null>;
+  itemRefs: RefObject<(HTMLLIElement | null)[]>;
   className?: string;
 }) {
+  const prevRunnerIndexRef = useRef(runnerIndex);
+  const [barPhase, setBarPhase] = useState<Record<number, "enter" | "exit">>({});
+
+  useEffect(() => {
+    const prev = prevRunnerIndexRef.current;
+    if (prev === runnerIndex) return;
+
+    const nextPhase: Record<number, "enter" | "exit"> = {};
+    if (prev >= 0) nextPhase[prev] = "exit";
+    if (runnerIndex >= 0) nextPhase[runnerIndex] = "enter";
+    setBarPhase(nextPhase);
+
+    const timer = window.setTimeout(() => setBarPhase({}), TASK_BAR_ANIM_MS);
+    prevRunnerIndexRef.current = runnerIndex;
+    return () => window.clearTimeout(timer);
+  }, [runnerIndex]);
+
   return (
     <aside className={cn("flex flex-col overflow-hidden rounded-xl border bg-muted/30", className)} aria-label="テスト一覧">
       <div className="shrink-0 border-b bg-card px-3.5 py-3">
@@ -114,6 +133,8 @@ function TaskListPanel({
                 results.results,
               );
               const isActive = runnerIndex === index && runnerIndex >= 0;
+              const phase = barPhase[index];
+              const showBar = isActive || phase === "exit";
               const wasJustUpdated = lastUpdatedTestId === testCase.id;
               const rowHighlight =
                 wasJustUpdated && status === "NG"
@@ -127,19 +148,39 @@ function TaskListPanel({
               return (
                 <li
                   key={testCase.id}
-                  ref={isActive ? activeItemRef : undefined}
+                  ref={(el) => {
+                    itemRefs.current[index] = el;
+                  }}
                   className={cn(
-                    isActive && "border-l-[3px] border-l-primary bg-primary/5",
+                    "relative transition-[background-color] duration-500 ease-in-out motion-reduce:transition-none",
+                    isActive && "bg-primary/5",
                     status === "NG" && !isActive && "bg-red-50/40",
                     rowHighlight,
                   )}
                 >
+                  {showBar && (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "pointer-events-none absolute inset-y-0 left-0 z-10 w-[3px] rounded-r bg-primary",
+                        phase === "exit" && "animate-task-bar-exit",
+                        phase === "enter" && "animate-task-bar-enter",
+                      )}
+                    />
+                  )}
                   <button
                     type="button"
-                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/50"
+                    className="relative z-[1] flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/50"
                     onClick={() => onJump(index)}
                   >
-                    <span className={cn("w-4 shrink-0 text-center text-xs font-bold", statusClass(status))}>
+                    <span
+                      key={status}
+                      className={cn(
+                        "w-4 shrink-0 text-center text-xs font-bold transition-colors duration-300 ease-out motion-reduce:transition-none",
+                        statusClass(status),
+                        wasJustUpdated && "animate-task-status-pop",
+                      )}
+                    >
                       {statusSymbol(status)}
                     </span>
                     <span className="min-w-0">
@@ -168,7 +209,7 @@ export function RunnerTaskList() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
-  const activeItemRef = useRef<HTMLLIElement>(null);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
@@ -195,7 +236,7 @@ export function RunnerTaskList() {
   }, [definition, results, session, targets]);
 
   useEffect(() => {
-    activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    itemRefs.current[runnerIndex]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [runnerIndex, targets.length]);
 
   if (!definition || !session || !results) return null;
@@ -225,7 +266,7 @@ export function RunnerTaskList() {
     lastUpdatedTestId,
     onJump: jumpToTest,
     listRef,
-    activeItemRef,
+    itemRefs,
   };
 
   return (
