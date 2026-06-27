@@ -2,6 +2,8 @@
 
 メンテナ向け。**qarows Phase 1**（`apps/v1`）を公式 Cloudflare Pages インスタンスとして公開する手順。
 
+**採用方式:** Cloudflare Dashboard + GitHub 連携（方法 A）。デプロイは Cloudflare 側が行い、GitHub Actions の deploy workflow は使わない。
+
 利用者向けの一般方針は [deployment.md](./deployment.md) を参照。
 
 ---
@@ -11,15 +13,13 @@
 | 項目 | 内容 |
 |---|---|
 | 成果物 | `apps/v1/dist`（Vite ビルドの静的 SPA） |
-| ホスティング | Cloudflare Pages |
-| サーバー | 不要（IndexedDB + ファイル I/O のみ） |
-| ルーティング | `public/_redirects` で SPA フォールバック |
+| ホスティング | Cloudflare Pages（Git 連携） |
+| 本番ブランチ | `main` |
+| ルーティング | `apps/v1/public/_redirects` → SPA フォールバック |
 
 ---
 
-## 事前準備
-
-### 1. ローカルでビルド確認
+## 1. ローカル確認（初回のみ）
 
 リポジトリルートで:
 
@@ -33,109 +33,46 @@ bun run preview:start   # http://localhost:5173
 
 `/load` からサンプル読み込み、セッション開始、各画面遷移が問題ないことを確認する。
 
-### 2. Cloudflare API トークン
-
-[Cloudflare Dashboard](https://dash.cloudflare.com/) → **My Profile** → **API Tokens** → **Create Token**
-
-推奨: **Edit Cloudflare Workers** テンプレートをベースに、Pages 編集権限を含める。
-
-最低限の権限例:
-
-- Account → **Cloudflare Pages** → Edit
-
-トークンと **Account ID**（Dashboard 右サイドバー）は **GitHub Secrets** または手元の `.env` に保存し、**リポジトリにはコミットしない**。
-
-| Secret 名 | 用途 |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Pages デプロイ用 API トークン |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID |
-
-任意（デフォルト `qarows`）:
-
-| Variable 名 | 用途 |
-|---|---|
-| `CLOUDFLARE_PAGES_PROJECT` | Pages プロジェクト名 |
-
 ---
 
-## 初回公開
+## 2. Cloudflare Pages プロジェクト作成
 
-### 方法 A: Cloudflare Dashboard + Git 連携（推奨）
-
-継続デプロイが簡単。PR プレビューも利用できる。
-
-1. Dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
-2. GitHub リポジトリ `qarows` を選択
-3. ビルド設定:
+1. [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages**
+2. **Create** → **Pages** → **Connect to Git**
+3. GitHub を認可し、**qarows** リポジトリを選択
+4. 次のビルド設定を入力:
 
 | 設定 | 値 |
 |---|---|
+| Project name | `qarows`（任意。Pages URL の一部になる） |
 | Production branch | `main` |
-| Framework preset | None |
+| Framework preset | **None** |
 | Build command | `bun run build` |
 | Build output directory | `apps/v1/dist` |
 | Root directory | `/`（リポジトリルート） |
 
-4. **Environment variables**（Bun 利用時）  
-   Cloudflare が `bun.lock` を検出すれば Bun を使う。うまくいかない場合は Build command を次に変更:
+5. **Environment variables**  
+   通常は不要（Phase 1 にビルド時シークレットはない）。
 
-   ```bash
-   curl -fsSL https://bun.sh/install | bash && ~/.bun/bin/bun install && ~/.bun/bin/bun run build
-   ```
+6. **Save and Deploy**
 
-5. **Save and Deploy**
-6. 初回デプロイ完了後、`*.pages.dev` の URL で動作確認
+### Bun が使えない場合
 
-**注意:** Dashboard 連携だけの場合、GitHub Actions の `deploy-v1.yml` は不要（二重デプロイを避けるため、どちらか一方を選ぶ）。
-
----
-
-### 方法 B: Wrangler CLI（手動・初回向け）
-
-Dashboard を使わず、手元から一度だけ上げる場合。
+Cloudflare のビルドログで `bun: not found` となる場合、Build command を次に変更:
 
 ```bash
-# ログイン（初回）
-bunx wrangler login
-
-# プロジェクト作成（初回のみ）
-bunx wrangler pages project create qarows
-
-# ビルド & デプロイ
-bun run build
-bunx wrangler pages deploy apps/v1/dist --project-name=qarows --branch=main
+curl -fsSL https://bun.sh/install | bash && export PATH="$HOME/.bun/bin:$PATH" && bun install && bun run build
 ```
 
-デプロイ URL はコマンド出力、または Dashboard → Pages → **qarows** → **Deployments** で確認。
-
 ---
 
-### 方法 C: GitHub Actions（`deploy-v1.yml`）
+## 3. 初回デプロイ後の確認
 
-`main` への push、または手動実行（`workflow_dispatch`）でデプロイ。
-
-#### セットアップ
-
-1. リポジトリ → **Settings** → **Secrets and variables** → **Actions**
-2. 上記 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` を登録
-3. （任意）**Variables** に `CLOUDFLARE_PAGES_PROJECT` = `qarows`
-4. **初回のみ** Dashboard または `wrangler pages project create qarows` で Pages プロジェクトを作成
-5. **方法 A（Git 連携）を使っている場合は `deploy-v1.yml` を無効化または削除**（二重デプロイ防止）
-
-#### 実行
-
-- `main` へ merge すると自動デプロイ
-- または Actions タブ → **Deploy Phase 1** → **Run workflow**
-
----
-
-## 公開後の確認
-
-公式 URL（`*.pages.dev` またはカスタムドメイン）で次を確認:
+Dashboard → Pages → **qarows** → 最新 Deployment の **`*.pages.dev` URL** を開き、次を確認:
 
 - [ ] `/load` が表示される
 - [ ] 「サンプルを試す」→ セッション開始 → `/run` まで進める
-- [ ] 直接 `/p/qarows/dashboard` 等にアクセスしても 404 にならない（SPA フォールバック）
+- [ ] 直接 `/p/qarows/dashboard` にアクセスしても 404 にならない
 - [ ] リロード後も IndexedDB から状態が復元される
 - [ ] ナビから results.json / tests.yml をエクスポートできる
 
@@ -143,11 +80,22 @@ bunx wrangler pages deploy apps/v1/dist --project-name=qarows --branch=main
 
 ---
 
-## カスタムドメイン（任意）
+## 4. 継続運用
+
+| イベント | 動作 |
+|---|---|
+| `main` へ push / merge | 本番デプロイ（自動） |
+| PR 作成 | プレビューデプロイ（自動。Dashboard 設定で有効） |
+| CI（`.github/workflows/ci.yml`） | テストのみ。デプロイは Cloudflare が担当 |
+
+本番 URL は Dashboard で確認する。リポジトリ README に固定 URL を書く必要はない（[deployment.md](./deployment.md) 方針）。
+
+---
+
+## 5. カスタムドメイン（任意）
 
 1. Dashboard → Pages → **qarows** → **Custom domains**
 2. ドメインを追加し、DNS 指示に従う
-3. 本番 URL は README や issue 等で告知（リポジトリに固定 URL を書く必要はない）
 
 ---
 
@@ -155,19 +103,30 @@ bunx wrangler pages deploy apps/v1/dist --project-name=qarows --branch=main
 
 | 症状 | 対処 |
 |---|---|
-| 深い URL で 404 | `apps/v1/public/_redirects` がビルドに含まれているか確認。`dist/_redirects` に `/* /index.html 200` があること |
-| lazy chunk 読み込み失敗 | 古い HTML と新しい asset の不整合。ハードリロード、またはキャッシュクリア |
-| Dashboard ビルド失敗 | ルートで `bun run build` が通るかローカル確認。monorepo の output path が `apps/v1/dist` か確認 |
-| Actions デプロイ失敗 | Secrets の typo、Pages プロジェクト未作成、トークン権限不足を確認 |
-| 二重デプロイ | Git 連携と `deploy-v1.yml` を同時に有効にしていないか確認 |
+| ビルド失敗 | ローカルで `bun run build` が通るか確認。output path が `apps/v1/dist` か確認 |
+| 深い URL で 404 | `dist/_redirects` に `/* /index.html 200` があるか確認 |
+| Bun 未検出 | 上記 Build command のフォールバックを使う |
+| 古い JS が読まれる | ハードリロード。Dashboard で最新 Deployment が Success か確認 |
+
+---
+
+## 参考: Wrangler 手動デプロイ
+
+Dashboard 障害時や一度だけ上げたい場合:
+
+```bash
+bunx wrangler login
+bun run build
+bunx wrangler pages deploy apps/v1/dist --project-name=qarows --branch=main
+```
 
 ---
 
 ## セキュリティ
 
-- API トークン・Account ID・本番 URL は **コミットしない**
+- API トークン・Account ID・本番 URL は **リポジトリにコミットしない**
 - Phase 1 は静的 SPA のため、ビルド時に秘密情報を埋め込む必要はない
-- 将来 Phase 2 用の `wrangler.toml` / `.dev.vars` は [deployment.md](./deployment.md) の gitignore 方針に従う
+- Git 連携の OAuth 権限は Cloudflare Dashboard 上で管理する
 
 ---
 
@@ -176,3 +135,4 @@ bunx wrangler pages deploy apps/v1/dist --project-name=qarows --branch=main
 | 日付 | 内容 |
 |---|---|
 | 2026-06-28 | 初版 |
+| 2026-06-28 | 方法 A（Dashboard + Git）に一本化。`deploy-v1.yml` 削除 |
