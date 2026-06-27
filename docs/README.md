@@ -1,0 +1,15 @@
+# Qarows ドキュメント
+
+QA シート特化 Web アプリ **qarows** の設計・要件ドキュメント。
+
+## 目次
+
+| ドキュメント | 内容 |
+|---|---|
+| [requirements.md](./requirements.md) | プロダクト要件（Phase 1 / Phase 2） |
+| [data-format.md](./data-format.md) | データファイル形式（`tests.yml` / `results.json`） |
+| [deployment.md](./deployment.md) | デプロイ方針・セキュリティ・リポジトリ構成 |
+
+## バージョン
+
+- 要件ドキュメント: **v0.2**（2026-06-27）

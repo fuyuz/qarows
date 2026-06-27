@@ -43,6 +43,11 @@ coverage/
 *.tsbuildinfo
 .eslintcache
 
+# Cloudflare
+.dev.vars
+.wrangler/
+wrangler.toml
+
 # Vercel / deployment
 .vercel/
 
