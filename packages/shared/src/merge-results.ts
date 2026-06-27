@@ -25,6 +25,7 @@ function mergeEntry(a: TestResultEntry, b: TestResultEntry): TestResultEntry {
 
   return {
     status,
+    version: prefer.version ?? a.version ?? b.version,
     executedAt: prefer.executedAt ?? a.executedAt ?? b.executedAt,
     executedBy: prefer.executedBy ?? a.executedBy ?? b.executedBy,
     memo: mergeMemos(a.memo, b.memo),

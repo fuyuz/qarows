@@ -119,11 +119,22 @@ function parseTestCase(raw: unknown, index: number): TestCase {
     `testCases[${index}].targetEnvironments`,
   );
 
+  const versionRaw = obj.version;
+  let version: number | undefined;
+  if (versionRaw != null) {
+    const parsed = Number(versionRaw);
+    if (!Number.isFinite(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
+      throw new Error(`testCases[${index}].version は 1 以上の整数である必要があります`);
+    }
+    version = parsed === 1 ? undefined : parsed;
+  }
+
   return {
     id,
     category: { major, medium, minor },
     prerequisites: obj.prerequisites != null ? String(obj.prerequisites) : undefined,
     description,
+    ...(version != null ? { version } : {}),
     ...(targetEnvironments != null ? { targetEnvironments } : {}),
   };
 }

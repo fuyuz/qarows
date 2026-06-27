@@ -2,6 +2,7 @@ import type { Bug, ResultsFile, TestResultEntry, TestResults } from "./types";
 
 function serializeResultEntry(entry: TestResultEntry): Record<string, unknown> {
   const obj: Record<string, unknown> = { status: entry.status };
+  if (entry.version != null && entry.version > 1) obj.version = entry.version;
   if (entry.executedAt) obj.executedAt = entry.executedAt;
   if (entry.executedBy) obj.executedBy = entry.executedBy;
   if (entry.memo) obj.memo = entry.memo;

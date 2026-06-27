@@ -177,6 +177,7 @@ testCases:
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
 | `id` | string | ✓ | 一意識別子 |
+| `version` | number | | テスト定義の版。省略時 `1`。内容変更でインクリメントし、旧版の結果は未実施扱い |
 | `category.major` | string | ✓ | 大項目 |
 | `category.medium` | string | | 中項目 |
 | `category.minor` | string | | 小項目 |
@@ -205,10 +206,11 @@ testCases:
         "memo": "問題なし"
       },
       "ios-safari": {
-        "status": "NG",
-        "executedAt": "2026-06-27T11:00:00Z",
+        "status": "OK",
+        "version": 2,
+        "executedAt": "2026-06-27T11:30:00Z",
         "executedBy": "suzuki@example.com",
-        "memo": "レイアウト崩れあり"
+        "memo": "v2 で再確認済み"
       }
     }
   },
@@ -238,6 +240,8 @@ testCases:
 | `NG` | 不合格 | 4（最強） |
 
 マージ時は優先度の高いステータスが採用される。
+
+各結果エントリは、記録時の `tests.yml` テストケース `version` を `version` フィールドで保持する（省略時 `1`）。テストケースの `version` と一致しない結果は未実施扱い（再テスト対象）。旧版の結果はファイル内に残してよい。
 
 ### バグステータス（例）
 

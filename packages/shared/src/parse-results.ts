@@ -7,8 +7,19 @@ function parseResultEntry(raw: unknown): TestResultEntry {
     throw new Error("結果エントリの形式が不正です");
   }
   const obj = raw as Record<string, unknown>;
+  const versionRaw = obj.version;
+  let version: number | undefined;
+  if (versionRaw != null) {
+    const parsed = Number(versionRaw);
+    if (!Number.isFinite(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
+      throw new Error("結果エントリの version は 1 以上の整数である必要があります");
+    }
+    version = parsed === 1 ? undefined : parsed;
+  }
+
   return {
     status: normalizeStatus(String(obj.status ?? "")),
+    ...(version != null ? { version } : {}),
     executedAt: obj.executedAt != null ? String(obj.executedAt) : undefined,
     executedBy: obj.executedBy != null ? String(obj.executedBy) : undefined,
     memo: obj.memo != null ? String(obj.memo) : undefined,

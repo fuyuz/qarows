@@ -8,6 +8,7 @@ import type {
   TestResultEntry,
   TestResults,
 } from "./types";
+import { isResultEntryValid } from "./test-case-version";
 
 function applyTargetLayer(
   pool: string[],
@@ -105,8 +106,8 @@ export function resolveSessionTestTargets(
   };
 }
 
-function hasResult(entry?: TestResultEntry): boolean {
-  return entry?.status != null;
+function hasResult(entry: TestResultEntry | undefined, testCase: TestCase): boolean {
+  return isResultEntryValid(entry, testCase);
 }
 
 export function isTestInScope(
@@ -129,10 +130,10 @@ export function isTestIncomplete(
   const byEnv = results[testCase.id] ?? {};
 
   if (targets.required === "any") {
-    return !targets.environmentIds.some((envId) => hasResult(byEnv[envId]));
+    return !targets.environmentIds.some((envId) => hasResult(byEnv[envId], testCase));
   }
 
-  return targets.environmentIds.some((envId) => !hasResult(byEnv[envId]));
+  return targets.environmentIds.some((envId) => !hasResult(byEnv[envId], testCase));
 }
 
 export function isTestComplete(

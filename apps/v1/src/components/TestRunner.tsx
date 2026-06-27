@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { nextBugId, resolveSessionTestTargets, type Bug, type TestStatus } from "@qarows/shared";
+import {
+  isResultEntryValid,
+  nextBugId,
+  resolveSessionTestTargets,
+  type Bug,
+  type TestCase,
+  type TestStatus,
+} from "@qarows/shared";
 import { BugDialog, bugDraftToBug, type BugDialogDraft } from "@/components/BugDialog";
 import { RelatedBugsDialog } from "@/components/RelatedBugsDialog";
+import { TestCaseEditDialog } from "@/components/TestCaseEditDialog";
 import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { RunnerCompleteCard } from "@/components/RunnerCompleteCard";
 import { RunnerIntroCard } from "@/components/RunnerIntroCard";
@@ -15,6 +23,7 @@ import {
   matchRunnerStatusKey,
 } from "@/lib/runner-keybindings";
 import { resolveRunnerTestCases } from "@/lib/utils";
+import { formatTestCaseMarkdown } from "@/lib/format-test-case-markdown";
 
 const AUTO_ADVANCE_DELAY_MS = 500;
 
@@ -35,6 +44,7 @@ export function TestRunner() {
     updateResults,
     updateResultsBatch,
     updateResultsFile,
+    updateTestCase,
     clearTestResult,
   } = useApp();
 
@@ -46,6 +56,7 @@ export function TestRunner() {
   const [bugCreateMore, setBugCreateMore] = useState(false);
   const [bugFormKey, setBugFormKey] = useState(0);
   const [relatedBugsDialogOpen, setRelatedBugsDialogOpen] = useState(false);
+  const [testCaseEditDialogOpen, setTestCaseEditDialogOpen] = useState(false);
   const didRestoreSlide = useRef(false);
   const skipFilterSlideReset = useRef(true);
   const mountedRef = useRef(true);
@@ -81,6 +92,7 @@ export function TestRunner() {
 
   useEffect(() => {
     setRelatedBugsDialogOpen(false);
+    setTestCaseEditDialogOpen(false);
   }, [current?.id]);
 
   useEffect(() => {
@@ -123,10 +135,20 @@ export function TestRunner() {
     }
     const byEnv = results.results[current.id] ?? {};
     const existing =
-      envTargets.environmentIds.map((id) => byEnv[id]?.memo).find((m) => m != null && m !== "") ??
-      "";
+      envTargets.environmentIds
+        .map((id) => {
+          const entry = byEnv[id];
+          return isResultEntryValid(entry, current) ? entry?.memo : undefined;
+        })
+        .find((m) => m != null && m !== "") ?? "";
     setMemo(existing);
   }, [current, envTargets, results]);
+
+  const needsRetest = useMemo(() => {
+    if (!current || !results) return false;
+    const byEnv = results.results[current.id] ?? {};
+    return Object.values(byEnv).some((entry) => entry?.status && !isResultEntryValid(entry, current));
+  }, [current, results]);
 
   const cancelPendingAdvance = useCallback(() => {
     if (advanceDelayRef.current) {
@@ -258,21 +280,22 @@ export function TestRunner() {
       setBusy(true);
       try {
         const existing = results.results[current.id]?.[envId];
+        const validExisting = isResultEntryValid(existing, current) ? existing : undefined;
         await updateResults(current.id, envId, {
           status,
-          memo: memo.trim() || existing?.memo,
+          memo: memo.trim() || validExisting?.memo,
           executedAt: new Date().toISOString(),
           executedBy: session.executorName,
         });
 
         const nextByEnv = {
           ...(results.results[current.id] ?? {}),
-          [envId]: { status, memo: memo.trim() || existing?.memo },
+          [envId]: { status, memo: memo.trim() || validExisting?.memo },
         };
         const isComplete =
           envTargets.required === "any"
-            ? envTargets.environmentIds.some((id) => nextByEnv[id]?.status)
-            : envTargets.environmentIds.every((id) => nextByEnv[id]?.status);
+            ? envTargets.environmentIds.some((id) => isResultEntryValid(nextByEnv[id], current))
+            : envTargets.environmentIds.every((id) => isResultEntryValid(nextByEnv[id], current));
 
         if (isComplete) {
           const nextSlide =
@@ -360,9 +383,33 @@ export function TestRunner() {
     [updateResultsFile],
   );
 
+  const handleTestCaseSave = useCallback(
+    async (patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>) => {
+      if (!current) return;
+      setBusy(true);
+      try {
+        await updateTestCase(current.id, patch);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [current, updateTestCase],
+  );
+
+  const handleCopyTestCase = useCallback(async () => {
+    if (!definition || !current || !envTargets) return;
+    const markdown = formatTestCaseMarkdown({
+      definition,
+      testCase: current,
+      envTargets,
+      bugs: relatedBugs,
+    });
+    await navigator.clipboard.writeText(markdown);
+  }, [current, definition, envTargets, relatedBugs]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (busy || bugDialogOpen || relatedBugsDialogOpen) return;
+      if (busy || bugDialogOpen || relatedBugsDialogOpen || testCaseEditDialogOpen) return;
       if (isRunnerTypingTarget(e.target)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
@@ -401,6 +448,7 @@ export function TestRunner() {
     applyBatch,
     bugDialogOpen,
     relatedBugsDialogOpen,
+    testCaseEditDialogOpen,
     busy,
     goToSlide,
     maxSlide,
@@ -454,6 +502,9 @@ export function TestRunner() {
                 onOpenBug={openManualBugDialog}
                 relatedBugCount={relatedBugs.length}
                 onViewRelatedBugs={() => setRelatedBugsDialogOpen(true)}
+                needsRetest={needsRetest}
+                onEditTestCase={() => setTestCaseEditDialogOpen(true)}
+                onCopyTestCase={handleCopyTestCase}
               />
             )}
           </RunnerCardTransition>
@@ -487,6 +538,17 @@ export function TestRunner() {
           busy={busy}
           onSave={handleRelatedBugSave}
           onClose={() => setRelatedBugsDialogOpen(false)}
+        />
+      )}
+
+      {current && envTargets && (
+        <TestCaseEditDialog
+          open={testCaseEditDialogOpen}
+          testCase={current}
+          envTargets={envTargets}
+          busy={busy}
+          onSave={handleTestCaseSave}
+          onClose={() => setTestCaseEditDialogOpen(false)}
         />
       )}
     </div>

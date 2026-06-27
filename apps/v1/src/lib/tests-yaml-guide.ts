@@ -45,6 +45,7 @@ Each item:
 | field | type | required | notes |
 |---|---|---|---|
 | id | string | yes | unique across file (e.g. TC-001) |
+| version | number | no | test definition revision; default 1; omit when 1. Bump when content changes; stale results become incomplete |
 | description | string | yes | what to verify (shown prominently in runner) |
 | category.major | string | yes | top-level grouping / filter |
 | category.medium | string | no | mid-level grouping |

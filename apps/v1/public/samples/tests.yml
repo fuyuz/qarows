@@ -357,3 +357,43 @@ testCases:
       minor: "確認ダイアログ"
     prerequisites: "tests.yml 読み込み済み（/load 画面に戻った状態）、新しい tests.yml を選択済み"
     description: "「テストを開始」で置き換え警告が表示され、確認後のみ新しいプロジェクトが読み込まれる"
+
+  - id: TC-037
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "項目編集"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "テストカードの「編集」からダイアログが開き、大分類・前提条件・確認内容を変更して保存できる"
+
+  - id: TC-038
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "バージョン更新"
+    prerequisites: "テスト実行画面 (/run) を表示中、表示中のテストに結果が入力済みであること"
+    description: "編集ダイアログで「バージョンを更新」にチェックして保存すると version がインクリメントされ、既存結果が未実施扱い（要再テスト）になる"
+
+  - id: TC-039
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "Markdown コピー"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "テストカードの「コピー」で Markdown 形式のテスト内容がクリップボードにコピーされる"
+
+  - id: TC-040
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "Markdown コピー"
+    prerequisites: "テスト実行画面 (/run) を表示中、表示中のテストに関連バグが1件以上あること"
+    description: "「コピー」した Markdown に関連バグのタイトル・ステータス・手順等が含まれる"
+
+  - id: TC-041
+    category:
+      major: "エクスポート"
+      medium: "tests.yml"
+      minor: "ダウンロード"
+    prerequisites: "tests.yml 読み込み済み、テスト項目を1件以上編集済みであること"
+    description: "ナビメニューから tests.yml をエクスポートでき、編集内容（version 含む）が反映されている"

@@ -35,6 +35,8 @@ export interface CategoryTarget {
 
 export interface TestCase {
   id: string;
+  /** テスト定義の版。省略時 1。内容変更でインクリメントし、旧版の結果は未実施扱い */
+  version?: number;
   category: {
     major: string;
     medium?: string;
@@ -66,6 +68,8 @@ export interface TestScenario {
 
 export interface TestResultEntry {
   status: TestStatus;
+  /** 記録時のテストケース version。省略時 1 */
+  version?: number;
   executedAt?: string;
   executedBy?: string;
   memo?: string;

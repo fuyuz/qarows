@@ -1,5 +1,7 @@
 import type { SessionTestTargets, TestCase, TestDefinition, TestResults, TestStatus } from "@qarows/shared";
-import { Bug, ClipboardList } from "lucide-react";
+import { isResultEntryValid } from "@qarows/shared";
+import { Bug, ClipboardList, Copy, Pencil } from "lucide-react";
+import { useCallback, useState } from "react";
 import { RUNNER_KEYBINDINGS } from "@/lib/runner-keybindings";
 import { Kbd } from "@/components/qa-ui";
 import {
@@ -40,6 +42,9 @@ export interface TestCardProps extends RunnerCardNavProps {
   onOpenBug: () => void;
   relatedBugCount: number;
   onViewRelatedBugs: () => void;
+  needsRetest: boolean;
+  onEditTestCase: () => void;
+  onCopyTestCase: () => void | Promise<void>;
 }
 
 export function TestCard({
@@ -60,15 +65,67 @@ export function TestCard({
   onOpenBug,
   relatedBugCount,
   onViewRelatedBugs,
+  needsRetest,
+  onEditTestCase,
+  onCopyTestCase,
 }: TestCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await onCopyTestCase();
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }, [onCopyTestCase]);
+
   return (
     <article className={testCardShellClass()}>
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-        <header className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b pb-3.5">
-          <Badge variant="secondary" className="bg-primary/10 font-bold text-primary">
-            {testCase.id}
-          </Badge>
-          <span className="text-sm text-muted-foreground">{formatCategory(testCase)}</span>
+        <header className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b pb-3.5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1">
+            <Badge variant="secondary" className="bg-primary/10 font-bold text-primary">
+              {testCase.id}
+            </Badge>
+            {needsRetest && (
+              <Badge variant="destructive" className="text-[0.65rem] font-bold">
+                要再テスト
+              </Badge>
+            )}
+            <span className="text-sm text-muted-foreground">{formatCategory(testCase)}</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              disabled={busy}
+              onClick={onEditTestCase}
+            >
+              <Pencil className="size-3.5" aria-hidden />
+              編集
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-7 gap-1.5 px-2 text-xs transition-colors duration-150 motion-reduce:transition-none",
+                copied
+                  ? "text-green-600 hover:text-green-600 dark:text-green-500 dark:hover:text-green-500"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              disabled={busy}
+              aria-label={copied ? "クリップボードにコピー済み" : "Markdown をコピー"}
+              onClick={() => void handleCopy()}
+            >
+              <Copy className="size-3.5" aria-hidden />
+              コピー
+            </Button>
+          </div>
         </header>
 
         {testCase.prerequisites && (
@@ -98,7 +155,8 @@ export function TestCard({
             {envTargets.environmentIds.map((envId) => {
               const env = definition.environments.find((e) => e.id === envId);
               const entry = results[testCase.id]?.[envId];
-              const isIncomplete = !entry?.status;
+              const isValid = isResultEntryValid(entry, testCase);
+              const isIncomplete = !isValid;
 
               return (
                 <li
@@ -117,7 +175,7 @@ export function TestCard({
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                      disabled={busy || !entry?.status}
+                      disabled={busy || !isValid}
                       onClick={() => onClear(envId)}
                     >
                       クリア
@@ -130,7 +188,7 @@ export function TestCard({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className={cn("h-auto flex-1 py-1.5", statusButtonClass(status, entry?.status === status))}
+                        className={cn("h-auto flex-1 py-1.5", statusButtonClass(status, isValid && entry?.status === status))}
                         disabled={busy}
                         onClick={() => onSingle(envId, status)}
                       >

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Compass } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isValidSession, serializeResultsJson } from "@qarows/shared";
+import { isValidSession, serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -47,7 +47,8 @@ export function AppNav() {
     return items;
   }, [definition, location.pathname, session]);
 
-  const canExport = definition != null && results != null;
+  const canExportResults = definition != null && results != null;
+  const canExportYaml = definition != null;
 
   useEffect(() => {
     setOpen(false);
@@ -55,10 +56,17 @@ export function AppNav() {
 
   if (!definition) return null;
 
-  const handleExport = () => {
+  const handleExportResults = () => {
     if (!results) return;
     const json = serializeResultsJson(results);
     downloadText(json, "results.json", "application/json");
+    setOpen(false);
+  };
+
+  const handleExportYaml = () => {
+    if (!definition) return;
+    const yaml = serializeTestsYaml(definition);
+    downloadText(yaml, "tests.yml", "text/yaml");
     setOpen(false);
   };
 
@@ -94,13 +102,20 @@ export function AppNav() {
               ))}
             </>
           )}
-          {canExport && (
+          {(canExportYaml || canExportResults) && (
             <>
               {links.length > 0 && <DropdownMenuSeparator />}
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
                 データ
               </DropdownMenuLabel>
-              <DropdownMenuItem onSelect={handleExport}>results.json をエクスポート</DropdownMenuItem>
+              {canExportYaml && (
+                <DropdownMenuItem onSelect={handleExportYaml}>tests.yml をエクスポート</DropdownMenuItem>
+              )}
+              {canExportResults && (
+                <DropdownMenuItem onSelect={handleExportResults}>
+                  results.json をエクスポート
+                </DropdownMenuItem>
+              )}
             </>
           )}
         </DropdownMenuContent>

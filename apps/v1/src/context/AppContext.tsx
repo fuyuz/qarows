@@ -11,6 +11,7 @@ import {
 import {
   clearTestCaseEnvironmentResult,
   createEmptyResults,
+  getTestCaseVersion,
   mergeResultsFiles,
   parseResultsJson,
   parseTestsYaml,
@@ -18,6 +19,7 @@ import {
   type ResultsFile,
   type RunnerFilters,
   type SessionConfig,
+  type TestCase,
   type TestDefinition,
   type TestResultEntry,
   type TestStatus,
@@ -48,6 +50,10 @@ interface AppContextValue {
     partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
   ) => Promise<void>;
   updateResultsFile: (updater: (prev: ResultsFile) => ResultsFile) => Promise<void>;
+  updateTestCase: (
+    testCaseId: string,
+    patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
+  ) => Promise<void>;
   clearTestResult: (testCaseId: string, envId: string) => Promise<void>;
   resetProject: () => Promise<void>;
 }
@@ -168,9 +174,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const stampResultVersion = useCallback(
+    (testCaseId: string, entry: TestResultEntry): TestResultEntry => {
+      const testCase = definition?.testCases.find((tc) => tc.id === testCaseId);
+      if (!testCase) return entry;
+      const version = getTestCaseVersion(testCase);
+      return version > 1 ? { ...entry, version } : entry;
+    },
+    [definition],
+  );
+
   const updateResults = useCallback(
     async (testCaseId: string, envId: string, entry: TestResultEntry) => {
       if (!results) return;
+      const stamped = stampResultVersion(testCaseId, entry);
       const next: ResultsFile = {
         ...results,
         updatedAt: new Date().toISOString(),
@@ -178,14 +195,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...results.results,
           [testCaseId]: {
             ...(results.results[testCaseId] ?? {}),
-            [envId]: entry,
+            [envId]: stamped,
           },
         },
       };
       await persist({ results: next });
       markTestUpdated(testCaseId);
     },
-    [markTestUpdated, persist, results],
+    [markTestUpdated, persist, results, stampResultVersion],
   );
 
   const updateResultsBatch = useCallback(
@@ -195,6 +212,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
     ) => {
       if (!results || !session) return;
+      const testCase = definition?.testCases.find((tc) => tc.id === testCaseId);
+      const version = testCase ? getTestCaseVersion(testCase) : 1;
       const now = new Date().toISOString();
       const caseResults = { ...(results.results[testCaseId] ?? {}) };
       for (const envId of envIds) {
@@ -203,6 +222,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           memo: partial.memo ?? caseResults[envId]?.memo,
           executedAt: now,
           executedBy: session.executorName,
+          ...(version > 1 ? { version } : {}),
         };
       }
       const next: ResultsFile = {
@@ -216,7 +236,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await persist({ results: next });
       markTestUpdated(testCaseId);
     },
-    [markTestUpdated, persist, results, session],
+    [definition, markTestUpdated, persist, results, session],
   );
 
   const updateResultsFile = useCallback(
@@ -227,6 +247,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await persist({ results: next });
     },
     [persist, results],
+  );
+
+  const updateTestCase = useCallback(
+    async (
+      testCaseId: string,
+      patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
+    ) => {
+      if (!definition) return;
+      const nextDefinition: TestDefinition = {
+        ...definition,
+        testCases: definition.testCases.map((tc) =>
+          tc.id === testCaseId ? { ...tc, ...patch } : tc,
+        ),
+      };
+      await persist({ definition: nextDefinition });
+      markTestUpdated(testCaseId);
+    },
+    [definition, markTestUpdated, persist],
   );
 
   const clearTestResult = useCallback(
@@ -266,6 +304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateResults,
       updateResultsBatch,
       updateResultsFile,
+      updateTestCase,
       clearTestResult,
       resetProject,
     }),
@@ -285,6 +324,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateResults,
       updateResultsBatch,
       updateResultsFile,
+      updateTestCase,
       clearTestResult,
       resetProject,
     ],

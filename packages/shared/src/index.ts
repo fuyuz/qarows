@@ -9,3 +9,5 @@ export * from "./merge-results";
 export * from "./clear-results";
 export * from "./resolve-test-targets";
 export * from "./resolve-runner-targets";
+export * from "./test-case-version";
+export * from "./serialize-tests";
