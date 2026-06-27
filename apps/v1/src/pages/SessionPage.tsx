@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useApp } from "@/context/AppContext";
+import { cn } from "@/lib/cn";
 
 export function SessionPage() {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ export function SessionPage() {
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [shakeExecutor, setShakeExecutor] = useState(false);
+  const [shakeEnvs, setShakeEnvs] = useState(false);
 
   if (!definition) return null;
 
@@ -38,8 +41,15 @@ export function SessionPage() {
 
   const handleStart = async () => {
     if (!canStart) {
-      if (!trimmedName) setError("実施者名を入力してください");
-      else if (selectedEnvIds.length === 0) setError("端末/環境を1つ以上選択してください");
+      if (!trimmedName) {
+        setError("実施者名を入力してください");
+        setShakeExecutor(true);
+        setTimeout(() => setShakeExecutor(false), 350);
+      } else if (selectedEnvIds.length === 0) {
+        setError("端末/環境を1つ以上選択してください");
+        setShakeEnvs(true);
+        setTimeout(() => setShakeEnvs(false), 350);
+      }
       return;
     }
     setSubmitting(true);
@@ -78,6 +88,7 @@ export function SessionPage() {
             required
             placeholder="例: tanaka"
             value={executorName}
+            className={cn(shakeExecutor && "animate-ui-shake border-destructive ring-destructive/20")}
             onChange={(e) => {
               setExecutorName(e.target.value);
               setError(null);
@@ -94,7 +105,7 @@ export function SessionPage() {
               すべて選択
             </Button>
           </div>
-          <ul className="flex flex-col gap-1.5">
+          <ul className={cn("flex flex-col gap-1.5", shakeEnvs && "animate-ui-shake")}>
             {definition.environments.map((env) => (
               <li key={env.id}>
                 <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 text-sm">
@@ -119,7 +130,11 @@ export function SessionPage() {
         )}
 
         <footer className="mt-6">
-          <Button disabled={!canStart || submitting} onClick={() => void handleStart()}>
+          <Button
+            disabled={!canStart || submitting}
+            className={cn(canStart && !submitting && "shadow-sm")}
+            onClick={() => void handleStart()}
+          >
             {submitting ? "開始中…" : "テスト実行を開始"}
           </Button>
         </footer>

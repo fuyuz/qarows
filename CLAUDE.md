@@ -126,6 +126,7 @@ bun run preview:start
 | ファイル | 内容 |
 |---|---|
 | [docs/requirements.md](docs/requirements.md) | 要件定義 |
+| [docs/ui-ux.md](docs/ui-ux.md) | UI / UX デザイン方針 |
 | [docs/data-format.md](docs/data-format.md) | データファイル形式（草案） |
 | [docs/deployment.md](docs/deployment.md) | デプロイ・セキュリティ |
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { resolveSessionTestTargets, type TestStatus } from "@qarows/shared";
+import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { RunnerCompleteCard } from "@/components/RunnerCompleteCard";
 import { RunnerIntroCard } from "@/components/RunnerIntroCard";
 import { TestCard } from "@/components/TestCard";
@@ -25,8 +26,10 @@ export function TestRunner() {
   } = useApp();
 
   const [slideIndex, setSlideIndex] = useState(0);
+  const [transitionDirection, setTransitionDirection] = useState(1);
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [flashEnvId, setFlashEnvId] = useState<string | null>(null);
   const didRestoreSlide = useRef(false);
   const skipFilterSlideReset = useRef(true);
 
@@ -92,6 +95,7 @@ export function TestRunner() {
   const goToSlide = useCallback(
     (slide: number) => {
       if (slide < 0 || slide > maxSlide) return;
+      setTransitionDirection(slide > slideIndex ? 1 : slide < slideIndex ? -1 : transitionDirection);
       setSlideIndex(slide);
       if (slide >= 1 && slide <= targets.length) {
         void setRunnerIndex(slide - 1);
@@ -99,8 +103,13 @@ export function TestRunner() {
         void setRunnerIndex(-1);
       }
     },
-    [maxSlide, setRunnerIndex, targets.length],
+    [maxSlide, setRunnerIndex, slideIndex, targets.length, transitionDirection],
   );
+
+  const flashEnvironment = useCallback((envId: string) => {
+    setFlashEnvId(envId);
+    setTimeout(() => setFlashEnvId(null), 300);
+  }, []);
 
   const applyBatch = useCallback(
     async (status: TestStatus) => {
@@ -144,6 +153,7 @@ export function TestRunner() {
           executedAt: new Date().toISOString(),
           executedBy: session.executorName,
         });
+        flashEnvironment(envId);
 
         const nextByEnv = {
           ...(results.results[current.id] ?? {}),
@@ -169,6 +179,7 @@ export function TestRunner() {
       busy,
       current,
       envTargets,
+      flashEnvironment,
       goToSlide,
       memo,
       results,
@@ -218,42 +229,45 @@ export function TestRunner() {
     <div className="w-full">
       <div className="flex w-full justify-center">
         <div className="w-full min-h-[80vh] max-w-2xl">
-          {slideIndex === 0 && (
-            <RunnerIntroCard
-              canPrev={slideIndex > 0}
-              canNext={slideIndex < maxSlide}
-              busy={busy}
-              onPrev={() => goToSlide(slideIndex - 1)}
-              onNext={() => goToSlide(slideIndex + 1)}
-            />
-          )}
-          {slideIndex === maxSlide && (
-            <RunnerCompleteCard
-              testCount={targets.length}
-              canPrev={slideIndex > 0}
-              canNext={slideIndex < maxSlide}
-              busy={busy}
-              onPrev={() => goToSlide(slideIndex - 1)}
-              onNext={() => goToSlide(slideIndex + 1)}
-            />
-          )}
-          {current && envTargets && (
-            <TestCard
-              testCase={current}
-              definition={definition}
-              results={results.results}
-              envTargets={envTargets}
-              memo={memo}
-              busy={busy}
-              canPrev={slideIndex > 0}
-              canNext={slideIndex < maxSlide}
-              onPrev={() => goToSlide(slideIndex - 1)}
-              onNext={() => goToSlide(slideIndex + 1)}
-              onMemoChange={setMemo}
-              onBatch={(status) => void applyBatch(status)}
-              onSingle={(envId, status) => void applySingle(envId, status)}
-            />
-          )}
+          <RunnerCardTransition key={slideIndex} direction={transitionDirection}>
+            {slideIndex === 0 && (
+              <RunnerIntroCard
+                canPrev={slideIndex > 0}
+                canNext={slideIndex < maxSlide}
+                busy={busy}
+                onPrev={() => goToSlide(slideIndex - 1)}
+                onNext={() => goToSlide(slideIndex + 1)}
+              />
+            )}
+            {slideIndex === maxSlide && (
+              <RunnerCompleteCard
+                testCount={targets.length}
+                canPrev={slideIndex > 0}
+                canNext={slideIndex < maxSlide}
+                busy={busy}
+                onPrev={() => goToSlide(slideIndex - 1)}
+                onNext={() => goToSlide(slideIndex + 1)}
+              />
+            )}
+            {current && envTargets && (
+              <TestCard
+                testCase={current}
+                definition={definition}
+                results={results.results}
+                envTargets={envTargets}
+                memo={memo}
+                flashEnvId={flashEnvId}
+                busy={busy}
+                canPrev={slideIndex > 0}
+                canNext={slideIndex < maxSlide}
+                onPrev={() => goToSlide(slideIndex - 1)}
+                onNext={() => goToSlide(slideIndex + 1)}
+                onMemoChange={setMemo}
+                onBatch={(status) => void applyBatch(status)}
+                onSingle={(envId, status) => void applySingle(envId, status)}
+              />
+            )}
+          </RunnerCardTransition>
         </div>
       </div>
     </div>

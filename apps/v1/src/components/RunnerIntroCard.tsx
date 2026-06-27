@@ -22,6 +22,9 @@ export function RunnerIntroCard(props: RunnerCardNavProps) {
             1件ずつ確認内容を読み、対象端末ごとに結果を入力します。「はじめる」か{" "}
             <Kbd>{formatRunnerKeys(RUNNER_KEYBINDINGS.next)}</Kbd> で次へ進んでください。
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            <Kbd>{formatRunnerKeys(RUNNER_KEYBINDINGS.ok)}</Kbd> などの一括入力は、表示中の全端末に同じ結果を記録します。
+          </p>
         </section>
 
         <section className="mb-5">

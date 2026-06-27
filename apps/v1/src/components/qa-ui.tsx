@@ -25,7 +25,14 @@ export function StatusBadge({
   className?: string;
 }) {
   return (
-    <Badge variant="outline" className={cn("text-[0.7rem] font-bold", STATUS_VARIANTS[status], className)}>
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-[0.7rem] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 fill-mode-both",
+        STATUS_VARIANTS[status],
+        className,
+      )}
+    >
       {STATUS_LABELS[status]}
     </Badge>
   );

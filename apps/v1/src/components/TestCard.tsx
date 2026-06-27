@@ -32,6 +32,7 @@ export interface TestCardProps extends RunnerCardNavProps {
   results: TestResults;
   envTargets: SessionTestTargets;
   memo: string;
+  flashEnvId?: string | null;
   onMemoChange: (value: string) => void;
   onBatch: (status: TestStatus) => void;
   onSingle: (envId: string, status: TestStatus) => void;
@@ -43,6 +44,7 @@ export function TestCard({
   results,
   envTargets,
   memo,
+  flashEnvId,
   busy,
   canPrev,
   canNext,
@@ -75,7 +77,7 @@ export function TestCard({
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             確認内容
           </h2>
-          <p className="text-base leading-relaxed font-medium">{testCase.description}</p>
+          <p className="text-lg leading-relaxed font-semibold text-foreground">{testCase.description}</p>
         </section>
 
         <section className="mb-5">
@@ -89,8 +91,28 @@ export function TestCard({
             {envTargets.environmentIds.map((envId) => {
               const env = definition.environments.find((e) => e.id === envId);
               const entry = results[testCase.id]?.[envId];
+              const isIncomplete = !entry?.status;
+              const isFlashing = flashEnvId === envId;
+              const flashClass =
+                isFlashing && entry?.status === "NG"
+                  ? "animate-ui-highlight-ng"
+                  : isFlashing && entry?.status === "OK"
+                    ? "animate-ui-highlight-ok"
+                    : isFlashing
+                      ? "animate-ui-highlight"
+                      : undefined;
+
               return (
-                <li key={envId} className="rounded-lg border bg-muted/30 px-3 py-2.5">
+                <li
+                  key={envId}
+                  className={cn(
+                    "rounded-lg border px-3 py-2.5 transition-colors duration-200",
+                    isIncomplete
+                      ? "border-primary/35 bg-card shadow-sm"
+                      : "border-border bg-muted/30",
+                    flashClass,
+                  )}
+                >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{env?.name ?? envId}</span>
                     {entry?.status && <StatusBadge status={entry.status} />}

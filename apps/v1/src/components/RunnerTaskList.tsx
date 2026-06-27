@@ -46,6 +46,7 @@ function TaskListPanel({
   session,
   results,
   runnerIndex,
+  lastUpdatedTestId,
   onJump,
   listRef,
   activeItemRef,
@@ -61,6 +62,7 @@ function TaskListPanel({
   session: SessionConfig;
   results: ResultsFile;
   runnerIndex: number;
+  lastUpdatedTestId: string | null;
   onJump: (index: number) => void;
   listRef: RefObject<HTMLUListElement | null>;
   activeItemRef: RefObject<HTMLLIElement | null>;
@@ -91,8 +93,11 @@ function TaskListPanel({
             )}
           </div>
         )}
-        <p className="mt-2 text-xs font-semibold text-muted-foreground">
-          {completedCount} / {targets.length} 完了
+        <p
+          key={`${completedCount}-${targets.length}`}
+          className="mt-2 animate-in fade-in duration-200 text-xs font-semibold text-muted-foreground tabular-nums"
+        >
+          <span className="text-foreground">{completedCount}</span> / {targets.length} 完了
         </p>
       </div>
 
@@ -109,12 +114,25 @@ function TaskListPanel({
                 results.results,
               );
               const isActive = runnerIndex === index && runnerIndex >= 0;
+              const wasJustUpdated = lastUpdatedTestId === testCase.id;
+              const rowHighlight =
+                wasJustUpdated && status === "NG"
+                  ? "animate-ui-highlight-ng"
+                  : wasJustUpdated && status === "OK"
+                    ? "animate-ui-highlight-ok"
+                    : wasJustUpdated
+                      ? "animate-ui-highlight"
+                      : undefined;
 
               return (
                 <li
                   key={testCase.id}
                   ref={isActive ? activeItemRef : undefined}
-                  className={cn(isActive && "border-l-[3px] border-l-primary bg-primary/5")}
+                  className={cn(
+                    isActive && "border-l-[3px] border-l-primary bg-primary/5",
+                    status === "NG" && !isActive && "bg-red-50/40",
+                    rowHighlight,
+                  )}
                 >
                   <button
                     type="button"
@@ -145,7 +163,8 @@ function TaskListPanel({
 }
 
 export function RunnerTaskList() {
-  const { definition, results, session, runnerFilters, runnerIndex, setRunnerIndex } = useApp();
+  const { definition, results, session, runnerFilters, runnerIndex, setRunnerIndex, lastUpdatedTestId } =
+    useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
@@ -203,6 +222,7 @@ export function RunnerTaskList() {
     session,
     results,
     runnerIndex,
+    lastUpdatedTestId,
     onJump: jumpToTest,
     listRef,
     activeItemRef,

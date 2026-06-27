@@ -21,7 +21,9 @@ function bucketClass(bucket: ProgressBucket): string {
 
 function progressSummary(stats: RunProgressStats): string {
   if (stats.total === 0) return "0 件";
-  return `${stats.completed} / ${stats.total} 完了`;
+  const remaining = stats.total - stats.completed;
+  const base = `${stats.completed} / ${stats.total} 完了`;
+  return remaining > 0 ? `${base}（残り ${remaining}）` : base;
 }
 
 function ProgressTrack({
@@ -98,6 +100,21 @@ function ProgressRow({
 
   return (
     <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-muted-foreground" id={id}>
+          {title}
+        </span>
+        <span
+          key={`${stats.completed}-${stats.total}`}
+          className="animate-in fade-in duration-200 text-xs font-semibold tabular-nums"
+        >
+          <span className="text-foreground">{stats.completed}</span>
+          <span className="text-muted-foreground"> / {stats.total}</span>
+          {stats.total - stats.completed > 0 && (
+            <span className="text-primary"> 残り {stats.total - stats.completed}</span>
+          )}
+        </span>
+      </div>
       <div className="relative" onMouseLeave={() => setHover(null)}>
         {hover && (
           <div
@@ -120,9 +137,6 @@ function ProgressRow({
           onHoverTrack={(anchorX) => setHover({ bucket: null, anchorX })}
         />
       </div>
-      <span className="text-xs font-semibold text-muted-foreground" id={id}>
-        {title}
-      </span>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { readFileAsText } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
+import { cn } from "@/lib/cn";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -15,13 +16,20 @@ export function HomePage() {
   const [resultsFile, setResultsFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorShake, setErrorShake] = useState(false);
+
+  const showError = (message: string) => {
+    setError(message);
+    setErrorShake(true);
+    setTimeout(() => setErrorShake(false), 350);
+  };
 
   const applyFiles = (files: File[]) => {
     const { tests, results, unknown } = classifyDroppedFiles(files);
     if (tests) setTestsFile(tests);
     if (results) setResultsFile(results);
     if (unknown.length > 0) {
-      setError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
+      showError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
     } else {
       setError(null);
     }
@@ -37,7 +45,7 @@ export function HomePage() {
       setTestsFile(new File([blob], "tests.yml", { type: "text/yaml" }));
       setResultsFile(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "サンプルの読み込みに失敗しました");
+      showError(err instanceof Error ? err.message : "サンプルの読み込みに失敗しました");
     }
   };
 
@@ -51,7 +59,7 @@ export function HomePage() {
       await loadProject(yaml, resultsJson);
       navigate("/session");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "読み込みに失敗しました");
+      showError(err instanceof Error ? err.message : "読み込みに失敗しました");
     } finally {
       setLoading(false);
     }
@@ -87,13 +95,19 @@ export function HomePage() {
         {(testsFile || resultsFile) && (
           <ul className="mt-6 flex flex-col gap-2">
             {testsFile && (
-              <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+              <li
+                key={testsFile.name}
+                className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm animate-in fade-in slide-in-from-bottom-2 duration-250 fill-mode-both"
+              >
                 <span className="break-all font-medium">{testsFile.name}</span>
                 <Badge>必須</Badge>
               </li>
             )}
             {resultsFile && (
-              <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+              <li
+                key={resultsFile.name}
+                className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm animate-in fade-in slide-in-from-bottom-2 duration-250 fill-mode-both"
+              >
                 <span className="break-all font-medium">{resultsFile.name}</span>
                 <Badge variant="secondary">任意</Badge>
               </li>
@@ -102,7 +116,7 @@ export function HomePage() {
         )}
 
         {error && (
-          <Alert variant="destructive" className="mt-4">
+          <Alert variant="destructive" className={cn("mt-4", errorShake && "animate-ui-shake")}>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}

@@ -25,7 +25,7 @@ categoryTargets:
 
   - match:
       major: "テスト実行"
-    required: any
+    required: all
     targets:
       - chrome-desktop
       - firefox-desktop
@@ -164,7 +164,7 @@ testCases:
       medium: "画面"
       minor: "完了"
     prerequisites: "表示中のフィルタ対象テストをすべて入力済み"
-    description: "最後のテスト入力後に完了カード（DONE）が表示される"
+    description: "最後のテスト入力後に完了カード（完了バッジ・チェックアイコン）が表示される"
 
   - id: TC-013
     category:
@@ -180,7 +180,7 @@ testCases:
       medium: "画面"
       minor: "ナビ"
     prerequisites: "テスト実行画面 (/run) を表示中"
-    description: "左右の矢印または ←/h →/l で前後（使い方・完了カードを含む）に移動できる"
+    description: "←/h →/l で前後のテストに移動できる（使い方・完了カードを含む）。一括入力は全端末が対象"
 
   - id: TC-015
     category:
@@ -236,7 +236,7 @@ testCases:
       medium: "操作"
       minor: "キーボード"
     prerequisites: "テストカード表示中（メモ欄フォーカス外）"
-    description: "o/n/s で一括 OK/NG/SKIP を入力できる。メモ入力中はキーボード操作が無効"
+    description: "o/n/s で選択中の全端末に一括 OK/NG/SKIP を入力できる。メモ入力中はキーボード操作が無効"
 
   - id: TC-021
     category:
@@ -261,3 +261,35 @@ testCases:
       minor: "タスク一覧"
     prerequisites: "テスト実行画面 (/run) を表示中"
     description: "左のテスト一覧にシナリオの steps 順で項目が並び、name/description・進行状況が表示され、クリックでジャンプできる"
+
+  - id: TC-025
+    category:
+      major: "テスト実行"
+      medium: "フィードバック"
+      minor: "入力"
+    prerequisites: "テスト実行画面を表示中、複数端末のテストを表示中"
+    description: "OK/NG 入力時にステータスバッジが切り替わり、一覧の該当行が一瞬ハイライトされ、次のテストへスライド遷移する"
+
+  - id: TC-026
+    category:
+      major: "テスト実行"
+      medium: "進捗"
+      minor: "残り件数"
+    prerequisites: "テスト実行画面 (/run) を表示中、未完了のテストが1件以上あること"
+    description: "進捗バー右側に N / M と残り件数が表示される"
+
+  - id: TC-027
+    category:
+      major: "ファイル読み込み"
+      medium: "フィードバック"
+      minor: "ファイル追加"
+    prerequisites: "プロジェクト未読み込みの状態"
+    description: "tests.yml を追加するとファイル行がフェードインで表示される"
+
+  - id: TC-028
+    category:
+      major: "セッション"
+      medium: "フィードバック"
+      minor: "バリデーション"
+    prerequisites: "セッション設定画面を表示中"
+    description: "実施者名未入力で開始しようとすると入力欄が軽く揺れ、エラーメッセージが表示される"

@@ -42,6 +42,11 @@
 }
 
 :root {
+  --status-ok: oklch(0.55 0.18 145);
+  --status-ng: oklch(0.55 0.22 25);
+  --status-skip: oklch(0.55 0.02 0);
+  --status-ok-ng: oklch(0.65 0.18 55);
+  --status-incomplete: oklch(0.85 0.01 0);
   --radius: 0.625rem;
   --background: oklch(0.985 0.002 106);
   --foreground: oklch(0.145 0 0);
@@ -97,5 +102,75 @@
 
   #root {
     @apply min-h-svh;
+  }
+}
+
+@keyframes ui-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes ui-highlight-flash {
+  0% {
+    background-color: oklch(0.546 0.245 262.881 / 0.14);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes ui-highlight-flash-ok {
+  0% {
+    background-color: oklch(0.55 0.18 145 / 0.18);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes ui-highlight-flash-ng {
+  0% {
+    background-color: oklch(0.55 0.22 25 / 0.14);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@layer utilities {
+  .animate-ui-shake {
+    animation: ui-shake 300ms ease-in-out;
+  }
+
+  .animate-ui-highlight {
+    animation: ui-highlight-flash 250ms ease-out;
+  }
+
+  .animate-ui-highlight-ok {
+    animation: ui-highlight-flash-ok 250ms ease-out;
+  }
+
+  .animate-ui-highlight-ng {
+    animation: ui-highlight-flash-ng 250ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ui-shake,
+  .animate-ui-highlight,
+  .animate-ui-highlight-ok,
+  .animate-ui-highlight-ng,
+  .animate-in,
+  .animate-out {
+    animation: none !important;
+    transition: none !important;
   }
 }

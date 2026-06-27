@@ -93,12 +93,13 @@ export function RunnerCardFooter({
 }
 
 export function statusButtonClass(status: "OK" | "NG" | "SKIP", active: boolean): string {
+  const base = "flex-1 text-xs font-medium shadow-none transition-all duration-150";
   if (!active) {
-    return "flex-1 border bg-background text-xs font-medium shadow-none hover:bg-muted";
+    return cn(base, "border bg-background hover:bg-muted");
   }
-  if (status === "OK") return "flex-1 border-green-600 bg-green-50 text-green-800 hover:bg-green-100";
-  if (status === "NG") return "flex-1 border-red-600 bg-red-50 text-red-800 hover:bg-red-100";
-  return "flex-1 border-stone-500 bg-muted text-stone-800 hover:bg-muted/80";
+  if (status === "OK") return cn(base, "border-green-600 bg-green-50 text-green-800 hover:bg-green-100");
+  if (status === "NG") return cn(base, "border-red-600 bg-red-50 text-red-800 hover:bg-red-100");
+  return cn(base, "border-stone-500 bg-muted text-stone-800 hover:bg-muted/80");
 }
 
 export function testCardShellClass(extra?: string) {

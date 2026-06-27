@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -29,6 +30,7 @@ interface AppContextValue {
   session: SessionConfig | null;
   runnerIndex: number;
   runnerFilters: RunnerFilters;
+  lastUpdatedTestId: string | null;
   loadProject: (yaml: string, resultsJson?: string) => Promise<void>;
   mergeResultsFromFile: (json: string) => Promise<void>;
   setSession: (session: SessionConfig) => Promise<void>;
@@ -57,6 +59,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<SessionConfig | null>(null);
   const [runnerIndex, setRunnerIndexState] = useState(0);
   const [runnerFilters, setRunnerFiltersState] = useState<RunnerFilters>(defaultRunnerFilters);
+  const [lastUpdatedTestId, setLastUpdatedTestId] = useState<string | null>(null);
+  const highlightClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const markTestUpdated = useCallback((testCaseId: string) => {
+    setLastUpdatedTestId(testCaseId);
+    if (highlightClearTimerRef.current) clearTimeout(highlightClearTimerRef.current);
+    highlightClearTimerRef.current = setTimeout(() => setLastUpdatedTestId(null), 300);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (highlightClearTimerRef.current) clearTimeout(highlightClearTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     void loadState().then((state) => {
@@ -165,8 +181,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         },
       };
       await persist({ results: next });
+      markTestUpdated(testCaseId);
     },
-    [persist, results],
+    [markTestUpdated, persist, results],
   );
 
   const updateResultsBatch = useCallback(
@@ -195,8 +212,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         },
       };
       await persist({ results: next });
+      markTestUpdated(testCaseId);
     },
-    [persist, results, session],
+    [markTestUpdated, persist, results, session],
   );
 
   const updateResultsFile = useCallback(
@@ -226,6 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       session,
       runnerIndex,
       runnerFilters,
+      lastUpdatedTestId,
       loadProject,
       mergeResultsFromFile,
       setSession,
@@ -243,6 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       session,
       runnerIndex,
       runnerFilters,
+      lastUpdatedTestId,
       loadProject,
       mergeResultsFromFile,
       setSession,

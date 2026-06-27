@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/cn";
 import {
   getMajorCategories,
   getMediumCategories,
@@ -248,7 +249,12 @@ export function FilterBar() {
           </div>
         )}
 
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap">
+        <label
+          className={cn(
+            "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
+            runnerFilters.onlyIncomplete && "bg-primary/10 text-primary",
+          )}
+        >
           <Checkbox
             checked={runnerFilters.onlyIncomplete}
             onCheckedChange={(checked) =>
@@ -262,7 +268,12 @@ export function FilterBar() {
         </label>
 
         {targetCount !== null && (
-          <span className="ml-auto text-sm font-semibold text-primary">{targetCount} 件</span>
+          <span
+            key={targetCount}
+            className="ml-auto animate-in fade-in duration-200 text-sm font-semibold text-primary tabular-nums"
+          >
+            {targetCount} 件
+          </span>
         )}
       </div>
     </div>
