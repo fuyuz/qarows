@@ -57,6 +57,21 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+function useSerialMutationQueue() {
+  const tailRef = useRef(Promise.resolve());
+
+  const runSerial = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
+    const run = tailRef.current.then(task);
+    tailRef.current = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }, []);
+
+  return runSerial;
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [definition, setDefinition] = useState<TestDefinition | null>(null);
@@ -64,6 +79,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<SessionConfig | null>(null);
   const [lastUpdatedTestId, setLastUpdatedTestId] = useState<string | null>(null);
   const highlightClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const definitionRef = useRef<TestDefinition | null>(null);
+  const resultsRef = useRef<ResultsFile | null>(null);
+  const sessionRef = useRef<SessionConfig | null>(null);
+  const runSerial = useSerialMutationQueue();
 
   const markTestUpdated = useCallback((testCaseId: string) => {
     setLastUpdatedTestId(testCaseId);
@@ -79,6 +99,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void loadState().then((state) => {
+      definitionRef.current = state.definition;
+      resultsRef.current = state.results;
+      sessionRef.current = state.session;
       setDefinition(state.definition);
       setResults(state.results);
       setSessionState(state.session);
@@ -86,60 +109,98 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const applySnapshot = useCallback(
+    (next: {
+      definition?: TestDefinition | null;
+      results?: ResultsFile | null;
+      session?: SessionConfig | null;
+    }) => {
+      const snapshot = {
+        definition: next.definition !== undefined ? next.definition : definitionRef.current,
+        results: next.results !== undefined ? next.results : resultsRef.current,
+        session: next.session !== undefined ? next.session : sessionRef.current,
+      };
+
+      if (next.definition !== undefined) {
+        definitionRef.current = next.definition;
+        setDefinition(next.definition);
+      }
+      if (next.results !== undefined) {
+        resultsRef.current = next.results;
+        setResults(next.results);
+      }
+      if (next.session !== undefined) {
+        sessionRef.current = next.session;
+        setSessionState(next.session);
+      }
+
+      return snapshot;
+    },
+    [],
+  );
+
   const persist = useCallback(
     async (next: {
       definition?: TestDefinition | null;
       results?: ResultsFile | null;
       session?: SessionConfig | null;
     }) => {
-      const snapshot = {
-        definition: next.definition !== undefined ? next.definition : definition,
-        results: next.results !== undefined ? next.results : results,
-        session: next.session !== undefined ? next.session : session,
-      };
-      if (next.definition !== undefined) setDefinition(next.definition);
-      if (next.results !== undefined) setResults(next.results);
-      if (next.session !== undefined) setSessionState(next.session);
+      const snapshot = applySnapshot(next);
       await saveState(snapshot);
     },
-    [definition, results, session],
+    [applySnapshot],
+  );
+
+  const stampResultVersion = useCallback(
+    (testCaseId: string, entry: TestResultEntry): TestResultEntry => {
+      const testCase = definitionRef.current?.testCases.find((tc) => tc.id === testCaseId);
+      if (!testCase) return entry;
+      const version = getTestCaseVersion(testCase);
+      return version > 1 ? { ...entry, version } : entry;
+    },
+    [],
   );
 
   const loadProject = useCallback(
     async (yaml: string, resultsJson?: string) => {
-      const parsedDefinition = parseTestsYaml(yaml);
-      const projectId = parsedDefinition.project.id ?? "project";
-      let parsedResults = createEmptyResults(projectId);
-      if (resultsJson) {
-        parsedResults = parseResultsJson(resultsJson);
-        if (parsedResults.projectId !== projectId) {
-          throw new Error(
-            `results.json の projectId (${parsedResults.projectId}) が tests.yml と一致しません`,
-          );
+      return runSerial(async () => {
+        const parsedDefinition = parseTestsYaml(yaml);
+        const projectId = parsedDefinition.project.id ?? "project";
+        let parsedResults = createEmptyResults(projectId);
+        if (resultsJson) {
+          parsedResults = parseResultsJson(resultsJson);
+          if (parsedResults.projectId !== projectId) {
+            throw new Error(
+              `results.json の projectId (${parsedResults.projectId}) が tests.yml と一致しません`,
+            );
+          }
         }
-      }
-      await persist({
-        definition: parsedDefinition,
-        results: parsedResults,
-        session: null,
+        await persist({
+          definition: parsedDefinition,
+          results: parsedResults,
+          session: null,
+        });
+        return projectId;
       });
-      return projectId;
     },
-    [persist],
+    [persist, runSerial],
   );
 
   const mergeResultsFromFiles = useCallback(
     async (jsons: string[]) => {
-      if (!results) throw new Error("結果データが読み込まれていません");
-      if (jsons.length === 0) return;
-      let merged = results;
-      for (const json of jsons) {
-        const incoming = parseResultsJson(json);
-        merged = mergeResultsFiles(merged, incoming);
-      }
-      await persist({ results: merged });
+      await runSerial(async () => {
+        const currentResults = resultsRef.current;
+        if (!currentResults) throw new Error("結果データが読み込まれていません");
+        if (jsons.length === 0) return;
+        let merged = currentResults;
+        for (const json of jsons) {
+          const incoming = parseResultsJson(json);
+          merged = mergeResultsFiles(merged, incoming);
+        }
+        await persist({ results: merged });
+      });
     },
-    [persist, results],
+    [persist, runSerial],
   );
 
   const mergeResultsFromFile = useCallback(
@@ -151,41 +212,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setSession = useCallback(
     async (nextSession: SessionConfig) => {
-      validateSession(nextSession);
-      await persist({ session: nextSession });
+      await runSerial(async () => {
+        validateSession(nextSession);
+        await persist({ session: nextSession });
+      });
     },
-    [persist],
-  );
-
-  const stampResultVersion = useCallback(
-    (testCaseId: string, entry: TestResultEntry): TestResultEntry => {
-      const testCase = definition?.testCases.find((tc) => tc.id === testCaseId);
-      if (!testCase) return entry;
-      const version = getTestCaseVersion(testCase);
-      return version > 1 ? { ...entry, version } : entry;
-    },
-    [definition],
+    [persist, runSerial],
   );
 
   const updateResults = useCallback(
     async (testCaseId: string, envId: string, entry: TestResultEntry) => {
-      if (!results) return;
-      const stamped = stampResultVersion(testCaseId, entry);
-      const next: ResultsFile = {
-        ...results,
-        updatedAt: new Date().toISOString(),
-        results: {
-          ...results.results,
-          [testCaseId]: {
-            ...(results.results[testCaseId] ?? {}),
-            [envId]: stamped,
+      await runSerial(async () => {
+        const currentResults = resultsRef.current;
+        if (!currentResults) return;
+        const stamped = stampResultVersion(testCaseId, entry);
+        const next: ResultsFile = {
+          ...currentResults,
+          updatedAt: new Date().toISOString(),
+          results: {
+            ...currentResults.results,
+            [testCaseId]: {
+              ...(currentResults.results[testCaseId] ?? {}),
+              [envId]: stamped,
+            },
           },
-        },
-      };
-      await persist({ results: next });
-      markTestUpdated(testCaseId);
+        };
+        await persist({ results: next });
+        markTestUpdated(testCaseId);
+      });
     },
-    [markTestUpdated, persist, results, stampResultVersion],
+    [markTestUpdated, persist, runSerial, stampResultVersion],
   );
 
   const updateResultsBatch = useCallback(
@@ -194,42 +250,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
       envIds: string[],
       partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
     ) => {
-      if (!results || !session) return;
-      const testCase = definition?.testCases.find((tc) => tc.id === testCaseId);
-      const version = testCase ? getTestCaseVersion(testCase) : 1;
-      const now = new Date().toISOString();
-      const caseResults = { ...(results.results[testCaseId] ?? {}) };
-      for (const envId of envIds) {
-        caseResults[envId] = {
-          status: partial.status,
-          memo: partial.memo ?? caseResults[envId]?.memo,
-          executedAt: now,
-          executedBy: session.executorName,
-          ...(version > 1 ? { version } : {}),
+      await runSerial(async () => {
+        const currentResults = resultsRef.current;
+        const currentSession = sessionRef.current;
+        if (!currentResults || !currentSession) return;
+        const testCase = definitionRef.current?.testCases.find((tc) => tc.id === testCaseId);
+        const version = testCase ? getTestCaseVersion(testCase) : 1;
+        const now = new Date().toISOString();
+        const caseResults = { ...(currentResults.results[testCaseId] ?? {}) };
+        for (const envId of envIds) {
+          caseResults[envId] = {
+            status: partial.status,
+            memo: partial.memo ?? caseResults[envId]?.memo,
+            executedAt: now,
+            executedBy: currentSession.executorName,
+            ...(version > 1 ? { version } : {}),
+          };
+        }
+        const next: ResultsFile = {
+          ...currentResults,
+          updatedAt: now,
+          results: {
+            ...currentResults.results,
+            [testCaseId]: caseResults,
+          },
         };
-      }
-      const next: ResultsFile = {
-        ...results,
-        updatedAt: now,
-        results: {
-          ...results.results,
-          [testCaseId]: caseResults,
-        },
-      };
-      await persist({ results: next });
-      markTestUpdated(testCaseId);
+        await persist({ results: next });
+        markTestUpdated(testCaseId);
+      });
     },
-    [definition, markTestUpdated, persist, results, session],
+    [markTestUpdated, persist, runSerial],
   );
 
   const updateResultsFile = useCallback(
     async (updater: (prev: ResultsFile) => ResultsFile) => {
-      if (!results) return;
-      const next = updater(results);
-      next.updatedAt = new Date().toISOString();
-      await persist({ results: next });
+      await runSerial(async () => {
+        const currentResults = resultsRef.current;
+        if (!currentResults) return;
+        const next = updater(currentResults);
+        await persist({
+          results: { ...next, updatedAt: new Date().toISOString() },
+        });
+      });
     },
-    [persist, results],
+    [persist, runSerial],
   );
 
   const updateTestCase = useCallback(
@@ -237,45 +301,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
       testCaseId: string,
       patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
     ) => {
-      if (!definition) return;
-      const nextDefinition: TestDefinition = {
-        ...definition,
-        testCases: definition.testCases.map((tc) =>
-          tc.id === testCaseId ? { ...tc, ...patch } : tc,
-        ),
-      };
-      await persist({ definition: nextDefinition });
-      markTestUpdated(testCaseId);
+      await runSerial(async () => {
+        const currentDefinition = definitionRef.current;
+        if (!currentDefinition) return;
+        const nextDefinition: TestDefinition = {
+          ...currentDefinition,
+          testCases: currentDefinition.testCases.map((tc) =>
+            tc.id === testCaseId ? { ...tc, ...patch } : tc,
+          ),
+        };
+        await persist({ definition: nextDefinition });
+        markTestUpdated(testCaseId);
+      });
     },
-    [definition, markTestUpdated, persist],
+    [markTestUpdated, persist, runSerial],
   );
 
   const clearTestResult = useCallback(
     async (testCaseId: string, envId: string) => {
-      if (!results) return;
-      const next = clearTestCaseEnvironmentResult(results, testCaseId, envId);
-      if (next === results) return;
-      await persist({ results: next });
-      markTestUpdated(testCaseId);
+      await runSerial(async () => {
+        const currentResults = resultsRef.current;
+        if (!currentResults) return;
+        const next = clearTestCaseEnvironmentResult(currentResults, testCaseId, envId);
+        if (next === currentResults) return;
+        await persist({ results: next });
+        markTestUpdated(testCaseId);
+      });
     },
-    [markTestUpdated, persist, results],
+    [markTestUpdated, persist, runSerial],
   );
 
   const clearResults = useCallback(async () => {
-    if (!definition) return;
-    const projectId = definition.project.id ?? "project";
-    await persist({
-      results: createEmptyResults(projectId),
-      session: null,
+    await runSerial(async () => {
+      const currentDefinition = definitionRef.current;
+      if (!currentDefinition) return;
+      const projectId = currentDefinition.project.id ?? "project";
+      await persist({
+        results: createEmptyResults(projectId),
+        session: null,
+      });
     });
-  }, [definition, persist]);
+  }, [persist, runSerial]);
 
   const resetProject = useCallback(async () => {
-    await clearState();
-    setDefinition(null);
-    setResults(null);
-    setSessionState(null);
-  }, []);
+    await runSerial(async () => {
+      await clearState();
+      definitionRef.current = null;
+      resultsRef.current = null;
+      sessionRef.current = null;
+      setDefinition(null);
+      setResults(null);
+      setSessionState(null);
+    });
+  }, [runSerial]);
 
   const value = useMemo(
     () => ({

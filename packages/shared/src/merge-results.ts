@@ -1,4 +1,5 @@
 import { strongerStatus } from "./status";
+import { getResultEntryVersion } from "./test-case-version";
 import type { Bug, ResultsFile, TestResultEntry } from "./types";
 
 const MEMO_SEPARATOR = "\n---\n";
@@ -13,6 +14,22 @@ function mergeMemos(a?: string, b?: string): string | undefined {
 }
 
 function mergeEntry(a: TestResultEntry, b: TestResultEntry): TestResultEntry {
+  const versionA = getResultEntryVersion(a);
+  const versionB = getResultEntryVersion(b);
+
+  if (versionA !== versionB) {
+    const prefer = versionA > versionB ? a : b;
+    const other = versionA > versionB ? b : a;
+    const preferVersion = getResultEntryVersion(prefer);
+    return {
+      status: prefer.status,
+      ...(preferVersion > 1 ? { version: preferVersion } : {}),
+      executedAt: prefer.executedAt ?? other.executedAt,
+      executedBy: prefer.executedBy ?? other.executedBy,
+      memo: mergeMemos(prefer.memo, other.memo),
+    };
+  }
+
   const status = strongerStatus(a.status, b.status);
   const prefer =
     status === a.status && status !== b.status

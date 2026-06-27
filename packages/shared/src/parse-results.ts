@@ -1,6 +1,14 @@
-import { normalizeBugStatus } from "./bug";
+import { normalizeBugSeverity, normalizeBugStatus } from "./bug";
 import type { Bug, ResultsFile, TestResultEntry, TestResults } from "./types";
 import { normalizeStatus } from "./status";
+
+function parseResultsFileVersion(raw: unknown): number {
+  const parsed = Number(raw ?? 1);
+  if (!Number.isFinite(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
+    throw new Error("version は 1 以上の整数である必要があります");
+  }
+  return parsed;
+}
 
 function parseResultEntry(raw: unknown): TestResultEntry {
   if (typeof raw !== "object" || raw === null) {
@@ -60,7 +68,7 @@ function parseBug(raw: unknown, index: number): Bug {
     testCaseIdRaw != null && String(testCaseIdRaw) !== ""
       ? String(testCaseIdRaw)
       : undefined;
-  const severity = String(obj.severity ?? "medium") as Bug["severity"];
+  const severity = normalizeBugSeverity(String(obj.severity ?? "medium"));
   const status = normalizeBugStatus(String(obj.status ?? "open"));
   return {
     id,
@@ -85,9 +93,17 @@ export function parseResultsJson(content: string): ResultsFile {
 
   const bugsRaw = data.bugs;
   const bugs = Array.isArray(bugsRaw) ? bugsRaw.map(parseBug) : [];
+  const bugIds = new Set<string>();
+  for (const bug of bugs) {
+    const key = bug.id.toLowerCase();
+    if (bugIds.has(key)) {
+      throw new Error(`重複したバグ ID: ${bug.id}`);
+    }
+    bugIds.add(key);
+  }
 
   return {
-    version: Number(data.version ?? 1),
+    version: parseResultsFileVersion(data.version),
     projectId,
     updatedAt: String(data.updatedAt ?? new Date().toISOString()),
     results: parseResults(data.results ?? {}),

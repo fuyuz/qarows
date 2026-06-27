@@ -1,9 +1,9 @@
+import { aggregateValidTestStatus } from "./aggregate-test-status";
 import {
   isTestIncomplete,
   isTestInScope,
   resolveSessionTestTargets,
 } from "./resolve-test-targets";
-import { strongerStatus } from "./status";
 import type {
   RunnerFilters,
   RunnerTargetMode,
@@ -97,14 +97,7 @@ export function getTestCaseAggregateStatus(
   }
 
   const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
-  const byEnv = results[testCase.id] ?? {};
-  let strongest: TestStatus | null = null;
-
-  for (const envId of targets.environmentIds) {
-    const status = byEnv[envId]?.status;
-    if (!status) continue;
-    strongest = strongest ? strongerStatus(strongest, status) : status;
-  }
+  const strongest = aggregateValidTestStatus(testCase, targets.environmentIds, results);
 
   return strongest ?? "incomplete";
 }

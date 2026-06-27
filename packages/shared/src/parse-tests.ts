@@ -20,6 +20,9 @@ function parseTargetIdList(raw: unknown, context: string): string[] | undefined 
   if (!Array.isArray(raw)) {
     throw new Error(`${context}.targets は配列である必要があります`);
   }
+  if (raw.length === 0) {
+    throw new Error(`${context}.targets は空配列にできません（省略してください）`);
+  }
   return raw.map((item, index) => {
     if (typeof item !== "string" || !item.trim()) {
       throw new Error(`${context}.targets[${index}] は空でない文字列である必要があります`);
@@ -48,12 +51,20 @@ function parseTargetEnvironmentSpec(
 
 function parseEnvironment(raw: unknown, index: number): Environment {
   if (typeof raw === "string") {
-    return { id: raw, name: raw };
+    const id = raw.trim();
+    if (!id) throw new Error(`environments[${index}] の id は空にできません`);
+    return { id, name: id };
   }
   if (typeof raw === "object" && raw !== null) {
     const obj = raw as Record<string, unknown>;
-    const id = String(obj.id ?? `env-${index + 1}`);
-    const name = String(obj.name ?? id);
+    let id: string;
+    if (obj.id == null) {
+      id = `env-${index + 1}`;
+    } else {
+      id = String(obj.id).trim();
+      if (!id) throw new Error(`environments[${index}].id は空にできません`);
+    }
+    const name = String(obj.name ?? id).trim() || id;
     return { id, name };
   }
   throw new Error(`environments[${index}] の形式が不正です`);
@@ -202,6 +213,7 @@ export function parseTestsYaml(content: string): TestDefinition {
 
   const envIds = new Set<string>();
   for (const env of environments) {
+    if (!env.id.trim()) throw new Error("environment id は空にできません");
     if (envIds.has(env.id)) throw new Error(`重複した環境 ID: ${env.id}`);
     envIds.add(env.id);
   }
@@ -265,7 +277,7 @@ export function parseTestsYaml(content: string): TestDefinition {
   return {
     project: {
       name: projectName,
-      id: projectObj.id != null ? String(projectObj.id) : slugify(projectName),
+      id: resolveProjectId(projectObj, projectName),
       version: projectObj.version != null ? Number(projectObj.version) : 1,
     },
     environments,
@@ -273,6 +285,24 @@ export function parseTestsYaml(content: string): TestDefinition {
     ...(scenarios != null ? { scenarios } : {}),
     testCases,
   };
+}
+
+export function resolveProjectId(
+  projectObj: Record<string, unknown>,
+  projectName: string,
+): string {
+  if (projectObj.id != null) {
+    const id = String(projectObj.id).trim();
+    if (!id) throw new Error("project.id は空にできません");
+    return id;
+  }
+  const slug = slugify(projectName);
+  if (!slug) {
+    throw new Error(
+      "project.id が必要です（project.name から英数字 ID を自動生成できません）",
+    );
+  }
+  return slug;
 }
 
 function slugify(value: string): string {

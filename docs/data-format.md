@@ -29,6 +29,7 @@ project/
 # 例（草案）
 project:
   name: "My App QA"
+  id: my-app-qa   # 必須（name が英数字のみでない場合）。省略時は name から自動生成
   version: 1
 
 # 端末/環境（プロジェクト固定リスト）
@@ -78,6 +79,7 @@ targets:        # 省略可。environment id のリスト
 
 - **省略** … その時点の有効プールをそのまま使う
 - **指定あり** … 有効プールと `targets` の**積**（交差）を新しい有効プールとする
+- **空配列** … 不可（パースエラー）。対象端末なしにしたい場合は該当テストケースを定義から外す
 
 ### カテゴリ別デフォルト（categoryTargets）
 
@@ -265,11 +267,16 @@ testCases:
 
 ### ステータス
 
-同一 `testCaseId` × `environmentId` に複数の結果がある場合、優先度の高いステータスを採用する。
+同一 `testCaseId` × `environmentId` に複数の結果がある場合:
+
+1. **version が異なる** … **高い version** の結果を採用する（再テスト結果を優先）
+2. **version が同じ** … 優先度の高いステータスを採用する。同順位なら `executedAt` が新しい方
 
 ```
 OK < SKIP < OK_NG < NG
 ```
+
+メモは version 優先の有無にかかわらず、両方残す（改行連結、`---` 区切り可）。
 
 ### メモ
 

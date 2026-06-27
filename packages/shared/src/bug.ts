@@ -17,6 +17,8 @@ export const BUG_SEVERITY_LABELS: Record<BugSeverity, string> = {
 
 const BUG_STATUSES = new Set<string>(Object.keys(BUG_STATUS_LABELS));
 
+const BUG_SEVERITIES = new Set<string>(Object.keys(BUG_SEVERITY_LABELS));
+
 const LEGACY_BUG_STATUS_MAP: Record<string, BugStatus> = {
   pending_verification: "fixed",
 };
@@ -25,6 +27,10 @@ export function normalizeBugStatus(raw: string): BugStatus {
   const mapped = LEGACY_BUG_STATUS_MAP[raw];
   if (mapped) return mapped;
   return BUG_STATUSES.has(raw) ? (raw as BugStatus) : "open";
+}
+
+export function normalizeBugSeverity(raw: string): BugSeverity {
+  return BUG_SEVERITIES.has(raw) ? (raw as BugSeverity) : "medium";
 }
 
 export function isBugClosed(status: BugStatus): boolean {

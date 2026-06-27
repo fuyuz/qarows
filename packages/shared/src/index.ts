@@ -1,3 +1,4 @@
+export * from "./aggregate-test-status";
 export * from "./bug";
 export * from "./session";
 export * from "./types";

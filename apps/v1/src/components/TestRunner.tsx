@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  getTestCaseVersion,
   isResultEntryValid,
   nextBugId,
   resolveSessionTestTargets,
@@ -277,9 +278,15 @@ export function TestRunner() {
           executedBy: session.executorName,
         });
 
+        const version = getTestCaseVersion(current);
+        const nextEntry = {
+          status,
+          memo: memo.trim() || validExisting?.memo,
+          ...(version > 1 ? { version } : {}),
+        };
         const nextByEnv = {
           ...(results.results[current.id] ?? {}),
-          [envId]: { status, memo: memo.trim() || validExisting?.memo },
+          [envId]: nextEntry,
         };
         const isComplete =
           envTargets.required === "any"

@@ -22,7 +22,7 @@ export function compareStatus(a: TestStatus, b: TestStatus): number {
 }
 
 export function strongerStatus(a: TestStatus, b: TestStatus): TestStatus {
-  return compareStatus(a, b) >= compareStatus(b, a) ? a : b;
+  return compareStatus(a, b) >= 0 ? a : b;
 }
 
 export function normalizeStatus(value: string): TestStatus {

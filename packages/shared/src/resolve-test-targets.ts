@@ -18,9 +18,11 @@ function applyTargetLayer(
   if (!spec) return { pool, required };
 
   let nextPool = pool;
-  if (spec.targets && spec.targets.length > 0) {
-    const allowed = new Set(spec.targets);
-    nextPool = pool.filter((id) => allowed.has(id));
+  if (spec.targets != null) {
+    nextPool =
+      spec.targets.length === 0
+        ? []
+        : pool.filter((id) => spec.targets!.includes(id));
   }
 
   return {
