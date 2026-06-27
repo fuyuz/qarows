@@ -103,3 +103,39 @@ export const PROGRESS_SEGMENT_LABELS: Record<ProgressBucket, string> = {
   OK_NG: "OK→NG",
   incomplete: "未実施",
 };
+
+export function getAllEnvironmentIds(definition: TestDefinition): string[] {
+  return definition.environments.map((env) => env.id);
+}
+
+export interface CategoryProgressRow {
+  major: string;
+  stats: RunProgressStats;
+}
+
+export function computeCategoryProgress(
+  definition: TestDefinition,
+  environmentIds: string[],
+  results: TestResults,
+): CategoryProgressRow[] {
+  const byMajor = new Map<string, Array<{ id: string }>>();
+
+  for (const testCase of definition.testCases) {
+    if (!isTestInScope(testCase, definition, environmentIds)) continue;
+    const list = byMajor.get(testCase.category.major) ?? [];
+    list.push(testCase);
+    byMajor.set(testCase.category.major, list);
+  }
+
+  return [...byMajor.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, "ja"))
+    .map(([major, cases]) => ({
+      major,
+      stats: computeRunProgressForTestCases(cases, definition, environmentIds, results),
+    }));
+}
+
+export function formatRate(count: number, total: number): string {
+  if (total === 0) return "—";
+  return `${Math.round((count / total) * 100)}%`;
+}

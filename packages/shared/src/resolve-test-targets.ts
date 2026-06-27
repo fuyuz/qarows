@@ -147,3 +147,23 @@ export function isTestComplete(
     !isTestIncomplete(testCase, definition, sessionEnvironmentIds, results)
   );
 }
+
+/** セッション内に version 不一致の旧結果が残っている（再テスト未完了） */
+export function testCaseNeedsRetest(
+  testCase: TestCase,
+  definition: TestDefinition,
+  sessionEnvironmentIds: string[],
+  results: TestResults,
+): boolean {
+  if (isTestComplete(testCase, definition, sessionEnvironmentIds, results)) {
+    return false;
+  }
+
+  const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
+  const byEnv = results[testCase.id] ?? {};
+
+  return targets.environmentIds.some((envId) => {
+    const entry = byEnv[envId];
+    return entry?.status != null && !isResultEntryValid(entry, testCase);
+  });
+}

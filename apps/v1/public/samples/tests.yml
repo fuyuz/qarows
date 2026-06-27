@@ -31,6 +31,10 @@ categoryTargets:
       - firefox-desktop
       - safari-desktop
 
+  - match:
+      major: "閲覧"
+    required: any
+
 scenarios:
   - id: first-time-setup
     name: "初回セットアップ"
@@ -97,7 +101,7 @@ testCases:
       major: "永続化"
       minor: "IndexedDB"
     prerequisites: "tests.yml 読み込み済み"
-    description: "ページをリロードしてもプロジェクト・セッション・結果・フィルタ状態が復元される"
+    description: "ページをリロードしてもプロジェクト・セッション・結果が IndexedDB から復元される"
 
   - id: TC-005
     category:
@@ -397,3 +401,65 @@ testCases:
       minor: "ダウンロード"
     prerequisites: "tests.yml 読み込み済み、テスト項目を1件以上編集済みであること"
     description: "ナビメニューから tests.yml をエクスポートでき、編集内容（version 含む）が反映されている"
+
+  - id: TC-042
+    category:
+      major: "閲覧"
+      medium: "マトリクス"
+      minor: "表示"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "Compass メニューからマトリクス画面へ遷移し、全環境列を含む表が表示される"
+
+  - id: TC-043
+    category:
+      major: "閲覧"
+      medium: "マトリクス"
+      minor: "フィルタ"
+    prerequisites: "マトリクス画面を表示中、セッション開始済み"
+    description: "大分類フィルタ・未実施のみがテスト実行画面と連動し、表示行が絞り込まれる"
+
+  - id: TC-044
+    category:
+      major: "閲覧"
+      medium: "マトリクス"
+      minor: "ジャンプ"
+    prerequisites: "マトリクス画面を表示中、セッション開始済み、ジャンプ可能な行を表示中"
+    description: "行クリックでテスト実行画面へ遷移し、同じフィルタ状態で該当テストが開く"
+
+  - id: TC-045
+    category:
+      major: "閲覧"
+      medium: "ダッシュボード"
+      minor: "進捗"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "Compass メニューからダッシュボードへ遷移し、全体進捗と大項目別の OK率・NG率が表示される"
+
+  - id: TC-046
+    category:
+      major: "閲覧"
+      medium: "ダッシュボード"
+      minor: "ジャンプ"
+    prerequisites: "tests.yml 読み込み済み、セッション開始済み"
+    description: "大項目別の行をクリックすると /p/{projectId}/run?major=... へ遷移し、該当大項目でフィルタがかかる"
+
+  - id: TC-047
+    category:
+      major: "URL"
+      medium: "プロジェクト"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "各画面の URL に /p/{projectId}/... 形式でプロジェクト ID が含まれる"
+
+  - id: TC-048
+    category:
+      major: "URL"
+      medium: "プロジェクト"
+      minor: "不一致"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "URL の projectId が読み込み済みプロジェクトと異なる場合、ファイル読み込み画面へ戻る"
+
+  - id: TC-049
+    category:
+      major: "URL"
+      medium: "フィルタ"
+    prerequisites: "テスト実行画面を表示中"
+    description: "大分類・未実施のみ・表示中テスト（test=）が URL クエリに反映され、リロード後も同じ状態になる"

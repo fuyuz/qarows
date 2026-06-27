@@ -1,15 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type {
-  ResultsFile,
-  RunnerFilters,
-  SessionConfig,
-  TestDefinition,
-} from "@qarows/shared";
-
-export const defaultRunnerFilters: RunnerFilters = {
-  targetMode: "filter",
-  onlyIncomplete: false,
-};
+import type { ResultsFile, SessionConfig, TestDefinition } from "@qarows/shared";
 
 interface QarowsDB extends DBSchema {
   meta: {
@@ -18,8 +8,6 @@ interface QarowsDB extends DBSchema {
       definition: TestDefinition | null;
       results: ResultsFile | null;
       session: SessionConfig | null;
-      runnerIndex: number;
-      runnerFilters: RunnerFilters;
     };
   };
 }
@@ -44,16 +32,12 @@ export interface PersistedState {
   definition: TestDefinition | null;
   results: ResultsFile | null;
   session: SessionConfig | null;
-  runnerIndex: number;
-  runnerFilters: RunnerFilters;
 }
 
 const defaultState: PersistedState = {
   definition: null,
   results: null,
   session: null,
-  runnerIndex: 0,
-  runnerFilters: defaultRunnerFilters,
 };
 
 export async function loadState(): Promise<PersistedState> {
@@ -61,9 +45,9 @@ export async function loadState(): Promise<PersistedState> {
   const stored = await db.get("meta", "state");
   if (!stored) return defaultState;
   return {
-    ...defaultState,
-    ...stored,
-    runnerFilters: { ...defaultRunnerFilters, ...stored.runnerFilters },
+    definition: stored.definition ?? null,
+    results: stored.results ?? null,
+    session: stored.session ?? null,
   };
 }
 

@@ -14,13 +14,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { isValidSession } from "@qarows/shared";
 import { readFileAsText } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
+import { useProjectRoutes } from "@/hooks/useProjectRoutes";
+import { projectPath } from "@/lib/project-routes";
 import { cn } from "@/lib/cn";
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { definition, loadProject } = useApp();
+  const { definition, session, loadProject } = useApp();
+  const { path } = useProjectRoutes();
   const [testsFile, setTestsFile] = useState<File | null>(null);
   const [resultsFile, setResultsFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,8 +70,8 @@ export function HomePage() {
     try {
       const yaml = await readFileAsText(testsFile);
       const resultsJson = resultsFile ? await readFileAsText(resultsFile) : undefined;
-      await loadProject(yaml, resultsJson);
-      navigate("/session");
+      const projectId = await loadProject(yaml, resultsJson);
+      navigate(projectPath(projectId, "session"));
     } catch (err) {
       showError(err instanceof Error ? err.message : "読み込みに失敗しました");
     } finally {
@@ -101,12 +105,22 @@ export function HomePage() {
         </header>
 
         {definition && (
-          <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-900">
-            <AlertDescription>
-              現在のプロジェクト: <strong>{definition.project.name}</strong>
-              （新しいファイルを読み込むと置き換わります）
-            </AlertDescription>
-          </Alert>
+          <div className="mb-6 space-y-3">
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+              <AlertDescription>
+                現在のプロジェクト: <strong>{definition.project.name}</strong>
+                （新しいファイルを読み込むと置き換わります）
+              </AlertDescription>
+            </Alert>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => navigate(path("session"))}>
+                セッション設定へ
+              </Button>
+              {session && isValidSession(session) && (
+                <Button onClick={() => navigate(path("run"))}>テスト実行を続ける</Button>
+              )}
+            </div>
+          </div>
         )}
 
         <TestsYamlGuide />

@@ -21,6 +21,19 @@ import {
 import { isRunnerTypingTarget } from "@/lib/runner-keybindings";
 import { cn } from "@/lib/cn";
 
+function emptyRelatedBugDraft(): BugDialogDraft {
+  return {
+    environmentIds: [],
+    title: "",
+    severity: "medium",
+    assignee: "",
+    status: "open",
+    steps: "",
+    expected: "",
+    actual: "",
+  };
+}
+
 export function RelatedBugsDialog({
   open,
   bugs,
@@ -41,7 +54,9 @@ export function RelatedBugsDialog({
   onClose: () => void;
 }) {
   const [index, setIndex] = useState(0);
-  const [draft, setDraft] = useState<BugDialogDraft>(() => bugToDraft(bugs[0]!));
+  const [draft, setDraft] = useState<BugDialogDraft>(() =>
+    bugs[0] != null ? bugToDraft(bugs[0]) : emptyRelatedBugDraft(),
+  );
   const [titleError, setTitleError] = useState(false);
   const wasOpenRef = useRef(false);
 

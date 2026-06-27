@@ -17,28 +17,23 @@ import {
   parseTestsYaml,
   validateSession,
   type ResultsFile,
-  type RunnerFilters,
   type SessionConfig,
   type TestCase,
   type TestDefinition,
   type TestResultEntry,
   type TestStatus,
 } from "@qarows/shared";
-import { clearState, defaultRunnerFilters, loadState, saveState } from "@/lib/storage";
+import { clearState, loadState, saveState } from "@/lib/storage";
 
 interface AppContextValue {
   ready: boolean;
   definition: TestDefinition | null;
   results: ResultsFile | null;
   session: SessionConfig | null;
-  runnerIndex: number;
-  runnerFilters: RunnerFilters;
   lastUpdatedTestId: string | null;
-  loadProject: (yaml: string, resultsJson?: string) => Promise<void>;
+  loadProject: (yaml: string, resultsJson?: string) => Promise<string>;
   mergeResultsFromFile: (json: string) => Promise<void>;
   setSession: (session: SessionConfig) => Promise<void>;
-  setRunnerIndex: (index: number) => Promise<void>;
-  setRunnerFilters: (filters: RunnerFilters) => Promise<void>;
   updateResults: (
     testCaseId: string,
     envId: string,
@@ -65,8 +60,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [definition, setDefinition] = useState<TestDefinition | null>(null);
   const [results, setResults] = useState<ResultsFile | null>(null);
   const [session, setSessionState] = useState<SessionConfig | null>(null);
-  const [runnerIndex, setRunnerIndexState] = useState(0);
-  const [runnerFilters, setRunnerFiltersState] = useState<RunnerFilters>(defaultRunnerFilters);
   const [lastUpdatedTestId, setLastUpdatedTestId] = useState<string | null>(null);
   const highlightClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -87,8 +80,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setDefinition(state.definition);
       setResults(state.results);
       setSessionState(state.session);
-      setRunnerIndexState(state.runnerIndex);
-      setRunnerFiltersState(state.runnerFilters);
       setReady(true);
     });
   }, []);
@@ -98,24 +89,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       definition?: TestDefinition | null;
       results?: ResultsFile | null;
       session?: SessionConfig | null;
-      runnerIndex?: number;
-      runnerFilters?: RunnerFilters;
     }) => {
       const snapshot = {
         definition: next.definition !== undefined ? next.definition : definition,
         results: next.results !== undefined ? next.results : results,
         session: next.session !== undefined ? next.session : session,
-        runnerIndex: next.runnerIndex !== undefined ? next.runnerIndex : runnerIndex,
-        runnerFilters: next.runnerFilters !== undefined ? next.runnerFilters : runnerFilters,
       };
       if (next.definition !== undefined) setDefinition(next.definition);
       if (next.results !== undefined) setResults(next.results);
       if (next.session !== undefined) setSessionState(next.session);
-      if (next.runnerIndex !== undefined) setRunnerIndexState(next.runnerIndex);
-      if (next.runnerFilters !== undefined) setRunnerFiltersState(next.runnerFilters);
       await saveState(snapshot);
     },
-    [definition, results, runnerFilters, runnerIndex, session],
+    [definition, results, session],
   );
 
   const loadProject = useCallback(
@@ -135,9 +120,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         definition: parsedDefinition,
         results: parsedResults,
         session: null,
-        runnerIndex: 0,
-        runnerFilters: defaultRunnerFilters,
       });
+      return projectId;
     },
     [persist],
   );
@@ -155,21 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setSession = useCallback(
     async (nextSession: SessionConfig) => {
       validateSession(nextSession);
-      await persist({ session: nextSession, runnerIndex: 0 });
-    },
-    [persist],
-  );
-
-  const setRunnerFilters = useCallback(
-    async (filters: RunnerFilters) => {
-      await persist({ runnerFilters: filters, runnerIndex: 0 });
-    },
-    [persist],
-  );
-
-  const setRunnerIndex = useCallback(
-    async (index: number) => {
-      await persist({ runnerIndex: index });
+      await persist({ session: nextSession });
     },
     [persist],
   );
@@ -283,8 +253,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDefinition(null);
     setResults(null);
     setSessionState(null);
-    setRunnerIndexState(0);
-    setRunnerFiltersState(defaultRunnerFilters);
   }, []);
 
   const value = useMemo(
@@ -293,14 +261,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       definition,
       results,
       session,
-      runnerIndex,
-      runnerFilters,
       lastUpdatedTestId,
       loadProject,
       mergeResultsFromFile,
       setSession,
-      setRunnerIndex,
-      setRunnerFilters,
       updateResults,
       updateResultsBatch,
       updateResultsFile,
@@ -313,14 +277,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       definition,
       results,
       session,
-      runnerIndex,
-      runnerFilters,
       lastUpdatedTestId,
       loadProject,
       mergeResultsFromFile,
       setSession,
-      setRunnerIndex,
-      setRunnerFilters,
       updateResults,
       updateResultsBatch,
       updateResultsFile,

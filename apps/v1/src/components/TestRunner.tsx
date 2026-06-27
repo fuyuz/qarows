@@ -3,6 +3,7 @@ import {
   isResultEntryValid,
   nextBugId,
   resolveSessionTestTargets,
+  testCaseNeedsRetest,
   type Bug,
   type TestCase,
   type TestStatus,
@@ -15,6 +16,7 @@ import { RunnerCompleteCard } from "@/components/RunnerCompleteCard";
 import { RunnerIntroCard } from "@/components/RunnerIntroCard";
 import { TestCard } from "@/components/TestCard";
 import { useApp } from "@/context/AppContext";
+import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
 import {
   isRunnerBugKey,
   isRunnerNextKey,
@@ -38,15 +40,13 @@ export function TestRunner() {
     definition,
     results,
     session,
-    runnerFilters,
-    runnerIndex,
-    setRunnerIndex,
     updateResults,
     updateResultsBatch,
     updateResultsFile,
     updateTestCase,
     clearTestResult,
   } = useApp();
+  const { runnerFilters, filtersSettled, testId, setTestId } = useRunnerQueryState();
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
@@ -57,8 +57,6 @@ export function TestRunner() {
   const [bugFormKey, setBugFormKey] = useState(0);
   const [relatedBugsDialogOpen, setRelatedBugsDialogOpen] = useState(false);
   const [testCaseEditDialogOpen, setTestCaseEditDialogOpen] = useState(false);
-  const didRestoreSlide = useRef(false);
-  const skipFilterSlideReset = useRef(true);
   const mountedRef = useRef(true);
   const advanceDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAdvanceSlideRef = useRef<number | null>(null);
@@ -96,37 +94,24 @@ export function TestRunner() {
   }, [current?.id]);
 
   useEffect(() => {
-    if (!didRestoreSlide.current) {
-      didRestoreSlide.current = true;
-      if (runnerIndex > 0) {
-        setSlideIndex(Math.min(runnerIndex + 1, targets.length + 1));
-      }
+    if (!filtersSettled || targets.length === 0) return;
+
+    if (!testId) {
+      setSlideIndex(0);
+      setRelatedBugsDialogOpen(false);
+      setBugDialogOpen(false);
+      setBugDialogState(null);
       return;
     }
-    if (runnerIndex < 0) {
-      setSlideIndex((prev) => (prev > targets.length ? prev : 0));
+
+    const index = targets.findIndex((tc) => tc.id === testId);
+    if (index >= 0) {
+      setSlideIndex(index + 1);
       return;
     }
-    setSlideIndex(Math.min(runnerIndex + 1, targets.length + 1));
-  }, [runnerIndex, targets.length]);
 
-  useEffect(() => {
-    setSlideIndex((prev) => Math.min(prev, targets.length + 1));
-  }, [targets.length]);
-
-  useEffect(() => {
-    if (skipFilterSlideReset.current) {
-      skipFilterSlideReset.current = false;
-      return;
-    }
-    setSlideIndex(targets.length > 0 ? 1 : 0);
-  }, [runnerFilters, targets.length]);
-
-  useEffect(() => {
-    if (targets.length > 0 && runnerIndex >= targets.length) {
-      void setRunnerIndex(targets.length - 1);
-    }
-  }, [runnerIndex, setRunnerIndex, targets.length]);
+    void setTestId(null);
+  }, [filtersSettled, setTestId, targets, testId]);
 
   useEffect(() => {
     if (!current || !results || !envTargets) {
@@ -145,10 +130,14 @@ export function TestRunner() {
   }, [current, envTargets, results]);
 
   const needsRetest = useMemo(() => {
-    if (!current || !results) return false;
-    const byEnv = results.results[current.id] ?? {};
-    return Object.values(byEnv).some((entry) => entry?.status && !isResultEntryValid(entry, current));
-  }, [current, results]);
+    if (!current || !results || !session || !definition) return false;
+    return testCaseNeedsRetest(
+      current,
+      definition,
+      session.selectedEnvironmentIds,
+      results.results,
+    );
+  }, [current, definition, results, session]);
 
   const cancelPendingAdvance = useCallback(() => {
     if (advanceDelayRef.current) {
@@ -163,12 +152,12 @@ export function TestRunner() {
       cancelPendingAdvance();
       setSlideIndex(slide);
       if (slide >= 1 && slide <= targets.length) {
-        void setRunnerIndex(slide - 1);
+        void setTestId(targets[slide - 1].id);
       } else {
-        void setRunnerIndex(-1);
+        void setTestId(null);
       }
     },
-    [maxSlide, cancelPendingAdvance, setRunnerIndex, targets.length],
+    [maxSlide, cancelPendingAdvance, setTestId, targets],
   );
 
   const waitBeforeAutoAdvance = useCallback(
@@ -528,7 +517,7 @@ export function TestRunner() {
         />
       )}
 
-      {current && envTargets && (
+      {current && envTargets && relatedBugsDialogOpen && relatedBugs.length > 0 && (
         <RelatedBugsDialog
           open={relatedBugsDialogOpen}
           bugs={relatedBugs}

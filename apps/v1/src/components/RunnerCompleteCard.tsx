@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { RunnerCardFooter, testCardShellClass, type RunnerCardNavProps } from "@/components/RunnerCardFooter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 
 export function RunnerCompleteCard({
   testCount,
   ...navProps
 }: { testCount: number } & RunnerCardNavProps) {
   const navigate = useNavigate();
+  const { path } = useProjectRoutes();
 
   return (
     <article className={testCardShellClass("border-green-200/80 bg-green-50/30")}>
@@ -46,7 +48,7 @@ export function RunnerCompleteCard({
             variant="outline"
             size="sm"
             className="font-semibold"
-            onClick={() => navigate("/session")}
+            onClick={() => navigate(path("session"))}
           >
             セッション設定へ
           </Button>

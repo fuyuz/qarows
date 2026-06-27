@@ -7,11 +7,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useApp } from "@/context/AppContext";
+import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 import { cn } from "@/lib/cn";
 
 export function SessionPage() {
   const navigate = useNavigate();
   const { definition, session, setSession } = useApp();
+  const { path } = useProjectRoutes();
 
   const [executorName, setExecutorName] = useState(session?.executorName ?? "");
   const [selectedEnvIds, setSelectedEnvIds] = useState<string[]>(
@@ -59,7 +61,7 @@ export function SessionPage() {
         executorName: trimmedName,
         selectedEnvironmentIds: selectedEnvIds,
       });
-      navigate("/run");
+      navigate(path("run"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "セッション開始に失敗しました");
     } finally {

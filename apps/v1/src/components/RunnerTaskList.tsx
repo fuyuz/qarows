@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useApp } from "@/context/AppContext";
+import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
 import { formatRunnerFilterTitle } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 
@@ -204,8 +205,8 @@ function TaskListPanel({
 }
 
 export function RunnerTaskList() {
-  const { definition, results, session, runnerFilters, runnerIndex, setRunnerIndex, lastUpdatedTestId } =
-    useApp();
+  const { definition, results, session, lastUpdatedTestId } = useApp();
+  const { runnerFilters, testId, setTestId } = useRunnerQueryState();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
@@ -215,6 +216,12 @@ export function RunnerTaskList() {
     if (!definition || !results || !session) return [];
     return resolveRunnerTestCases(definition, session, runnerFilters, results.results);
   }, [definition, results, session, runnerFilters]);
+
+  const runnerIndex = useMemo(() => {
+    if (!testId) return -1;
+    const index = targets.findIndex((tc) => tc.id === testId);
+    return index >= 0 ? index : -1;
+  }, [targets, testId]);
 
   const mode = getRunnerTargetMode(runnerFilters);
   const scenario =
@@ -242,7 +249,8 @@ export function RunnerTaskList() {
   if (!definition || !session || !results) return null;
 
   const jumpToTest = (index: number) => {
-    void setRunnerIndex(index);
+    const testCase = targets[index];
+    if (testCase) void setTestId(testCase.id);
     setMobileOpen(false);
   };
 

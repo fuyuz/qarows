@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApp } from "@/context/AppContext";
+import { useProjectRoutes } from "@/hooks/useProjectRoutes";
+import { type ProjectPage } from "@/lib/project-routes";
 import { downloadText } from "@/lib/utils";
 
 interface NavLinkItem {
@@ -19,33 +21,69 @@ interface NavLinkItem {
   to: string;
 }
 
+function currentProjectPage(pathname: string): ProjectPage | "load" | null {
+  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard)$/);
+  if (match) return match[1] as ProjectPage;
+  if (pathname === "/load") return "load";
+  return null;
+}
+
+function workflowLinks(
+  path: (page: ProjectPage) => string,
+  page: ProjectPage | "load" | null,
+  session: ReturnType<typeof useApp>["session"],
+): NavLinkItem[] {
+  const items: NavLinkItem[] = [];
+
+  if (page === "run") {
+    items.push({ label: "セッション設定", to: path("session") });
+    items.push({ label: "ファイル読み込み", to: "/load" });
+  } else if (page === "session") {
+    items.push({ label: "ファイル読み込み", to: "/load" });
+    if (session && isValidSession(session)) {
+      items.push({ label: "テスト実行", to: path("run") });
+    }
+  } else if (page === "load") {
+    items.push({ label: "セッション設定", to: path("session") });
+    if (session && isValidSession(session)) {
+      items.push({ label: "テスト実行", to: path("run") });
+    }
+  } else if (page === "matrix" || page === "dashboard") {
+    items.push({ label: "ファイル読み込み", to: "/load" });
+    items.push({ label: "セッション設定", to: path("session") });
+    if (session && isValidSession(session)) {
+      items.push({ label: "テスト実行", to: path("run") });
+    }
+  }
+
+  return items;
+}
+
 export function AppNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { definition, results, session } = useApp();
+  const { path } = useProjectRoutes();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const links = useMemo(() => {
-    const items: NavLinkItem[] = [];
+  const page = currentProjectPage(location.pathname);
 
-    if (location.pathname === "/run") {
-      items.push({ label: "セッション設定", to: "/session" });
-      items.push({ label: "ファイル読み込み", to: "/load" });
-    } else if (location.pathname === "/session") {
-      items.push({ label: "ファイル読み込み", to: "/load" });
-      if (session && isValidSession(session)) {
-        items.push({ label: "テスト実行", to: "/run" });
-      }
-    } else if (location.pathname === "/load" && definition) {
-      items.push({ label: "セッション設定", to: "/session" });
-      if (session && isValidSession(session)) {
-        items.push({ label: "テスト実行", to: "/run" });
-      }
-    }
+  const workflow = useMemo(
+    () => (definition ? workflowLinks(path, page, session) : []),
+    [definition, page, path, session],
+  );
 
-    return items;
-  }, [definition, location.pathname, session]);
+  const viewLinks = useMemo(
+    (): NavLinkItem[] =>
+      definition
+        ? [
+            { label: "ダッシュボード", to: path("dashboard") },
+            { label: "マトリクス", to: path("matrix") },
+          ]
+        : [],
+    [definition, path],
+  );
 
   const canExportResults = definition != null && results != null;
   const canExportYaml = definition != null;
@@ -70,6 +108,8 @@ export function AppNav() {
     setOpen(false);
   };
 
+  const hasWorkflow = workflow.length > 0;
+
   return (
     <div ref={rootRef} className="fixed top-3.5 right-5 z-40">
       <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -84,15 +124,16 @@ export function AppNav() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
-          {links.length > 0 && (
+          {hasWorkflow && (
             <>
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
                 移動
               </DropdownMenuLabel>
-              {links.map((link) => (
+              {workflow.map((link) => (
                 <DropdownMenuItem
                   key={link.to}
-                  onSelect={() => {
+                  onSelect={(event) => {
+                    event.preventDefault();
                     setOpen(false);
                     navigate(link.to);
                   }}
@@ -102,14 +143,33 @@ export function AppNav() {
               ))}
             </>
           )}
+
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+            閲覧
+          </DropdownMenuLabel>
+          {viewLinks.map((link) => (
+            <DropdownMenuItem
+              key={link.to}
+              onSelect={(event) => {
+                event.preventDefault();
+                setOpen(false);
+                navigate(link.to);
+              }}
+            >
+              {link.label}
+            </DropdownMenuItem>
+          ))}
+
           {(canExportYaml || canExportResults) && (
             <>
-              {links.length > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
                 データ
               </DropdownMenuLabel>
               {canExportYaml && (
-                <DropdownMenuItem onSelect={handleExportYaml}>tests.yml をエクスポート</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportYaml}>
+                  tests.yml をエクスポート
+                </DropdownMenuItem>
               )}
               {canExportResults && (
                 <DropdownMenuItem onSelect={handleExportResults}>
