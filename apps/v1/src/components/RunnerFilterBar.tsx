@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode } from "@qarows/shared";
+import { ListFilterIcon } from "lucide-react";
+import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode, type BugSeverity, type BugStatus } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -13,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { RunnerCardTransition } from "@/components/RunnerCardTransition";
-import { BUG_SEVERITY_VALUES, BUG_STATUS_VALUES } from "@/lib/bug-query";
+import { BUG_SEVERITY_VALUES, BUG_STATUS_VALUES, type BugFilters } from "@/lib/bug-query";
 import {
   getMajorCategories,
   getMediumCategories,
@@ -118,7 +129,7 @@ function RunnerModeSwitch({
   );
 }
 
-function BugMultiCheckFilter<T extends string>({
+function BugFilterCheckGroup<T extends string>({
   label,
   options,
   labels,
@@ -132,24 +143,95 @@ function BugMultiCheckFilter<T extends string>({
   onToggle: (value: T) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-      <Label className="shrink-0 text-sm font-semibold">{label}</Label>
-      {options.map((value) => {
-        const checked = selected.includes(value);
-        return (
-          <label
-            key={value}
-            className={cn(
-              "flex cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-200",
-              checked && "bg-primary/10 text-primary",
-            )}
-          >
-            <Checkbox checked={checked} onCheckedChange={() => onToggle(value)} />
-            <span>{labels[value]}</span>
-          </label>
-        );
-      })}
+    <div className="space-y-2.5">
+      <Label className="text-sm font-semibold">{label}</Label>
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {options.map((value) => {
+          const checked = selected.includes(value);
+          return (
+            <label
+              key={value}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-200",
+                checked && "bg-primary/10 text-primary",
+              )}
+            >
+              <Checkbox checked={checked} onCheckedChange={() => onToggle(value)} />
+              <span>{labels[value]}</span>
+            </label>
+          );
+        })}
+      </div>
     </div>
+  );
+}
+
+function BugFilterDialog({
+  bugFilters,
+  toggleBugPriority,
+  toggleBugStatus,
+  onClear,
+}: {
+  bugFilters: BugFilters;
+  toggleBugPriority: (value: BugSeverity) => void;
+  toggleBugStatus: (value: BugStatus) => void;
+  onClear: () => void;
+}) {
+  const active = bugFilters.priorities.length > 0 || bugFilters.statuses.length > 0;
+  const activeCount = bugFilters.priorities.length + bugFilters.statuses.length;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-label="バグを絞り込み"
+          className={cn(
+            "relative shadow-xs",
+            active &&
+              "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
+          )}
+        >
+          <ListFilterIcon className="size-4" aria-hidden />
+          {active && (
+            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              {activeCount}
+            </span>
+          )}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>バグの絞り込み</DialogTitle>
+          <DialogDescription>
+            重要度・ステータスを複数選択できます。未選択の項目はすべて表示されます。
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          <BugFilterCheckGroup
+            label="重要度"
+            options={BUG_SEVERITY_VALUES}
+            labels={BUG_SEVERITY_LABELS}
+            selected={bugFilters.priorities}
+            onToggle={toggleBugPriority}
+          />
+          <BugFilterCheckGroup
+            label="ステータス"
+            options={BUG_STATUS_VALUES}
+            labels={BUG_STATUS_LABELS}
+            selected={bugFilters.statuses}
+            onToggle={toggleBugStatus}
+          />
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" disabled={!active} onClick={onClear}>
+            すべてクリア
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -163,7 +245,7 @@ export function RunnerFilterBar({
   variant?: "runner" | "bugs";
 }) {
   const { definition } = useApp();
-  const { runnerFilters, setRunnerFilters, bugFilters, toggleBugPriority, toggleBugStatus } =
+  const { runnerFilters, setRunnerFilters, bugFilters, toggleBugPriority, toggleBugStatus, setQuery } =
     useRunnerQueryState();
 
   const mode = getRunnerTargetMode(runnerFilters);
@@ -398,26 +480,16 @@ export function RunnerFilterBar({
               <span>未実施のみ</span>
             </label>
           )}
-        </div>
 
-        {variant === "bugs" && (
-          <>
-            <BugMultiCheckFilter
-              label="重要度"
-              options={BUG_SEVERITY_VALUES}
-              labels={BUG_SEVERITY_LABELS}
-              selected={bugFilters.priorities}
-              onToggle={toggleBugPriority}
+          {variant === "bugs" && (
+            <BugFilterDialog
+              bugFilters={bugFilters}
+              toggleBugPriority={toggleBugPriority}
+              toggleBugStatus={toggleBugStatus}
+              onClear={() => void setQuery({ priority: [], status: [] })}
             />
-            <BugMultiCheckFilter
-              label="ステータス"
-              options={BUG_STATUS_VALUES}
-              labels={BUG_STATUS_LABELS}
-              selected={bugFilters.statuses}
-              onToggle={toggleBugStatus}
-            />
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
