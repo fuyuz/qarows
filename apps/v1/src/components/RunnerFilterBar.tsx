@@ -185,18 +185,15 @@ function BugFilterDialog({
       <DialogTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant={active ? "default" : "outline"}
           size="icon-sm"
           aria-label="バグを絞り込み"
-          className={cn(
-            "relative shadow-xs",
-            active &&
-              "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
-          )}
+          aria-pressed={active}
+          className={cn("relative shadow-xs", active && "hover:bg-primary/90")}
         >
           <ListFilterIcon className="size-4" aria-hidden />
           {active && (
-            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full border border-primary bg-background text-[10px] font-bold text-primary shadow-sm">
               {activeCount}
             </span>
           )}
