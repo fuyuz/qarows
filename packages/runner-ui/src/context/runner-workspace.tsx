@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type {
+  Bug,
   ResultsFile,
   SessionConfig,
   TestCase,
@@ -23,7 +24,8 @@ export interface RunnerWorkspaceValue {
     envIds: string[],
     partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
   ) => Promise<void>;
-  updateResultsFile: (updater: (prev: ResultsFile) => ResultsFile) => Promise<void>;
+  addBug: (bug: Bug) => Promise<void>;
+  updateBug: (bug: Bug) => Promise<void>;
   updateTestCase: (
     testCaseId: string,
     patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,

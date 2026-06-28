@@ -43,7 +43,8 @@ export function TestRunner() {
     session,
     updateResults,
     updateResultsBatch,
-    updateResultsFile,
+    addBug,
+    updateBug,
     updateTestCase,
     clearTestResult,
   } = useRunnerWorkspace();
@@ -347,10 +348,7 @@ export function TestRunner() {
       setBusy(true);
       try {
         const bug = bugDraftToBug(nextBugId(results.bugs), draft);
-        await updateResultsFile((prev) => ({
-          ...prev,
-          bugs: [...prev.bugs, bug],
-        }));
+        await addBug(bug);
 
         if (bugCreateMore) {
           setBugFormKey((key) => key + 1);
@@ -361,22 +359,19 @@ export function TestRunner() {
         setBusy(false);
       }
     },
-    [bugCreateMore, closeBugDialog, results, updateResultsFile],
+    [bugCreateMore, closeBugDialog, results, addBug],
   );
 
   const handleRelatedBugSave = useCallback(
     async (bug: Bug) => {
       setBusy(true);
       try {
-        await updateResultsFile((prev) => ({
-          ...prev,
-          bugs: prev.bugs.map((entry) => (entry.id === bug.id ? bug : entry)),
-        }));
+        await updateBug(bug);
       } finally {
         setBusy(false);
       }
     },
-    [updateResultsFile],
+    [updateBug],
   );
 
   const handleTestCaseSave = useCallback(

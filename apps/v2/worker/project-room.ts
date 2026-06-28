@@ -10,6 +10,7 @@ import {
   SYNC_PONG_MESSAGE,
   type RoomSnapshot,
 } from "./sync-protocol";
+import { persistThenBroadcast } from "./room-sync";
 
 interface StoredRoomState extends RoomSnapshot {}
 
@@ -155,10 +156,11 @@ export class ProjectRoom extends DurableObject<Env> {
     user: string,
   ): Promise<ApplyCommandResult> {
     const applied = await this.applyCommand(commandId, command, user);
-    if (!applied.duplicate) {
-      await this.broadcastCommandApplied(commandId, command, applied);
-      await this.persistToD1();
-    }
+    await persistThenBroadcast({
+      duplicate: applied.duplicate,
+      persist: () => this.persistToD1(),
+      broadcast: () => this.broadcastCommandApplied(commandId, command, applied),
+    });
     return applied;
   }
 

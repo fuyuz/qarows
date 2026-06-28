@@ -150,6 +150,39 @@ describe("applyProjectCommand", () => {
     );
     expect(updated.results.bugs[0]?.status).toBe("fixed");
   });
+
+  it("addBug does not overwrite unrelated result entries", () => {
+    const snapshot = makeSnapshot({
+      session: { executorName: "QA", selectedEnvironmentIds: ["chrome"] },
+    });
+    const { snapshot: withResult } = applyProjectCommand(
+      snapshot,
+      {
+        type: "updateResultsBatch",
+        testCaseId: "TC-001",
+        envIds: ["chrome"],
+        partial: { status: "OK" },
+      },
+      { now: NOW },
+    );
+
+    const { snapshot: withBug } = applyProjectCommand(
+      withResult,
+      {
+        type: "addBug",
+        bug: {
+          id: "B1",
+          title: "Crash",
+          severity: "high",
+          status: "open",
+        },
+      },
+      { now: NOW },
+    );
+
+    expect(withBug.results.results["TC-001"]?.chrome?.status).toBe("OK");
+    expect(withBug.results.bugs).toHaveLength(1);
+  });
 });
 
 describe("applyProjectCommand parity", () => {

@@ -107,6 +107,46 @@ describe("room command flow", () => {
     expect(again.state.results.results["TC-001"]?.chrome?.status).toBe("OK");
   });
 
+  it("addBug preserves result updates from other clients", () => {
+    let state = makeRoomState();
+    const processed = new Map<string, { revision: number; user: string }>();
+
+    const resultUpdate = applyRoomCommand(
+      state,
+      processed,
+      "cmd-result",
+      {
+        type: "updateResultsBatch",
+        testCaseId: "TC-001",
+        envIds: ["chrome"],
+        partial: { status: "OK" },
+      },
+      "user-b",
+      projectId,
+    );
+    state = resultUpdate.state;
+
+    const bug = {
+      id: "BUG-001",
+      title: "Found issue",
+      severity: "medium" as const,
+      status: "open" as const,
+      testCaseId: "TC-001",
+    };
+    const bugAdd = applyRoomCommand(
+      state,
+      processed,
+      "cmd-bug",
+      { type: "addBug", bug },
+      "user-a",
+      projectId,
+    );
+
+    expect(bugAdd.state.results.results["TC-001"]?.chrome?.status).toBe("OK");
+    expect(bugAdd.state.results.bugs).toHaveLength(1);
+    expect(bugAdd.state.results.bugs[0]?.id).toBe("BUG-001");
+  });
+
   it("applies sequential distinct commands with rising revision", () => {
     let state = makeRoomState();
     const processed = new Map<string, { revision: number; user: string }>();

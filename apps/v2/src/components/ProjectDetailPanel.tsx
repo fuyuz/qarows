@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isValidSession, serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
 import {
   Alert,
@@ -60,20 +60,31 @@ export function ProjectDetailPanel({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const projectIdRef = useRef(projectId);
+  projectIdRef.current = projectId;
 
-  const reloadSnapshot = () => {
+  const loadSnapshot = useCallback(async (targetProjectId: string) => {
     setLoadingSnapshot(true);
-    void getProject(projectId)
-      .then((data) => setSnapshot(data))
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "プロジェクトの取得に失敗しました");
-      })
-      .finally(() => setLoadingSnapshot(false));
-  };
+    setError(null);
+    try {
+      const data = await getProject(targetProjectId);
+      if (projectIdRef.current !== targetProjectId) return;
+      setSnapshot(data);
+    } catch (err: unknown) {
+      if (projectIdRef.current !== targetProjectId) return;
+      setError(err instanceof Error ? err.message : "プロジェクトの取得に失敗しました");
+    } finally {
+      if (projectIdRef.current === targetProjectId) {
+        setLoadingSnapshot(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    reloadSnapshot();
-  }, [projectId]);
+    setSuccessMessage(null);
+    setSnapshot(null);
+    void loadSnapshot(projectId);
+  }, [projectId, loadSnapshot]);
 
   const hasValidSession =
     snapshot?.session != null && isValidSession(snapshot.session);
@@ -96,7 +107,7 @@ export function ProjectDetailPanel({
       await onClearResults();
       setClearDialogOpen(false);
       setSuccessMessage("テスト結果をクリアしました");
-      reloadSnapshot();
+      await loadSnapshot(projectId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "テスト結果のクリアに失敗しました");
     } finally {

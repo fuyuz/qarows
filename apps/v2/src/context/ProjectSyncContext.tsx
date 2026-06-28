@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type {
+  Bug,
   ResultsFile,
   SessionConfig,
   TestCase,
@@ -40,7 +41,8 @@ interface ProjectSyncContextValue {
     envIds: string[],
     partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
   ) => Promise<void>;
-  updateResultsFile: (updater: (prev: ResultsFile) => ResultsFile) => Promise<void>;
+  addBug: (bug: Bug) => Promise<void>;
+  updateBug: (bug: Bug) => Promise<void>;
   updateTestCase: (
     testCaseId: string,
     patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
@@ -203,18 +205,16 @@ export function ProjectSyncProvider({
     [dispatch],
   );
 
-  const updateResultsFile = useCallback(
-    async (updater: (prev: ResultsFile) => ResultsFile) => {
-      const currentResults = resultsRef.current;
-      const currentDefinition = definitionRef.current;
-      if (!currentResults || !currentDefinition) return;
-      const next = updater(currentResults);
-      await dispatch({
-        type: "replaceSnapshot",
-        definition: currentDefinition,
-        results: { ...next, updatedAt: new Date().toISOString() },
-        session: sessionRef.current,
-      });
+  const addBug = useCallback(
+    async (bug: Bug) => {
+      await dispatch({ type: "addBug", bug });
+    },
+    [dispatch],
+  );
+
+  const updateBug = useCallback(
+    async (bug: Bug) => {
+      await dispatch({ type: "updateBug", bug });
     },
     [dispatch],
   );
@@ -249,7 +249,8 @@ export function ProjectSyncProvider({
       setSession,
       updateResults,
       updateResultsBatch,
-      updateResultsFile,
+      addBug,
+      updateBug,
       updateTestCase,
       clearTestResult,
     }),
@@ -265,7 +266,8 @@ export function ProjectSyncProvider({
       setSession,
       updateResults,
       updateResultsBatch,
-      updateResultsFile,
+      addBug,
+      updateBug,
       updateTestCase,
       clearTestResult,
     ],

@@ -26,7 +26,7 @@ function BugEmptyCard() {
 }
 
 export function BugViewer() {
-  const { definition, results, session, updateResultsFile } = useApp();
+  const { definition, results, session, updateBug } = useApp();
   const { runnerFilters, filtersSettled, bugId, setBugId, bugFilters } = useRunnerQueryState();
   const [busy, setBusy] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -91,16 +91,12 @@ export function BugViewer() {
     async (nextBug: Bug) => {
       setBusy(true);
       try {
-        await updateResultsFile((prev) => ({
-          ...prev,
-          updatedAt: new Date().toISOString(),
-          bugs: prev.bugs.map((bug) => (bug.id === nextBug.id ? nextBug : bug)),
-        }));
+        await updateBug(nextBug);
       } finally {
         setBusy(false);
       }
     },
-    [updateResultsFile],
+    [updateBug],
   );
 
   const handleStatusChange = useCallback(
