@@ -452,7 +452,7 @@ export function TestRunner() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="flex min-h-0 flex-1 justify-center">
+      <div className="flex min-h-0 flex-1 justify-start">
         <div className="h-full w-full min-h-0 max-w-2xl">
           <RunnerCardTransition slideKey={slideIndex}>
             {slideIndex === 0 && (
