@@ -8,7 +8,7 @@ import type {
 } from "@qarows/shared";
 import type { ProjectSnapshot } from "./types";
 
-/** ドメイン更新の最小単位。Phase1/2 で同じコマンド → 同じ Snapshot を目指す */
+/** ドメイン更新の最小単位。Local / Team で同じコマンド → 同じ Snapshot を目指す */
 export type ProjectCommand =
   | { type: "setSession"; session: SessionConfig }
   | {

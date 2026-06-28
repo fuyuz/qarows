@@ -24,7 +24,7 @@ export function projectSnapshotFromRoom(
   };
 }
 
-/** Phase1 `ProjectRecord` / Phase2 D1 row から共通 Snapshot へ */
+/** Local 版 `ProjectRecord` / Team 版 D1 row から共通 Snapshot へ */
 export function toProjectSnapshot(
   projectId: string,
   record: {
@@ -70,7 +70,7 @@ export function summaryFromSnapshot(snapshot: ProjectSnapshot): ProjectSummary {
   };
 }
 
-/** Phase1 の `projectId` フィールドを `id` に正規化 */
+/** Local 版の `projectId` フィールドを `id` に正規化 */
 export function normalizeProjectSummary(
   summary: ProjectSummary & { projectId?: string },
 ): ProjectSummary {

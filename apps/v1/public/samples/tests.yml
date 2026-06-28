@@ -822,16 +822,16 @@ testCases:
 
   - id: TC-086
     category:
-      major: "Phase 2"
+      major: "Team 版"
       medium: "テスト実行"
       minor: "UI 同等"
-    prerequisites: "Phase 2 dev（localhost:5177）でプロジェクト作成・セッション開始済み"
-    description: "テスト実行画面が Phase 1 と同じ UI（フィルタ・一覧・ランナー・進捗バー）で表示され、結果入力がリアルタイム同期される"
+    prerequisites: "Team 版 dev（localhost:5177）でプロジェクト作成・セッション開始済み"
+    description: "テスト実行画面が Local 版と同じ UI（フィルタ・一覧・ランナー・進捗バー）で表示され、結果入力がリアルタイム同期される"
 
   - id: TC-087
     category:
-      major: "Phase 2"
+      major: "Team 版"
       medium: "同期"
       minor: "Command"
-    prerequisites: "Phase 2 dev で同一プロジェクトに2ブラウザ接続"
+    prerequisites: "Team 版 dev で同一プロジェクトに2ブラウザ接続"
     description: "一方で OK/NG 入力すると、もう一方のランナー・一覧・進捗が commandApplied 同期で更新される"

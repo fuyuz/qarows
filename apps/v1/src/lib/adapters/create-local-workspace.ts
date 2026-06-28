@@ -5,7 +5,7 @@ import {
 } from "@qarows/application";
 import { IndexedDbProjectRepository } from "./indexed-db-project-repository";
 
-export function createPhase1WorkspaceController(
+export function createLocalWorkspaceController(
   repository: ProjectRepository = new IndexedDbProjectRepository(),
 ): WorkspaceController {
   const channel = new LocalProjectChannel({

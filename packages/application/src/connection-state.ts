@@ -2,9 +2,9 @@ export type ConnectionStatus = "idle" | "connecting" | "connected" | "reconnecti
 
 export interface ConnectionState {
   status: ConnectionStatus;
-  /** サーバー側 revision（Phase2）。Phase1 は常に 0 */
+  /** サーバー側 revision（Team 版）。Local 版は常に 0 */
   revision: number;
-  /** 未 ACK の送信コマンド数（Phase2） */
+  /** 未 ACK の送信コマンド数（Team 版） */
   pendingCommands: number;
 }
 

@@ -1,4 +1,4 @@
--- Phase 2 project metadata and persisted snapshots (D1).
+-- Local 版 project metadata and persisted snapshots (D1).
 -- Real-time coordination runs in ProjectRoom Durable Objects per project.
 
 CREATE TABLE IF NOT EXISTS projects (

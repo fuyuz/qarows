@@ -1,6 +1,6 @@
-# Phase 1 デプロイ手順（Cloudflare Pages）
+# Local 版デプロイ手順（Cloudflare Pages）
 
-メンテナ向け。**qarows Phase 1**（`apps/v1`）を公式 Cloudflare Pages インスタンスとして公開する手順。
+メンテナ向け。**qarows** Local 版（`apps/v1`）を公式 Cloudflare Pages インスタンスとして公開する手順。
 
 **採用方式:** Cloudflare Dashboard + GitHub 連携（方法 A）。デプロイは Cloudflare 側が行い、GitHub Actions の deploy workflow は使わない。
 
@@ -45,7 +45,7 @@ bun run preview:start   # http://localhost:5173
 | | Workers（間違い） | Pages（正しい） |
 |---|---|---|
 | デプロイ先 | `*.workers.dev` | `*.pages.dev` |
-| qarows Phase 1 | 向いていない | **これ** |
+| qarows Local 版 | 向いていない | **これ** |
 | 設定画面 | Worker script / bindings | Build command / output directory |
 
 **手順:**
@@ -72,7 +72,7 @@ bun run preview:start   # http://localhost:5173
 Root directory を `apps/v1` にすると、成果物は `apps/v1/dist` に出力され、Cloudflare は `dist` を参照する。リポジトリルートのまま使う場合は output を `apps/v1/dist` にする（項目が見えない場合は Root directory 方式を推奨）。
 
 5. **Environment variables**  
-   通常は不要（Phase 1 にビルド時シークレットはない）。
+   通常は不要（Local 版にビルド時シークレットはない）。
 
 6. **Save and Deploy**
 
@@ -150,7 +150,7 @@ bunx wrangler pages deploy apps/v1/dist --project-name=qarows --branch=main
 
 - API トークン・Account ID は **リポジトリにコミットしない**
 - 本番 URL（https://qarows.fuyuz.dev）は公開デモ用のため README / 本 doc に記載してよい
-- Phase 1 は静的 SPA のため、ビルド時に秘密情報を埋め込む必要はない
+- Local 版は静的 SPA のため、ビルド時に秘密情報を埋め込む必要はない
 - Git 連携の OAuth 権限は Cloudflare Dashboard 上で管理する
 
 ---

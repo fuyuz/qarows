@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://qarows.dev/schemas/results.schema.json",
   "title": "qarows results.json",
-  "description": "Phase 1 実行結果ファイル。tests.yml の project.id と projectId が一致すること。",
+  "description": "Local 版実行結果ファイル。tests.yml の project.id と projectId が一致すること。",
   "type": "object",
   "additionalProperties": false,
   "required": ["projectId", "results", "bugs"],

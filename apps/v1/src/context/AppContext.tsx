@@ -30,7 +30,7 @@ import {
 } from "@qarows/shared";
 import { getAppMeta, getProject, saveAppMeta, type ProjectSummary } from "@/lib/storage";
 import { sortProjectSummaries } from "@/lib/project-summaries";
-import { createPhase1WorkspaceController } from "@/lib/adapters/create-phase1-workspace";
+import { createLocalWorkspaceController } from "@/lib/adapters/create-local-workspace";
 import { IndexedDbProjectRepository } from "@/lib/adapters/indexed-db-project-repository";
 
 interface AppContextValue {
@@ -99,9 +99,9 @@ function affectedTestCaseFromCommand(command: ProjectCommand): string | null {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const workspaceRef = useRef<ReturnType<typeof createPhase1WorkspaceController> | null>(null);
+  const workspaceRef = useRef<ReturnType<typeof createLocalWorkspaceController> | null>(null);
   if (workspaceRef.current === null) {
-    workspaceRef.current = createPhase1WorkspaceController();
+    workspaceRef.current = createLocalWorkspaceController();
   }
 
   const repositoryRef = useRef<IndexedDbProjectRepository | null>(null);

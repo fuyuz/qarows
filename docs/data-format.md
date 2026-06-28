@@ -1,6 +1,6 @@
 # データファイル形式
 
-Phase 1 および Phase 2（インポート/エクスポート）で用いるデータファイルの概要。
+Local 版および Team 版（インポート/エクスポート）で用いるデータファイルの概要。
 
 > **Note:** 正式スキーマは [packages/shared/schemas/](../packages/shared/schemas/) に JSON Schema（draft 2020-12）として配置。パース実装は `@qarows/shared` の `parseTestsYaml` / `parseResultsJson` が正とする。
 
@@ -16,8 +16,8 @@ project/
 
 | ファイル | 形式 | 更新頻度 | マージ対象 |
 |---|---|---|---|
-| `tests.yml` | YAML | 低（定義変更時） | Phase 1: 対象外 |
-| `results.json` | JSON | 高（テスト実行中） | Phase 1: 対象 |
+| `tests.yml` | YAML | 低（定義変更時） | Local 版: 対象外 |
+| `results.json` | JSON | 高（テスト実行中） | Local 版: 対象 |
 
 ### JSON Schema
 
@@ -269,7 +269,7 @@ testCases:
 
 ---
 
-## マージルール（Phase 1）
+## マージルール（Local 版）
 
 `results.json` を複数ファイルからマージする際のルール。
 
@@ -302,7 +302,7 @@ iOS Safari でレイアウト崩れあり（suzuki）
 
 ---
 
-## IndexedDB（Phase 1 ローカル保存）
+## IndexedDB（Local 版ローカル保存）
 
 ブラウザ内の IndexedDB（DB 名 `qarows-v1`、version 2）に、**プロジェクトごと**に `tests.yml` パース結果と `results.json` 相当のデータを保存する。
 

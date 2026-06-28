@@ -3,7 +3,7 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { createEmptyResults, parseTestsYaml } from "@qarows/shared";
 import { resetStorageForTests } from "@/lib/storage";
 import { IndexedDbProjectRepository } from "./indexed-db-project-repository";
-import { createPhase1WorkspaceController } from "./create-phase1-workspace";
+import { createLocalWorkspaceController } from "./create-local-workspace";
 
 describe("IndexedDbProjectRepository + WorkspaceController", () => {
   beforeEach(async () => {
@@ -12,7 +12,7 @@ describe("IndexedDbProjectRepository + WorkspaceController", () => {
 
   it("loads project and dispatches updateResultsBatch", async () => {
     const repository = new IndexedDbProjectRepository();
-    const controller = createPhase1WorkspaceController(repository);
+    const controller = createLocalWorkspaceController(repository);
     const yaml = `project:
   name: Demo
   id: demo

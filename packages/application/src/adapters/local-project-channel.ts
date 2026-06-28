@@ -13,7 +13,7 @@ export interface LocalProjectChannelOptions {
 }
 
 /**
- * Phase1 用 Channel。他クライアントへの broadcast はなく、直列キュー + ローカル適用のみ。
+ * Local 版用 Channel。他クライアントへの broadcast はなく、直列キュー + ローカル適用のみ。
  */
 export class LocalProjectChannel implements ProjectChannel {
   private projectId: string | null = null;

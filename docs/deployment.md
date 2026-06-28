@@ -2,11 +2,11 @@
 
 ## 概要
 
-Phase 1 と Phase 2 は **別アプリとして独立デプロイ・独立利用** できる。
+Local 版と Team 版は **別アプリとして独立デプロイ・独立利用** できる。
 
 構成図・データフロー: [architecture.md](./architecture.md)
 
-| | Phase 1 | Phase 2 |
+| | Local 版 | Team 版 |
 |---|---|---|
 | **誰がデプロイ** | メンテナ（公式インスタンス） | 利用者各自（組織・個人） |
 | **誰が使う** | 誰でも（公開 URL） | **そのデプロイの Access ポリシー内のメンバーのみ** |
@@ -20,8 +20,8 @@ Phase 1 と Phase 2 は **別アプリとして独立デプロイ・独立利用
 ```
 qarows/
 ├── apps/
-│   ├── v1/              # Phase 1: 静的 SPA
-│   └── v2/              # Phase 2: Workers + DO + Access
+│   ├── v1/              # Local 版: 静的 SPA
+│   └── v2/              # Team 版: Workers + DO + Access
 ├── packages/
 │   └── shared/          # 共通型定義・スキーマ・i18n
 ├── docs/                # ドキュメント（本ディレクトリ）
@@ -40,7 +40,7 @@ qarows/
 | 認証情報 | API トークン、Access シークレット | `.env` / `.dev.vars`（gitignore） |
 | アカウント固有情報 | Account ID、Zone ID | デプロイ時に各自設定 |
 | 社内限定設定 | 許可メールドメイン、Access ポリシー ID | サンプルファイル + 手順書 |
-| デプロイ先 URL | 公式 Phase 1 本番 URL | CI Secrets または README 外管理 |
+| デプロイ先 URL | 公式 Local 版本番 URL | CI Secrets または README 外管理 |
 
 ### リポジトリに含めるもの
 
@@ -48,12 +48,12 @@ qarows/
 |---|---|
 | `.env.example` | 環境変数のキー名一覧 |
 | `wrangler.toml.example` | Wrangler 設定テンプレート（プレースホルダー） |
-| `docs/deploy-v1.md` | Phase 1 公式デプロイ手順（メンテナ向け） |
-| `docs/deploy-v2.md` | Phase 2 セルフデプロイ手順（利用者向け） |
+| `docs/deploy-v1.md` | Local 版公式デプロイ手順（メンテナ向け） |
+| `docs/deploy-v2.md` | Team 版セルフデプロイ手順（利用者向け） |
 
 ---
 
-## Phase 1: 公式公開インスタンス
+## Local 版: 公式公開インスタンス
 
 ### 構成
 
@@ -75,9 +75,9 @@ URL にアクセスするだけ。アカウント不要。
 
 ---
 
-## Phase 2: セルフデプロイ（各自 closed 環境）
+## Team 版: セルフデプロイ（各自 closed 環境）
 
-Phase 2 に **公式の共通ホストはない**。fork / clone した利用者が、自分の Cloudflare アカウントに Worker + D1 + DO をデプロイし、Cloudflare Access で組織内に閉じる。A 社のデプロイと B 社のデプロイは完全に独立（マルチテナント SaaS ではない）。
+Team 版に **公式の共通ホストはない**。fork / clone した利用者が、自分の Cloudflare アカウントに Worker + D1 + DO をデプロイし、Cloudflare Access で組織内に閉じる。A 社のデプロイと B 社のデプロイは完全に独立（マルチテナント SaaS ではない）。
 
 ### 構成
 
@@ -114,11 +114,11 @@ Phase 2 に **公式の共通ホストはない**。fork / clone した利用者
 
 ---
 
-## Phase 1 / Phase 2 の共存
+## Local / Team 版の共存
 
 - 両方とも独立したアプリとして開発・デプロイ・利用可能
-- Phase 2 リリース後も Phase 1 は公式 URL で公開を継続
-- Phase 1 のオフラインモード（ファイル + IndexedDB + マージ）を Phase 2 に統合するかは **状況次第**
+- Team 版リリース後も Local 版は公式 URL で公開を継続
+- Local 版のオフラインモード（ファイル + IndexedDB + マージ）を Team 版に統合するかは **状況次第**
 
 ---
 

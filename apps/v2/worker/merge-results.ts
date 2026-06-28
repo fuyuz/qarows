@@ -46,7 +46,7 @@ export function parseMergeResultsBody(raw: unknown): MergeResultsRequestBody {
   return { resultsJsonList: list, expectedGeneration };
 }
 
-/** 全ファイルを先に検証し、Phase 1 ルールで 1 つの ResultsFile にまとめる */
+/** 全ファイルを先に検証し、Local 版マージルールで 1 つの ResultsFile にまとめる */
 export function parseAndMergeResultsJsonList(
   resultsJsonList: string[],
   definition: TestDefinition,
