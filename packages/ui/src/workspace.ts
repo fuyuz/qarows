@@ -32,3 +32,15 @@ export {
   type WorkspaceAppNavProps,
   type WorkspaceProjectPage,
 } from "./components/workspace/workspace-app-nav";
+export {
+  APP_NAV_KEYBINDINGS,
+  APP_NAV_LABELS,
+  APP_NAV_PAGES,
+  formatAppNavShortcut,
+  formatAppNavShortcutForPage,
+  isKeyboardTypingTarget,
+  isMacPlatform,
+  matchAppNavigationPage,
+  type AppNavigationPage,
+} from "./lib/app-keybindings";
+export { useAppNavigationShortcuts } from "./hooks/use-app-navigation-shortcuts";

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { AppNavigationPage } from "@qarows/ui";
 import { FilterBar } from "../components/FilterBar";
 import { RunProgressBar } from "../components/RunProgressBar";
 import { RunnerTaskList } from "../components/RunnerTaskList";
@@ -6,7 +7,13 @@ import { ShortcutHelp } from "../components/ShortcutHelp";
 import { TestRunner } from "../components/TestRunner";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 
-export function RunPageLayout({ nav }: { nav: ReactNode }) {
+export function RunPageLayout({
+  nav,
+  availableNavPages,
+}: {
+  nav: ReactNode;
+  availableNavPages?: readonly AppNavigationPage[];
+}) {
   const { definition, session } = useRunnerWorkspace();
 
   if (!definition || !session) return null;
@@ -24,7 +31,7 @@ export function RunPageLayout({ nav }: { nav: ReactNode }) {
         </div>
       </main>
       <RunProgressBar />
-      <ShortcutHelp />
+      <ShortcutHelp availableNavPages={availableNavPages} />
     </div>
   );
 }

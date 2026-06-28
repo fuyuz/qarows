@@ -16,7 +16,7 @@ export function RunPage() {
 
   return (
     <RunnerWorkspaceBridge>
-      <RunPageLayout nav={<AppNav />} />
+      <RunPageLayout nav={<AppNav />} availableNavPages={["session", "run"]} />
     </RunnerWorkspaceBridge>
   );
 }

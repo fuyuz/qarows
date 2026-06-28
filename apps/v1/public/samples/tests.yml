@@ -360,7 +360,15 @@ testCases:
       medium: "操作"
       minor: "ショートカットヘルプ"
     prerequisites: "テスト実行画面 (/run) を表示中"
-    description: "画面右下の ? にホバーするとキーボードショートカット一覧が表示される"
+    description: "画面右下の ? にホバーするとキーボードショートカット一覧（ランナー操作と画面移動）が表示される"
+
+  - id: TC-021a
+    category:
+      major: "テスト実行"
+      medium: "操作"
+      minor: "画面移動"
+    prerequisites: "プロジェクト読み込み済み、メモ欄フォーカス外"
+    description: "⌘⇧R / Ctrl+Shift+R でテスト実行、⌘⇧S / Ctrl+Shift+S でセッション設定、⌘⇧D / Ctrl+Shift+D でダッシュボード、⌘⇧B / Ctrl+Shift+B でバグ、⌘⇧M / Ctrl+Shift+M でマトリクスへ遷移できる"
 
   - id: TC-023
     category:

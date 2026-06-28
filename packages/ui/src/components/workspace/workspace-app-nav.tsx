@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Compass } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isValidSession, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
+import { useAppNavigationShortcuts } from "../../hooks/use-app-navigation-shortcuts";
+import { formatAppNavShortcutForPage, type AppNavigationPage } from "../../lib/app-keybindings";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -9,14 +11,16 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 
-export type WorkspaceProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs";
+export type WorkspaceProjectPage = AppNavigationPage;
 
 interface NavLinkItem {
   label: string;
   to: string;
+  page?: WorkspaceProjectPage;
 }
 
 export interface WorkspaceAppNavProps {
@@ -65,16 +69,18 @@ function workflowLinks(
   const canRun = availablePages.has("run");
 
   if (page === "run" && canSession) {
-    items.push({ label: "セッション設定", to: path("session") });
+    items.push({ label: "セッション設定", to: path("session"), page: "session" });
   } else if (page === "session" && canRun && session && isValidSession(session)) {
-    items.push({ label: "テスト実行", to: path("run") });
+    items.push({ label: "テスト実行", to: path("run"), page: "run" });
   } else if (
     (page === "matrix" || page === "dashboard" || page === "bugs") &&
     availablePages.has(page)
   ) {
-    if (canSession) items.push({ label: "セッション設定", to: path("session") });
+    if (canSession) {
+      items.push({ label: "セッション設定", to: path("session"), page: "session" });
+    }
     if (canRun && session && isValidSession(session)) {
-      items.push({ label: "テスト実行", to: path("run") });
+      items.push({ label: "テスト実行", to: path("run"), page: "run" });
     }
   }
 
@@ -86,7 +92,9 @@ function viewLinks(
   availablePages: Set<WorkspaceProjectPage>,
 ): NavLinkItem[] {
   return (["dashboard", "bugs", "matrix"] as const).flatMap((page) =>
-    availablePages.has(page) ? [{ label: VIEW_PAGE_LABELS[page], to: path(page) }] : [],
+    availablePages.has(page)
+      ? [{ label: VIEW_PAGE_LABELS[page], to: path(page), page }]
+      : [],
   );
 }
 
@@ -133,6 +141,14 @@ export function WorkspaceAppNav({
     setOpen(false);
   }, [location.pathname]);
 
+  useAppNavigationShortcuts({
+    enabled: definition != null,
+    navigate,
+    path,
+    session,
+    availablePages,
+  });
+
   if (!definition) return null;
 
   const hasWorkflow = workflow.length > 0;
@@ -168,6 +184,9 @@ export function WorkspaceAppNav({
                   }}
                 >
                   {link.label}
+                  {link.page ? (
+                    <DropdownMenuShortcut>{formatAppNavShortcutForPage(link.page)}</DropdownMenuShortcut>
+                  ) : null}
                 </DropdownMenuItem>
               ))}
             </>
@@ -188,6 +207,9 @@ export function WorkspaceAppNav({
                   }}
                 >
                   {link.label}
+                  {link.page ? (
+                    <DropdownMenuShortcut>{formatAppNavShortcutForPage(link.page)}</DropdownMenuShortcut>
+                  ) : null}
                 </DropdownMenuItem>
               ))}
             </>
