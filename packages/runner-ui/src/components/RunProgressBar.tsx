@@ -11,7 +11,7 @@ import { formatRunnerFilterTitle } from "../lib/runner-utils";
 
 export function RunProgressBar() {
   const { definition, results, session } = useRunnerWorkspace();
-  const { runnerFilters, bugFilters } = useRunnerQueryState();
+  const { runnerFilters } = useRunnerQueryState();
 
   const { overall, filtered } = useMemo(() => {
     const empty = {
@@ -31,7 +31,6 @@ export function RunProgressBar() {
       session,
       { ...runnerFilters, onlyIncomplete: false },
       results,
-      bugFilters,
     );
     const filteredStats = computeRunProgressForTestCases(
       filterScopeCases,
@@ -41,7 +40,7 @@ export function RunProgressBar() {
     );
 
     return { overall: overallStats, filtered: filteredStats };
-  }, [bugFilters, definition, results, runnerFilters, session]);
+  }, [definition, results, runnerFilters, session]);
 
   if (!definition || !session || overall.total === 0) return null;
 

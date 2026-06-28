@@ -204,7 +204,7 @@ function TaskListPanel({
 
 export function RunnerTaskList() {
   const { definition, results, session, lastUpdatedTestId } = useRunnerWorkspace();
-  const { runnerFilters, testId, setTestId, bugFilters } = useRunnerQueryState();
+  const { runnerFilters, testId, setTestId } = useRunnerQueryState();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
@@ -212,8 +212,8 @@ export function RunnerTaskList() {
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
-    return resolveRunnerTargets(definition, session, runnerFilters, results, bugFilters);
-  }, [bugFilters, definition, results, runnerFilters, session]);
+    return resolveRunnerTargets(definition, session, runnerFilters, results);
+  }, [definition, results, runnerFilters, session]);
 
   const runnerIndex = useMemo(() => {
     if (!testId) return -1;

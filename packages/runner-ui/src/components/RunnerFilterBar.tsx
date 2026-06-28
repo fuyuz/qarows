@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ListFilterIcon } from "lucide-react";
-import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode, type BugSeverity, type BugStatus } from "@qarows/shared";
+import {
+  BUG_SEVERITY_LABELS,
+  BUG_STATUS_LABELS,
+  getRunnerTargetMode,
+  type BugSeverity,
+  type BugStatus,
+  type RunnerFilters,
+} from "@qarows/shared";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import { Button } from "@qarows/ui";
@@ -34,6 +41,15 @@ import {
 const ALL = "__all__";
 
 type RunnerMode = "filter" | "scenario";
+
+const RUNNER_SCOPE_FILTER_OPTIONS = [
+  { key: "onlyIncomplete", label: "未実施のみ" },
+  { key: "onlyWithBugs", label: "バグを含む" },
+  { key: "onlyWithNg", label: "NGを含む" },
+] as const satisfies ReadonlyArray<{
+  key: keyof Pick<RunnerFilters, "onlyIncomplete" | "onlyWithBugs" | "onlyWithNg">;
+  label: string;
+}>;
 
 const modeSwitchButtonClass = cn(
   "relative z-10 h-8 rounded-md px-3 text-sm font-semibold transition-[color,transform] duration-200 ease-out motion-reduce:transition-none",
@@ -129,7 +145,7 @@ function RunnerModeSwitch({
   );
 }
 
-function BugFilterCheckGroup<T extends string>({
+function FilterCheckGroup<T extends string>({
   label,
   options,
   labels,
@@ -163,6 +179,88 @@ function BugFilterCheckGroup<T extends string>({
         })}
       </div>
     </div>
+  );
+}
+
+function RunnerScopeFilterDialog({
+  runnerFilters,
+  setRunnerFilters,
+}: {
+  runnerFilters: RunnerFilters;
+  setRunnerFilters: (filters: RunnerFilters) => void;
+}) {
+  const activeCount = RUNNER_SCOPE_FILTER_OPTIONS.filter(({ key }) => runnerFilters[key]).length;
+  const active = activeCount > 0;
+
+  const toggleScopeFilter = (
+    key: (typeof RUNNER_SCOPE_FILTER_OPTIONS)[number]["key"],
+    checked: boolean,
+  ) => {
+    void setRunnerFilters({
+      ...runnerFilters,
+      [key]: checked,
+    });
+  };
+
+  const clearScopeFilters = () => {
+    void setRunnerFilters({
+      ...runnerFilters,
+      onlyIncomplete: false,
+      onlyWithBugs: false,
+      onlyWithNg: false,
+    });
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant={active ? "default" : "outline"}
+          size="icon-sm"
+          aria-label="テストを絞り込み"
+          aria-pressed={active}
+          className={cn("relative shadow-xs", active && "hover:bg-primary/90")}
+        >
+          <ListFilterIcon className="size-4" aria-hidden />
+          {active && (
+            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full border border-primary bg-background text-[10px] font-bold text-primary shadow-sm">
+              {activeCount}
+            </span>
+          )}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>テストの絞り込み</DialogTitle>
+          <DialogDescription>
+            複数選択できます。未選択の項目は絞り込みません。
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2.5">
+          {RUNNER_SCOPE_FILTER_OPTIONS.map(({ key, label }) => (
+            <label
+              key={key}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-200",
+                runnerFilters[key] && "bg-primary/10 text-primary",
+              )}
+            >
+              <Checkbox
+                checked={runnerFilters[key]}
+                onCheckedChange={(checked) => toggleScopeFilter(key, checked === true)}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" disabled={!active} onClick={clearScopeFilters}>
+            すべてクリア
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -207,14 +305,14 @@ function BugFilterDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
-          <BugFilterCheckGroup
+          <FilterCheckGroup
             label="重要度"
             options={BUG_SEVERITY_VALUES}
             labels={BUG_SEVERITY_LABELS}
             selected={bugFilters.priorities}
             onToggle={toggleBugPriority}
           />
-          <BugFilterCheckGroup
+          <FilterCheckGroup
             label="ステータス"
             options={BUG_STATUS_VALUES}
             labels={BUG_STATUS_LABELS}
@@ -463,68 +561,10 @@ export function RunnerFilterBar({
           </div>
 
           {variant === "runner" && (
-            <>
-              <label
-                className={cn(
-                  "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
-                  "max-md:basis-full max-md:order-last",
-                  runnerFilters.onlyIncomplete && "bg-primary/10 text-primary",
-                )}
-              >
-                <Checkbox
-                  checked={runnerFilters.onlyIncomplete}
-                  onCheckedChange={(checked) =>
-                    void setRunnerFilters({
-                      ...runnerFilters,
-                      onlyIncomplete: checked === true,
-                    })
-                  }
-                />
-                <span>未実施のみ</span>
-              </label>
-              <label
-                className={cn(
-                  "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
-                  "max-md:basis-full max-md:order-last",
-                  runnerFilters.onlyWithBugs && "bg-primary/10 text-primary",
-                )}
-              >
-                <Checkbox
-                  checked={runnerFilters.onlyWithBugs}
-                  onCheckedChange={(checked) =>
-                    void setRunnerFilters({
-                      ...runnerFilters,
-                      onlyWithBugs: checked === true,
-                    })
-                  }
-                />
-                <span>バグを含む</span>
-              </label>
-              <label
-                className={cn(
-                  "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
-                  "max-md:basis-full max-md:order-last",
-                  runnerFilters.onlyWithNg && "bg-primary/10 text-primary",
-                )}
-              >
-                <Checkbox
-                  checked={runnerFilters.onlyWithNg}
-                  onCheckedChange={(checked) =>
-                    void setRunnerFilters({
-                      ...runnerFilters,
-                      onlyWithNg: checked === true,
-                    })
-                  }
-                />
-                <span>NGを含む</span>
-              </label>
-              <BugFilterDialog
-                bugFilters={bugFilters}
-                toggleBugPriority={toggleBugPriority}
-                toggleBugStatus={toggleBugStatus}
-                onClear={() => void setQuery({ priority: [], status: [] })}
-              />
-            </>
+            <RunnerScopeFilterDialog
+              runnerFilters={runnerFilters}
+              setRunnerFilters={setRunnerFilters}
+            />
           )}
 
           {variant === "bugs" && (
@@ -532,7 +572,7 @@ export function RunnerFilterBar({
               bugFilters={bugFilters}
               toggleBugPriority={toggleBugPriority}
               toggleBugStatus={toggleBugStatus}
-              onClear={() => void setQuery({ priority: [], status: [] })}
+              onClear={() => void setQuery({ bugFilters: [] })}
             />
           )}
         </div>

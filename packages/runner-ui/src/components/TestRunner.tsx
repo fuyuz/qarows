@@ -49,7 +49,7 @@ export function TestRunner() {
     updateTestCase,
     clearTestResult,
   } = useRunnerWorkspace();
-  const { runnerFilters, filtersSettled, testId, setTestId, bugFilters } = useRunnerQueryState();
+  const { runnerFilters, filtersSettled, testId, setTestId } = useRunnerQueryState();
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
@@ -74,8 +74,8 @@ export function TestRunner() {
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
-    return resolveRunnerTargets(definition, session, runnerFilters, results, bugFilters);
-  }, [bugFilters, definition, results, session, runnerFilters]);
+    return resolveRunnerTargets(definition, session, runnerFilters, results);
+  }, [definition, results, runnerFilters, session]);
 
   const maxSlide = targets.length + 1;
   const testSlideIndex = slideIndex >= 1 && slideIndex <= targets.length ? slideIndex - 1 : null;

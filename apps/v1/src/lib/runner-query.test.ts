@@ -3,6 +3,7 @@ import type { ResultsFile, TestDefinition } from "@qarows/shared";
 import {
   isRunnerFiltersSettled,
   parseRunnerSearchParams,
+  parseScopeFilterTokens,
   queryToRunnerFilters,
   runnerFiltersToQuery,
   runnerFiltersToSearchParams,
@@ -33,7 +34,9 @@ const defaultScopeFilters = {
 
 describe("runner query roundtrip", () => {
   it("parses filter mode from URL", () => {
-    const params = new URLSearchParams("major=Auth&medium=Login&incomplete=1&test=TC-001");
+    const params = new URLSearchParams(
+      "major=Auth&medium=Login&filters=incomplete&test=TC-001",
+    );
     const { filters, testId } = parseRunnerSearchParams(params);
     expect(filters).toEqual({
       targetMode: "filter",
@@ -44,6 +47,14 @@ describe("runner query roundtrip", () => {
       onlyWithNg: false,
     });
     expect(testId).toBe("TC-001");
+  });
+
+  it("parses legacy incomplete flag into filters tokens", () => {
+    expect(parseScopeFilterTokens(new URLSearchParams("incomplete=1"))).toEqual(["incomplete"]);
+    expect(parseScopeFilterTokens(new URLSearchParams("withBugs=1&withNg=1"))).toEqual([
+      "ng",
+      "bugs",
+    ]);
   });
 
   it("parses scenario mode from URL", () => {
@@ -68,7 +79,7 @@ describe("runner query roundtrip", () => {
       "TC-002",
     );
     expect(params.get("major")).toBe("Auth");
-    expect(params.get("incomplete")).toBe("1");
+    expect(params.get("filters")).toBe("incomplete");
     expect(params.get("test")).toBe("TC-002");
     expect(params.get("mode")).toBeNull();
   });
@@ -89,15 +100,15 @@ describe("runner query roundtrip", () => {
     expect(serialized.get("minor")).toBe("OAuth");
   });
 
-  it("roundtrips withBugs and withNg flags", () => {
-    const params = new URLSearchParams("withBugs=1&withNg=1");
+  it("roundtrips combined scope filters", () => {
+    const params = new URLSearchParams("filters=incomplete,ng,bugs");
     const { filters } = parseRunnerSearchParams(params);
-    expect(filters.onlyWithBugs).toBe(true);
+    expect(filters.onlyIncomplete).toBe(true);
     expect(filters.onlyWithNg).toBe(true);
+    expect(filters.onlyWithBugs).toBe(true);
 
     const serialized = runnerFiltersToSearchParams(filters);
-    expect(serialized.get("withBugs")).toBe("1");
-    expect(serialized.get("withNg")).toBe("1");
+    expect(serialized.get("filters")).toBe("incomplete,ng,bugs");
   });
 
   it("clears category filters when switching to scenario mode", () => {
@@ -112,9 +123,7 @@ describe("runner query roundtrip", () => {
       medium: null,
       minor: null,
       scenario: "smoke",
-      incomplete: false,
-      withBugs: false,
-      withNg: false,
+      filters: [],
     });
   });
 
@@ -136,11 +145,11 @@ describe("runner query roundtrip", () => {
   });
 
   it("removes only test id while preserving filter query params", () => {
-    const before = new URLSearchParams("major=Auth&test=TC-999&incomplete=1");
+    const before = new URLSearchParams("major=Auth&test=TC-999&filters=incomplete");
     const after = sanitizeRunnerSearchParams(definition, results, before);
     expect(after.get("test")).toBeNull();
     expect(after.get("major")).toBe("Auth");
-    expect(after.get("incomplete")).toBe("1");
+    expect(after.get("filters")).toBe("incomplete");
   });
 
   it("removes only bug id while preserving test id", () => {

@@ -1,10 +1,13 @@
 import {
-  parseAsBoolean,
+  parseAsArrayOf,
   parseAsString,
   parseAsStringLiteral,
   type UrlKeys,
 } from "nuqs";
 import type { ResultsFile, RunnerFilters, RunnerTargetMode, TestDefinition } from "@qarows/shared";
+
+export const RUNNER_SCOPE_FILTER_VALUES = ["incomplete", "ng", "bugs"] as const;
+export type RunnerScopeFilterToken = (typeof RUNNER_SCOPE_FILTER_VALUES)[number];
 
 export const defaultRunnerFilters: RunnerFilters = {
   targetMode: "filter",
@@ -19,9 +22,7 @@ export const runnerQueryParsers = {
   medium: parseAsString,
   minor: parseAsString,
   scenario: parseAsString,
-  incomplete: parseAsBoolean.withDefault(false),
-  withBugs: parseAsBoolean.withDefault(false),
-  withNg: parseAsBoolean.withDefault(false),
+  filters: parseAsArrayOf(parseAsStringLiteral(RUNNER_SCOPE_FILTER_VALUES)).withDefault([]),
   test: parseAsString,
   bug: parseAsString,
 };
@@ -32,26 +33,60 @@ export type RunnerQueryState = {
   medium: string | null;
   minor: string | null;
   scenario: string | null;
-  incomplete: boolean;
-  withBugs: boolean;
-  withNg: boolean;
+  filters: RunnerScopeFilterToken[];
   test: string | null;
   bug: string | null;
 };
 
-export function searchParamsToRunnerQuery(search: URLSearchParams): RunnerQueryState {
+function isRunnerScopeFilterToken(value: string): value is RunnerScopeFilterToken {
+  return (RUNNER_SCOPE_FILTER_VALUES as readonly string[]).includes(value);
+}
+
+export function parseScopeFilterTokens(search: URLSearchParams): RunnerScopeFilterToken[] {
+  const raw = search.get("filters");
+  if (raw) {
+    return [...new Set(raw.split(",").filter(isRunnerScopeFilterToken))];
+  }
+
+  const legacy: RunnerScopeFilterToken[] = [];
   const incompleteRaw = search.get("incomplete");
-  const withBugsRaw = search.get("withBugs");
+  if (incompleteRaw === "1" || incompleteRaw === "true") legacy.push("incomplete");
   const withNgRaw = search.get("withNg");
+  if (withNgRaw === "1" || withNgRaw === "true") legacy.push("ng");
+  const withBugsRaw = search.get("withBugs");
+  if (withBugsRaw === "1" || withBugsRaw === "true") legacy.push("bugs");
+  return legacy;
+}
+
+export function scopeFilterTokensToFlags(tokens: readonly RunnerScopeFilterToken[]): {
+  onlyIncomplete: boolean;
+  onlyWithBugs: boolean;
+  onlyWithNg: boolean;
+} {
+  const set = new Set(tokens);
+  return {
+    onlyIncomplete: set.has("incomplete"),
+    onlyWithBugs: set.has("bugs"),
+    onlyWithNg: set.has("ng"),
+  };
+}
+
+export function runnerFiltersToScopeTokens(filters: RunnerFilters): RunnerScopeFilterToken[] {
+  const tokens: RunnerScopeFilterToken[] = [];
+  if (filters.onlyIncomplete) tokens.push("incomplete");
+  if (filters.onlyWithNg) tokens.push("ng");
+  if (filters.onlyWithBugs) tokens.push("bugs");
+  return tokens;
+}
+
+export function searchParamsToRunnerQuery(search: URLSearchParams): RunnerQueryState {
   return {
     mode: search.get("mode") === "scenario" ? "scenario" : "filter",
     major: search.get("major"),
     medium: search.get("medium"),
     minor: search.get("minor"),
     scenario: search.get("scenario"),
-    incomplete: incompleteRaw === "1" || incompleteRaw === "true",
-    withBugs: withBugsRaw === "1" || withBugsRaw === "true",
-    withNg: withNgRaw === "1" || withNgRaw === "true",
+    filters: parseScopeFilterTokens(search),
     test: search.get("test"),
     bug: search.get("bug"),
   };
@@ -71,14 +106,13 @@ export function parseRunnerSearchParams(search: URLSearchParams): {
 }
 
 export function queryToRunnerFilters(query: RunnerQueryState): RunnerFilters {
+  const scopeFlags = scopeFilterTokensToFlags(query.filters);
   const targetMode = query.mode;
   if (targetMode === "scenario") {
     return {
       targetMode: "scenario",
       scenarioId: query.scenario ?? undefined,
-      onlyIncomplete: query.incomplete,
-      onlyWithBugs: query.withBugs,
-      onlyWithNg: query.withNg,
+      ...scopeFlags,
     };
   }
   return {
@@ -86,9 +120,7 @@ export function queryToRunnerFilters(query: RunnerQueryState): RunnerFilters {
     majorCategoryFilter: query.major ?? undefined,
     mediumCategoryFilter: query.medium ?? undefined,
     minorCategoryFilter: query.minor ?? undefined,
-    onlyIncomplete: query.incomplete,
-    onlyWithBugs: query.withBugs,
-    onlyWithNg: query.withNg,
+    ...scopeFlags,
   };
 }
 
@@ -102,8 +134,9 @@ export function isRunnerFiltersSettled(filters: RunnerFilters): boolean {
 
 export function runnerFiltersToQuery(
   filters: RunnerFilters,
-): Pick<RunnerQueryState, "mode" | "major" | "medium" | "minor" | "scenario" | "incomplete" | "withBugs" | "withNg"> {
+): Pick<RunnerQueryState, "mode" | "major" | "medium" | "minor" | "scenario" | "filters"> {
   const mode = filters.targetMode ?? "filter";
+  const scopeTokens = runnerFiltersToScopeTokens(filters);
   if (mode === "scenario") {
     return {
       mode: "scenario",
@@ -111,9 +144,7 @@ export function runnerFiltersToQuery(
       medium: null,
       minor: null,
       scenario: filters.scenarioId ?? null,
-      incomplete: filters.onlyIncomplete,
-      withBugs: filters.onlyWithBugs,
-      withNg: filters.onlyWithNg,
+      filters: scopeTokens,
     };
   }
   return {
@@ -122,9 +153,7 @@ export function runnerFiltersToQuery(
     medium: filters.mediumCategoryFilter ?? null,
     minor: filters.minorCategoryFilter ?? null,
     scenario: null,
-    incomplete: filters.onlyIncomplete,
-    withBugs: filters.onlyWithBugs,
-    withNg: filters.onlyWithNg,
+    filters: scopeTokens,
   };
 }
 
@@ -145,9 +174,7 @@ export function runnerFiltersToSearchParams(
   if (query.medium) params.set("medium", query.medium);
   if (query.minor) params.set("minor", query.minor);
   if (query.scenario) params.set("scenario", query.scenario);
-  if (query.incomplete) params.set("incomplete", "1");
-  if (query.withBugs) params.set("withBugs", "1");
-  if (query.withNg) params.set("withNg", "1");
+  if (query.filters.length > 0) params.set("filters", query.filters.join(","));
   if (testId) params.set("test", testId);
   if (bugId) params.set("bug", bugId);
   return params;
@@ -184,9 +211,7 @@ export const runnerQueryKeys = {
   medium: "medium",
   minor: "minor",
   scenario: "scenario",
-  incomplete: "incomplete",
-  withBugs: "withBugs",
-  withNg: "withNg",
+  filters: "filters",
   test: "test",
   bug: "bug",
 } satisfies UrlKeys<typeof runnerQueryParsers>;

@@ -376,9 +376,9 @@ testCases:
     category:
       major: "テスト実行"
       medium: "フィルタ"
-      minor: "バグ絞り込み"
+      minor: "絞り込みボタン"
     prerequisites: "テスト実行画面 (/run) を表示中"
-    description: "バグ画面と同じ絞り込みボタン（重要度・ステータス）が表示され、選択すると紐づくバグ条件に合うテストのみに絞り込まれる"
+    description: "バグ画面と同じ絞り込みボタンが表示され、未実施のみ・バグを含む・NGを含むの3チェックでテスト一覧が絞り込まれる"
 
   - id: TC-018
     category:
@@ -600,7 +600,7 @@ testCases:
       major: "URL"
       medium: "フィルタ"
     prerequisites: "テスト実行画面を表示中"
-    description: "大分類・未実施のみ・表示中テスト（test=）が URL クエリに反映され、リロード後も同じ状態になる"
+    description: "大分類・filters（未実施/NG/バグ）・表示中テスト（test=）が URL クエリに反映され、リロード後も同じ状態になる"
 
   - id: TC-050
     category:

@@ -5,17 +5,16 @@ import { TestMatrixTable } from "@/components/TestMatrixTable";
 import { useApp } from "@/context/AppContext";
 import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
 import { getAllEnvironmentIds } from "@/lib/run-progress";
-import { filterTestCasesByBugFilters } from "@/lib/runner-targets";
 import { resolveMatrixTestCases } from "@/lib/matrix-test-cases";
 
 export function MatrixPage() {
   const { definition, results, session } = useApp();
-  const { runnerFilters, bugFilters } = useRunnerQueryState();
+  const { runnerFilters } = useRunnerQueryState();
 
   const testCases = useMemo(() => {
     if (!definition || !results) return [];
     const allEnvIds = getAllEnvironmentIds(definition);
-    const base = resolveMatrixTestCases(
+    return resolveMatrixTestCases(
       definition,
       runnerFilters,
       results.results,
@@ -23,8 +22,7 @@ export function MatrixPage() {
       session,
       results.bugs,
     );
-    return filterTestCasesByBugFilters(base, results.bugs, bugFilters);
-  }, [bugFilters, definition, results, runnerFilters, session]);
+  }, [definition, results, runnerFilters, session]);
 
   if (!definition || !results) return null;
 

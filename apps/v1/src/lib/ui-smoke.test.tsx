@@ -37,6 +37,6 @@ describe("projectPath", () => {
         onlyWithBugs: false,
         onlyWithNg: false,
       }, "TC-001"),
-    ).toBe("/p/my%20project/run?incomplete=1&test=TC-001");
+    ).toBe("/p/my%20project/run?filters=incomplete&test=TC-001");
   });
 });

@@ -1,7 +1,13 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryStates } from "nuqs";
-import type { RunnerFilters } from "@qarows/shared";
+import type { BugSeverity, BugStatus, RunnerFilters } from "@qarows/shared";
+import {
+  bugFilterTokensToBugFilters,
+  bugFiltersToTokens,
+  bugQueryParsers,
+  type BugFilterToken,
+} from "../lib/bug-query";
 import {
   isRunnerFiltersSettled,
   parseRunnerSearchParams,
@@ -9,8 +15,6 @@ import {
   runnerFiltersToQuery,
   runnerQueryParsers,
 } from "../lib/runner-query";
-import { bugQueryParsers } from "../lib/bug-query";
-import type { BugSeverity, BugStatus } from "@qarows/shared";
 
 function nuqsToRunnerFilters(query: {
   mode: "filter" | "scenario";
@@ -18,9 +22,7 @@ function nuqsToRunnerFilters(query: {
   medium: string | null;
   minor: string | null;
   scenario: string | null;
-  incomplete: boolean;
-  withBugs: boolean;
-  withNg: boolean;
+  filters: ReturnType<typeof runnerFiltersToQuery>["filters"];
 }): RunnerFilters {
   return queryToRunnerFilters({
     mode: query.mode,
@@ -28,9 +30,7 @@ function nuqsToRunnerFilters(query: {
     medium: query.medium,
     minor: query.minor,
     scenario: query.scenario,
-    incomplete: query.incomplete,
-    withBugs: query.withBugs,
-    withNg: query.withNg,
+    filters: query.filters,
     test: null,
     bug: null,
   });
@@ -64,11 +64,10 @@ export function useRunnerQueryState() {
         ...runnerFiltersToQuery(filters),
         test: options?.keepTest ? (query.test ?? urlState.testId) : (options?.testId ?? null),
         bug: options?.keepBug ? (query.bug ?? urlState.bugId) : (options?.bugId ?? null),
-        priority: query.priority,
-        status: query.status,
+        bugFilters: query.bugFilters,
       });
     },
-    [query.bug, query.priority, query.status, query.test, setQuery, urlState.bugId, urlState.testId],
+    [query.bug, query.bugFilters, query.test, setQuery, urlState.bugId, urlState.testId],
   );
 
   const setTestId = useCallback(
@@ -86,33 +85,40 @@ export function useRunnerQueryState() {
   );
 
   const bugFilters = useMemo(
-    () => ({
-      priorities: query.priority,
-      statuses: query.status,
-    }),
-    [query.priority, query.status],
+    () => bugFilterTokensToBugFilters(query.bugFilters),
+    [query.bugFilters],
+  );
+
+  const toggleBugFilterToken = useCallback(
+    (token: BugFilterToken) => {
+      const current = query.bugFilters;
+      const next = current.includes(token)
+        ? current.filter((value) => value !== token)
+        : [...current, token];
+      void setQuery({ bugFilters: next });
+    },
+    [query.bugFilters, setQuery],
   );
 
   const toggleBugPriority = useCallback(
     (priority: BugSeverity) => {
-      const current = query.priority;
-      const next = current.includes(priority)
-        ? current.filter((value) => value !== priority)
-        : [...current, priority];
-      void setQuery({ priority: next });
+      toggleBugFilterToken(priority);
     },
-    [query.priority, setQuery],
+    [toggleBugFilterToken],
   );
 
   const toggleBugStatus = useCallback(
     (status: BugStatus) => {
-      const current = query.status;
-      const next = current.includes(status)
-        ? current.filter((value) => value !== status)
-        : [...current, status];
-      void setQuery({ status: next });
+      toggleBugFilterToken(status);
     },
-    [query.status, setQuery],
+    [toggleBugFilterToken],
+  );
+
+  const setBugFilters = useCallback(
+    (filters: { priorities: BugSeverity[]; statuses: BugStatus[] }) => {
+      void setQuery({ bugFilters: bugFiltersToTokens(filters) });
+    },
+    [setQuery],
   );
 
   return {
@@ -126,6 +132,7 @@ export function useRunnerQueryState() {
     setBugId,
     toggleBugPriority,
     toggleBugStatus,
+    setBugFilters,
     setQuery,
   };
 }
