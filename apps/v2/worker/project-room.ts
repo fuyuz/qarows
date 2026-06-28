@@ -10,7 +10,6 @@ interface StoredRoomState extends RoomSnapshot {}
 interface ProcessedPatchRecord {
   revision: number;
   document: SyncDocument;
-  payload: ResultsFile | SessionConfig | null;
   user: string;
 }
 
@@ -172,6 +171,11 @@ export class ProjectRoom extends DurableObject<Env> {
     await this.ctx.storage.put(PROCESSED_PATCHES_KEY, Object.fromEntries(map));
   }
 
+  private payloadForDocument(document: SyncDocument): ResultsFile | SessionConfig | null {
+    const state = this.state!;
+    return document === "results" ? state.results : state.session;
+  }
+
   private async applyPatch(
     patchId: string,
     document: SyncDocument,
@@ -185,7 +189,7 @@ export class ProjectRoom extends DurableObject<Env> {
         revision: existing.revision,
         duplicate: true,
         document: existing.document,
-        payload: existing.payload,
+        payload: this.payloadForDocument(existing.document),
         user: existing.user,
       };
     }
@@ -201,20 +205,18 @@ export class ProjectRoom extends DurableObject<Env> {
 
     await this.ctx.storage.put("state", state);
 
-    const record: ProcessedPatchRecord = {
+    processed.set(patchId, {
       revision: state.revision,
       document,
-      payload,
       user,
-    };
-    processed.set(patchId, record);
+    });
     await this.saveProcessedPatches(processed);
 
     return {
       revision: state.revision,
       duplicate: false,
       document,
-      payload,
+      payload: this.payloadForDocument(document),
       user,
     };
   }

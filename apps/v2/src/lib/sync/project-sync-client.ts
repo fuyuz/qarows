@@ -154,15 +154,18 @@ export class ProjectSyncClient {
           this.handlers?.onSnapshot(message.snapshot);
           this.flushOutboundQueue();
           return;
-        case "patch":
-          if (this.abandonedPatchIds.has(message.patchId)) {
+        case "patch": {
+          const abandoned = this.abandonedPatchIds.has(message.patchId);
+          if (abandoned) {
             this.abandonedPatchIds.delete(message.patchId);
             this.removeQueuedPatch(message.patchId);
-            return;
           }
           this.handlers?.onPatch(message.document, message.payload, message.revision);
-          this.resolvePendingPatch(message.patchId);
+          if (!abandoned) {
+            this.resolvePendingPatch(message.patchId);
+          }
           return;
+        }
         case "error":
           this.handlers?.onError(message.message);
           return;
