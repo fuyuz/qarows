@@ -11,6 +11,12 @@ export type ProjectEvent =
       revision: number;
       commandId: string;
     }
+  | {
+      type: "snapshotReplaced";
+      snapshot: ProjectSnapshot;
+      revision: number;
+      generation: string;
+    }
   | { type: "connectionState"; state: ConnectionState }
   | { type: "error"; message: string };
 

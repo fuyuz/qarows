@@ -5,6 +5,7 @@ import { parseProjectCommand } from "@qarows/application";
 export type { ProjectCommand };
 
 export interface RoomSnapshot {
+  generation: string;
   revision: number;
   definition: TestDefinition;
   results: ResultsFile;
@@ -15,6 +16,7 @@ export type ClientMessage =
   | { type: "ping" }
   | {
       type: "command";
+      generation: string;
       command: ProjectCommand;
       commandId: string;
       user: string;
@@ -32,6 +34,18 @@ export type ServerMessage =
       appliedAt: string;
       snapshot: RoomSnapshot;
     }
+  | {
+      type: "commandRejected";
+      commandId: string;
+      reason: "generation_mismatch";
+      snapshot: RoomSnapshot;
+    }
+  | {
+      type: "snapshotReplaced";
+      generation: string;
+      revision: number;
+      snapshot: RoomSnapshot;
+    }
   | { type: "error"; message: string };
 
 /** Wire format for DO hibernation auto ping/pong (must match client JSON.stringify). */
@@ -44,6 +58,8 @@ export function parseClientMessage(raw: string): ClientMessage | null {
     if (data.type === "ping") return data;
     if (
       data.type === "command" &&
+      typeof data.generation === "string" &&
+      data.generation.length > 0 &&
       typeof data.commandId === "string" &&
       data.commandId.length > 0 &&
       typeof data.user === "string" &&

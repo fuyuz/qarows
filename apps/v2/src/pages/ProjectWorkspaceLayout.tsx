@@ -10,7 +10,7 @@ import { SessionPageRoute } from "@/pages/SessionPage";
 import type { ProjectPage } from "@/lib/project-routes";
 
 function ProjectWorkspaceShell() {
-  const { ready, syncError, connected } = useProjectSync();
+  const { ready, syncError, connected, syncNotice } = useProjectSync();
 
   if (!ready) {
     return (
@@ -30,6 +30,16 @@ function ProjectWorkspaceShell() {
 
   return (
     <RunnerWorkspaceBridge>
+      {syncNotice && (
+        <div
+          className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-3"
+          role="status"
+        >
+          <div className="pointer-events-auto rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-950 shadow-sm">
+            {syncNotice}
+          </div>
+        </div>
+      )}
       <Outlet />
     </RunnerWorkspaceBridge>
   );

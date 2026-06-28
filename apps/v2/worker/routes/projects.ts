@@ -1,7 +1,7 @@
-import { parseTestsYaml } from "@qarows/shared";
+import { parseTestsYaml, getProjectIdFromDefinition } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { deleteProject, getProject, insertProject, listProjects } from "../db";
+import { deleteProject, getProject, insertProject, listProjects, ProjectIdMismatchError } from "../db";
 import { BodyTooLargeError, MAX_TESTS_YAML_BYTES, readRequestTextWithLimit } from "../request-body";
 import type { AppEnv } from "../types";
 
@@ -26,6 +26,7 @@ function serializeSnapshot(snapshot: NonNullable<Awaited<ReturnType<typeof getPr
     definition: snapshot.definition,
     results: snapshot.results,
     session: snapshot.session,
+    generation: snapshot.generation,
     updatedAt: snapshot.updatedAt,
     createdAt: snapshot.createdAt,
   };
@@ -110,7 +111,7 @@ projectsRoutes.post("/", async (c) => {
   try {
     const snapshot = await insertProject(c.env.DB, { testsYaml });
     const stub = c.env.PROJECT.getByName(snapshot.id);
-    await stub.initFromD1();
+    await stub.initFromD1(snapshot.id);
     return c.json({ project: serializeSnapshot(snapshot) }, 201);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create project";
@@ -123,6 +124,61 @@ projectsRoutes.post("/", async (c) => {
 
 projectsRoutes.get("/:projectId", async (c) => {
   const snapshot = await getProject(c.env.DB, c.req.param("projectId"));
+  if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
+  return c.json({ project: serializeSnapshot(snapshot) });
+});
+
+projectsRoutes.put("/:projectId/definition", async (c) => {
+  const projectId = c.req.param("projectId");
+  let testsYaml: string;
+
+  try {
+    testsYaml = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES);
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) {
+      throw new HTTPException(413, {
+        message: `tests.yml exceeds maximum size (${MAX_TESTS_YAML_BYTES} bytes)`,
+      });
+    }
+    throw err;
+  }
+
+  if (!testsYaml.trim()) {
+    throw new HTTPException(400, { message: "Request body is required" });
+  }
+
+  let definition;
+  try {
+    definition = parseTestsYaml(testsYaml);
+  } catch (err) {
+    throw new HTTPException(400, {
+      message: err instanceof Error ? err.message : "Invalid tests.yml",
+    });
+  }
+
+  if (getProjectIdFromDefinition(definition) !== projectId) {
+    throw new HTTPException(400, {
+      message: "tests.yml project.id が URL の projectId と一致しません",
+    });
+  }
+
+  const existing = await getProject(c.env.DB, projectId);
+  if (!existing) throw new HTTPException(404, { message: "Project not found" });
+
+  const stub = c.env.PROJECT.getByName(projectId);
+  try {
+    await stub.replaceProjectFromWorker({ projectId, testsYaml });
+  } catch (err) {
+    if (err instanceof ProjectIdMismatchError) {
+      throw new HTTPException(400, { message: err.message });
+    }
+    console.error("Failed to replace project definition", err);
+    throw new HTTPException(500, {
+      message: err instanceof Error ? err.message : "Failed to replace tests.yml",
+    });
+  }
+
+  const snapshot = await getProject(c.env.DB, projectId);
   if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
   return c.json({ project: serializeSnapshot(snapshot) });
 });
@@ -150,6 +206,7 @@ projectsRoutes.post("/:projectId/clear-results", async (c) => {
   const stub = c.env.PROJECT.getByName(projectId);
   try {
     await stub.applyCommandFromWorker({
+      projectId,
       commandId: crypto.randomUUID(),
       command: { type: "clearResults" },
       user: c.get("user").email,

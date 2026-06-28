@@ -130,7 +130,7 @@ export class WorkspaceController {
   }
 
   private handleChannelEvent(event: ProjectEvent): void {
-    if (event.type === "snapshot" || event.type === "commandApplied") {
+    if (event.type === "snapshot" || event.type === "commandApplied" || event.type === "snapshotReplaced") {
       this.snapshot = event.snapshot;
       this.revision = event.revision;
     }

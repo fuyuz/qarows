@@ -40,24 +40,42 @@ export class WebSocketProjectChannel implements ProjectChannel {
         this.emitConnectionState();
       },
       onSnapshot: (room) => {
-        this.snapshot = projectSnapshotFromRoom(projectId, room);
-        this.revision = room.revision;
+        this.applyRoomSnapshot(projectId, room);
         this.handlers?.onEvent?.({
           type: "snapshot",
-          snapshot: this.snapshot,
+          snapshot: this.snapshot!,
           revision: this.revision,
         });
         this.emitConnectionState();
       },
+      onSnapshotReplaced: (message) => {
+        this.applyRoomSnapshot(projectId, message.snapshot);
+        this.handlers?.onEvent?.({
+          type: "snapshotReplaced",
+          snapshot: this.snapshot!,
+          revision: message.revision,
+          generation: message.generation,
+        });
+        this.emitConnectionState();
+      },
       onCommandApplied: (message) => {
-        this.snapshot = projectSnapshotFromRoom(projectId, message.snapshot);
-        this.revision = message.revision;
+        this.applyRoomSnapshot(projectId, message.snapshot);
         this.handlers?.onEvent?.({
           type: "commandApplied",
           command: message.command,
-          snapshot: this.snapshot,
+          snapshot: this.snapshot!,
           revision: message.revision,
           commandId: message.commandId,
+        });
+        this.emitConnectionState();
+      },
+      onCommandRejected: (message) => {
+        this.applyRoomSnapshot(projectId, message.snapshot);
+        this.handlers?.onEvent?.({
+          type: "snapshotReplaced",
+          snapshot: this.snapshot!,
+          revision: message.snapshot.revision,
+          generation: message.snapshot.generation,
         });
         this.emitConnectionState();
       },
@@ -103,6 +121,19 @@ export class WebSocketProjectChannel implements ProjectChannel {
       this.pendingCommands = Math.max(0, this.pendingCommands - 1);
       this.emitConnectionState();
     }
+  }
+
+  private applyRoomSnapshot(
+    projectId: string,
+    room: {
+      revision: number;
+      definition: ProjectSnapshot["definition"];
+      results: ProjectSnapshot["results"];
+      session: ProjectSnapshot["session"];
+    },
+  ): void {
+    this.snapshot = projectSnapshotFromRoom(projectId, room);
+    this.revision = room.revision;
   }
 
   private emitConnectionState(): void {

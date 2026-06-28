@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { applyProjectCommand, toProjectSnapshot, type ProjectCommand } from "@qarows/application";
-import { getProject, snapshotToPersisted, updateProjectSnapshot } from "./db";
+import { getProject, replaceProjectDefinition, snapshotToPersisted, updateProjectSnapshot } from "./db";
 import { AccessDeniedError, requireAuthUser } from "./auth";
 import type { Env } from "./env";
 import {
@@ -11,6 +11,7 @@ import {
   type RoomSnapshot,
 } from "./sync-protocol";
 import { persistThenBroadcast } from "./room-sync";
+import { hasValidRoomGeneration, resolveProjectIdFromRoomCache } from "./room-load";
 
 interface StoredRoomState extends RoomSnapshot {}
 
@@ -39,7 +40,8 @@ export class ProjectRoom extends DurableObject<Env> {
     );
   }
 
-  async initFromD1(): Promise<void> {
+  async initFromD1(projectId: string): Promise<void> {
+    this.projectId = projectId;
     this.state = null;
     await this.ensureLoaded(true);
   }
@@ -47,6 +49,46 @@ export class ProjectRoom extends DurableObject<Env> {
   /** Worker-internal RPC: clear room state without HTTP auth headers. */
   async destroy(): Promise<void> {
     await this.destroyRoom();
+  }
+
+  /** Worker-internal RPC: replace tests.yml in-place (D1 → DO → broadcast). */
+  async replaceProjectFromWorker(body: {
+    projectId: string;
+    testsYaml: string;
+  }): Promise<RoomSnapshot> {
+    this.projectId = body.projectId;
+    await this.ensureLoaded();
+    if (!this.state || !this.projectId) {
+      throw new Error("Project not found");
+    }
+
+    const snapshot = await replaceProjectDefinition(this.env.DB, this.projectId, body.testsYaml);
+    if (!snapshot) {
+      throw new Error("Project not found");
+    }
+
+    this.state = {
+      generation: snapshot.generation,
+      revision: 0,
+      definition: snapshot.definition,
+      results: snapshot.results,
+      session: snapshot.session,
+    };
+    await this.ctx.storage.put("state", this.state);
+    await this.ctx.storage.delete(PROCESSED_COMMANDS_KEY);
+
+    const publicSnap = this.publicSnapshot();
+    const replaced: Parameters<typeof send>[1] = {
+      type: "snapshotReplaced",
+      generation: publicSnap.generation,
+      revision: 0,
+      snapshot: publicSnap,
+    };
+    for (const socket of this.ctx.getWebSockets()) {
+      send(socket, replaced);
+    }
+
+    return publicSnap;
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -100,6 +142,16 @@ export class ProjectRoom extends DurableObject<Env> {
       return;
     }
 
+    if (parsed.generation !== this.state.generation) {
+      send(ws, {
+        type: "commandRejected",
+        commandId: parsed.commandId,
+        reason: "generation_mismatch",
+        snapshot: this.publicSnapshot(),
+      });
+      return;
+    }
+
     let applied: ApplyCommandResult;
     try {
       applied = await this.applyCommandAndSync(parsed.commandId, parsed.command, parsed.user);
@@ -116,10 +168,12 @@ export class ProjectRoom extends DurableObject<Env> {
 
   /** Worker-internal RPC: apply a command, broadcast to clients, and persist. */
   async applyCommandFromWorker(body: {
+    projectId: string;
     commandId: string;
     command: ProjectCommand;
     user: string;
   }): Promise<{ revision: number; duplicate: boolean }> {
+    this.projectId = body.projectId;
     await this.ensureLoaded();
     if (!this.state || !this.projectId) {
       throw new Error("Project not found");
@@ -176,6 +230,7 @@ export class ProjectRoom extends DurableObject<Env> {
   private publicSnapshot(): RoomSnapshot {
     const state = this.state!;
     return {
+      generation: state.generation,
       revision: state.revision,
       definition: state.definition,
       results: state.results,
@@ -183,15 +238,21 @@ export class ProjectRoom extends DurableObject<Env> {
     };
   }
 
+  private hasValidGeneration(state: StoredRoomState | null | undefined): boolean {
+    return hasValidRoomGeneration(state);
+  }
+
   private async ensureLoaded(forceFromD1 = false): Promise<void> {
-    if (this.state && !forceFromD1) return;
+    if (this.state && this.hasValidGeneration(this.state) && !forceFromD1) return;
 
     if (!forceFromD1) {
       const cached = await this.ctx.storage.get<StoredRoomState>("state");
       if (cached) {
-        this.state = cached;
-        if (!this.projectId) this.projectId = cached.definition.project.id ?? null;
-        return;
+        this.projectId = resolveProjectIdFromRoomCache(cached, this.projectId);
+        if (this.hasValidGeneration(cached)) {
+          this.state = cached;
+          return;
+        }
       }
     }
 
@@ -204,6 +265,7 @@ export class ProjectRoom extends DurableObject<Env> {
     }
 
     this.state = {
+      generation: snapshot.generation,
       revision: 0,
       definition: snapshot.definition,
       results: snapshot.results,

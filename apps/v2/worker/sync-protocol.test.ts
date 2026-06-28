@@ -19,6 +19,7 @@ describe("sync-protocol", () => {
   it("parses updateResult command", () => {
     const raw = JSON.stringify({
       type: "command",
+      generation: "gen-1",
       commandId: "cmd-1",
       user: "qa@example.com",
       command: {
@@ -46,6 +47,7 @@ describe("sync-protocol", () => {
   it("parses setSession command", () => {
     const raw = JSON.stringify({
       type: "command",
+      generation: "gen-1",
       commandId: "cmd-session",
       user: "dev@local",
       command: {
@@ -58,9 +60,23 @@ describe("sync-protocol", () => {
     expect(parsed?.type).toBe("command");
   });
 
+  it("rejects command without generation", () => {
+    const raw = JSON.stringify({
+      type: "command",
+      commandId: "cmd-1",
+      user: "dev@local",
+      command: {
+        type: "setSession",
+        session: { executorName: "Alice", selectedEnvironmentIds: ["chrome"] },
+      },
+    });
+    expect(parseClientMessage(raw)).toBeNull();
+  });
+
   it("rejects command without commandId", () => {
     const raw = JSON.stringify({
       type: "command",
+      generation: "gen-1",
       user: "dev@local",
       command: {
         type: "setSession",
@@ -73,6 +89,7 @@ describe("sync-protocol", () => {
   it("rejects invalid command payload", () => {
     const raw = JSON.stringify({
       type: "command",
+      generation: "gen-1",
       commandId: "cmd-bad",
       user: "dev@local",
       command: { type: "unknown" },
@@ -92,6 +109,7 @@ describe("sync-protocol", () => {
     const definition = makeDefinition();
     const raw = JSON.stringify({
       type: "command",
+      generation: "gen-1",
       commandId: "cmd-batch",
       user: "qa@example.com",
       command: {

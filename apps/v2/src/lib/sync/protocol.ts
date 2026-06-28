@@ -2,6 +2,7 @@ import type { ResultsFile, SessionConfig, TestDefinition } from "@qarows/shared"
 import type { ProjectCommand } from "@qarows/application";
 
 export interface RoomSnapshot {
+  generation: string;
   revision: number;
   definition: TestDefinition;
   results: ResultsFile;
@@ -12,6 +13,7 @@ export type ClientMessage =
   | { type: "ping" }
   | {
       type: "command";
+      generation: string;
       command: ProjectCommand;
       commandId: string;
       user: string;
@@ -27,6 +29,18 @@ export type ServerMessage =
       user: string;
       revision: number;
       appliedAt: string;
+      snapshot: RoomSnapshot;
+    }
+  | {
+      type: "commandRejected";
+      commandId: string;
+      reason: "generation_mismatch";
+      snapshot: RoomSnapshot;
+    }
+  | {
+      type: "snapshotReplaced";
+      generation: string;
+      revision: number;
       snapshot: RoomSnapshot;
     }
   | { type: "error"; message: string };
@@ -45,3 +59,5 @@ export class SyncSendError extends Error {
     this.name = "SyncSendError";
   }
 }
+
+export const SNAPSHOT_REPLACED_MESSAGE = "tests.ymlが置換されました";

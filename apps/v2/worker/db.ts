@@ -3,13 +3,14 @@ import {
   getProjectIdFromDefinition,
   parseResultsJson,
   parseTestsYaml,
+  reconcileResultsOnDefinitionReplace,
+  sanitizeSessionOnDefinitionReplace,
   serializeResultsJson,
   serializeTestsYaml,
   type ResultsFile,
   type SessionConfig,
   type TestDefinition,
 } from "@qarows/shared";
-import type { Env } from "./env";
 
 export interface ProjectRow {
   id: string;
@@ -17,6 +18,7 @@ export interface ProjectRow {
   tests_yaml: string;
   results_json: string;
   session_json: string | null;
+  generation: string;
   updated_at: string;
   created_at: string;
 }
@@ -34,8 +36,22 @@ export interface ProjectSnapshot {
   definition: TestDefinition;
   results: ResultsFile;
   session: SessionConfig | null;
+  generation: string;
   updatedAt: string;
   createdAt: string;
+}
+
+export class ProjectIdMismatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProjectIdMismatchError";
+  }
+}
+
+function resolveGeneration(projectId: string, generation: string | null | undefined): string {
+  const trimmed = generation?.trim();
+  if (trimmed) return trimmed;
+  return `${projectId}-legacy`;
 }
 
 function rowToSnapshot(row: ProjectRow): ProjectSnapshot {
@@ -48,6 +64,7 @@ function rowToSnapshot(row: ProjectRow): ProjectSnapshot {
     definition,
     results,
     session,
+    generation: resolveGeneration(row.id, row.generation),
     updatedAt: row.updated_at,
     createdAt: row.created_at,
   };
@@ -90,6 +107,7 @@ export async function insertProject(
   const definition = parseTestsYaml(input.testsYaml);
   const projectId = getProjectIdFromDefinition(definition);
   const now = new Date().toISOString();
+  const generation = crypto.randomUUID();
   const results = input.resultsJson
     ? parseResultsJson(input.resultsJson, { definition })
     : createEmptyResults(projectId);
@@ -97,8 +115,8 @@ export async function insertProject(
 
   await db
     .prepare(
-      `INSERT INTO projects (id, name, tests_yaml, results_json, session_json, updated_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO projects (id, name, tests_yaml, results_json, session_json, generation, updated_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       projectId,
@@ -106,6 +124,7 @@ export async function insertProject(
       input.testsYaml,
       serializeResultsJson(results),
       sessionJson,
+      generation,
       now,
       now,
     )
@@ -155,6 +174,52 @@ export async function updateProjectSnapshot(
       testsYaml,
       resultsJson,
       sessionJson,
+      updatedAt,
+      projectId,
+    )
+    .run();
+
+  return getProject(db, projectId);
+}
+
+/** tests.yml 置換: 既存 results/session を reconcile して同一行を更新 */
+export async function replaceProjectDefinition(
+  db: D1Database,
+  projectId: string,
+  testsYaml: string,
+): Promise<ProjectSnapshot | null> {
+  const existing = await db
+    .prepare("SELECT * FROM projects WHERE id = ?")
+    .bind(projectId)
+    .first<ProjectRow>();
+  if (!existing) return null;
+
+  const definition = parseTestsYaml(testsYaml);
+  const yamlProjectId = getProjectIdFromDefinition(definition);
+  if (yamlProjectId !== projectId) {
+    throw new ProjectIdMismatchError(
+      `tests.yml project.id (${yamlProjectId}) が URL の projectId (${projectId}) と一致しません`,
+    );
+  }
+
+  const current = rowToSnapshot(existing);
+  const results = reconcileResultsOnDefinitionReplace(current.results, definition);
+  const session = sanitizeSessionOnDefinitionReplace(current.session, definition);
+  const generation = crypto.randomUUID();
+  const updatedAt = new Date().toISOString();
+
+  await db
+    .prepare(
+      `UPDATE projects
+       SET name = ?, tests_yaml = ?, results_json = ?, session_json = ?, generation = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .bind(
+      definition.project.name,
+      testsYaml,
+      serializeResultsJson(results),
+      session ? JSON.stringify(session) : null,
+      generation,
       updatedAt,
       projectId,
     )

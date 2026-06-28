@@ -25,6 +25,7 @@ interface ProjectSyncContextValue {
   ready: boolean;
   connected: boolean;
   syncError: string | null;
+  syncNotice: string | null;
   revision: number;
   definition: TestDefinition | null;
   results: ResultsFile | null;
@@ -77,6 +78,7 @@ export function ProjectSyncProvider({
   const [ready, setReady] = useState(false);
   const [connected, setConnected] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [definition, setDefinition] = useState<TestDefinition | null>(null);
   const [results, setResults] = useState<ResultsFile | null>(null);
@@ -89,6 +91,7 @@ export function ProjectSyncProvider({
   const resultsRef = useRef<ResultsFile | null>(null);
   const sessionRef = useRef<SessionConfig | null>(null);
   const highlightClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noticeClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const markTestUpdated = useCallback((testCaseId: string) => {
     setLastUpdatedTestId(testCaseId);
@@ -99,6 +102,7 @@ export function ProjectSyncProvider({
   useEffect(() => {
     return () => {
       if (highlightClearTimerRef.current) clearTimeout(highlightClearTimerRef.current);
+      if (noticeClearTimerRef.current) clearTimeout(noticeClearTimerRef.current);
     };
   }, []);
 
@@ -131,6 +135,17 @@ export function ProjectSyncProvider({
           applySnapshotState(event.snapshot);
           setReady(true);
           setSyncError(null);
+          setSyncNotice(null);
+          return;
+        case "snapshotReplaced":
+          setRevision(event.revision);
+          applySnapshotState(event.snapshot);
+          setReady(true);
+          setSyncError(null);
+          setSyncNotice("tests.ymlが更新されました");
+          setLastUpdatedTestId(null);
+          if (noticeClearTimerRef.current) clearTimeout(noticeClearTimerRef.current);
+          noticeClearTimerRef.current = setTimeout(() => setSyncNotice(null), 8000);
           return;
         case "commandApplied":
           setRevision(event.revision);
@@ -241,6 +256,7 @@ export function ProjectSyncProvider({
       ready,
       connected,
       syncError,
+      syncNotice,
       revision,
       definition,
       results,
@@ -258,6 +274,7 @@ export function ProjectSyncProvider({
       ready,
       connected,
       syncError,
+      syncNotice,
       revision,
       definition,
       results,

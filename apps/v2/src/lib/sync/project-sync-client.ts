@@ -1,16 +1,32 @@
 import type { ProjectCommand } from "@qarows/application";
-import { parseServerMessage, SyncSendError, type ClientMessage, type RoomSnapshot } from "./protocol";
+import {
+  parseServerMessage,
+  SNAPSHOT_REPLACED_MESSAGE,
+  SyncSendError,
+  type ClientMessage,
+  type RoomSnapshot,
+} from "./protocol";
 
 export interface ProjectSyncHandlers {
   onOpen?: () => void;
   onClose?: () => void;
   onSnapshot: (snapshot: RoomSnapshot) => void;
+  onSnapshotReplaced: (message: {
+    generation: string;
+    revision: number;
+    snapshot: RoomSnapshot;
+  }) => void;
   onCommandApplied: (message: {
     command: ProjectCommand;
     commandId: string;
     user: string;
     revision: number;
     appliedAt: string;
+    snapshot: RoomSnapshot;
+  }) => void;
+  onCommandRejected?: (message: {
+    commandId: string;
+    reason: "generation_mismatch";
     snapshot: RoomSnapshot;
   }) => void;
   onError: (message: string) => void;
@@ -43,6 +59,7 @@ export class ProjectSyncClient {
   private intentionalClose = false;
   private reconnectAttempt = 0;
   private snapshotReceived = false;
+  private generation = "";
   private readonly pendingCommands = new Map<string, PendingCommand>();
   private readonly outboundQueue: QueuedCommand[] = [];
   private readonly abandonedCommandIds = new Set<string>();
@@ -53,6 +70,7 @@ export class ProjectSyncClient {
     this.projectId = projectId;
     this.handlers = handlers;
     this.reconnectAttempt = 0;
+    this.generation = "";
     this.openSocket();
   }
 
@@ -65,6 +83,7 @@ export class ProjectSyncClient {
     this.ws?.close();
     this.ws = null;
     this.snapshotReceived = false;
+    this.generation = "";
     this.outboundQueue.length = 0;
     this.abandonedCommandIds.clear();
     if (rejectPending) {
@@ -136,11 +155,19 @@ export class ProjectSyncClient {
         case "pong":
           return;
         case "snapshot":
+          this.applyGenerationFromSnapshot(message.snapshot);
           this.snapshotReceived = true;
           this.handlers?.onSnapshot(message.snapshot);
           this.flushOutboundQueue();
           return;
+        case "snapshotReplaced":
+          this.applyGenerationFromSnapshot(message.snapshot);
+          this.snapshotReceived = true;
+          this.discardOutboundQueue(new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
+          this.handlers?.onSnapshotReplaced(message);
+          return;
         case "commandApplied": {
+          this.applyGenerationFromSnapshot(message.snapshot);
           const abandoned = this.abandonedCommandIds.has(message.commandId);
           if (abandoned) {
             this.abandonedCommandIds.delete(message.commandId);
@@ -152,6 +179,13 @@ export class ProjectSyncClient {
           }
           return;
         }
+        case "commandRejected": {
+          this.applyGenerationFromSnapshot(message.snapshot);
+          this.discardOutboundQueue(new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
+          this.rejectPendingCommand(message.commandId, new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
+          this.handlers?.onCommandRejected?.(message);
+          return;
+        }
         case "error":
           this.handlers?.onError(message.message);
           return;
@@ -161,6 +195,16 @@ export class ProjectSyncClient {
     ws.addEventListener("error", () => {
       this.handlers?.onError("WebSocket connection error");
     });
+  }
+
+  private applyGenerationFromSnapshot(snapshot: RoomSnapshot): void {
+    this.generation = snapshot.generation;
+  }
+
+  private discardOutboundQueue(rejectError: SyncSendError): void {
+    this.outboundQueue.length = 0;
+    this.abandonedCommandIds.clear();
+    this.rejectAllPending(rejectError);
   }
 
   private scheduleReconnect(): void {
@@ -175,11 +219,13 @@ export class ProjectSyncClient {
 
   private flushOutboundQueue(): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.snapshotReceived) return;
+    if (!this.generation) return;
 
     for (const queued of this.outboundQueue) {
       if (queued.inFlight || this.abandonedCommandIds.has(queued.commandId)) continue;
       const sent = this.sendRaw({
         type: "command",
+        generation: this.generation,
         command: queued.command,
         commandId: queued.commandId,
         user: queued.user,
@@ -206,6 +252,14 @@ export class ProjectSyncClient {
     this.pendingCommands.delete(commandId);
     pending.resolve();
     this.flushOutboundQueue();
+  }
+
+  private rejectPendingCommand(commandId: string, error: Error): void {
+    this.removeQueuedCommand(commandId);
+    const pending = this.pendingCommands.get(commandId);
+    if (!pending) return;
+    this.pendingCommands.delete(commandId);
+    pending.reject(error);
   }
 
   private abandonCommand(commandId: string, error: Error): void {

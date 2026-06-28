@@ -1,5 +1,5 @@
 import type { ResultsFile, SessionConfig, TestDefinition } from "@qarows/shared";
-import { ApiError, apiJson } from "./client";
+import { apiJson } from "./client";
 
 export interface ProjectSummary {
   id: string;
@@ -14,6 +14,7 @@ export interface ProjectSnapshot {
   definition: TestDefinition;
   results: ResultsFile;
   session: SessionConfig | null;
+  generation?: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -70,13 +71,13 @@ export async function replaceProjectFromYaml(
   projectId: string,
   testsYaml: string,
 ): Promise<ProjectSnapshot> {
-  try {
-    return await createProjectFromYaml(testsYaml);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 409) {
-      await deleteProject(projectId);
-      return createProjectFromYaml(testsYaml);
-    }
-    throw err;
-  }
+  const data = await apiJson<ProjectResponse>(
+    `/api/projects/${encodeURIComponent(projectId)}/definition`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "text/yaml; charset=utf-8" },
+      body: testsYaml,
+    },
+  );
+  return data.project;
 }

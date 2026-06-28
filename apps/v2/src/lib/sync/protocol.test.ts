@@ -10,6 +10,7 @@ describe("parseServerMessage", () => {
     const raw = JSON.stringify({
       type: "snapshot",
       snapshot: {
+        generation: "gen-1",
         revision: 0,
         definition,
         results,
@@ -40,6 +41,7 @@ describe("parseServerMessage", () => {
       revision: 1,
       appliedAt: "2026-06-28T12:00:00.000Z",
       snapshot: {
+        generation: "gen-1",
         revision: 1,
         definition,
         results,
@@ -52,7 +54,28 @@ describe("parseServerMessage", () => {
     if (parsed?.type === "commandApplied") {
       expect(parsed.revision).toBe(1);
       expect(parsed.commandId).toBe("cmd-1");
+      expect(parsed.snapshot.generation).toBe("gen-1");
     }
+  });
+
+  it("parses snapshotReplaced message", () => {
+    const definition = makeDefinition();
+    const results = createEmptyResults("test");
+    const parsed = parseServerMessage(
+      JSON.stringify({
+        type: "snapshotReplaced",
+        generation: "gen-2",
+        revision: 0,
+        snapshot: {
+          generation: "gen-2",
+          revision: 0,
+          definition,
+          results,
+          session: null,
+        },
+      }),
+    );
+    expect(parsed?.type).toBe("snapshotReplaced");
   });
 
   it("parses error message", () => {

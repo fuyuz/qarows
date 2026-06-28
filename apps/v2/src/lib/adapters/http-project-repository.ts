@@ -44,7 +44,7 @@ export class HttpProjectRepository implements ProjectRepository {
   }
 
   async saveSnapshot(snapshot: ProjectSnapshot): Promise<void> {
-    // Phase2 の definition 更新は REST 未対応。results/session は WebSocket 経由。
+    // Phase2 の definition 更新は PUT /definition + WebSocket snapshotReplaced。
     void snapshot;
   }
 
