@@ -14,6 +14,7 @@ export function AppNav() {
       session={session}
       results={results}
       path={path}
+      availablePages={["session", "run"]}
       statusSlot={<SyncStatusBadge connected={connected} revision={revision} />}
       onExportYaml={
         definition
