@@ -796,7 +796,7 @@ testCases:
     prerequisites: "1件以上のプロジェクトが登録済み、/projects を表示中"
     description: "左にプロジェクト一覧（先頭は新規作成）、右に選択中プロジェクトの管理パネルが表示される（run 画面と同型の左右分割）"
 
-  - id: TC-083
+  - id: TC-088
     category:
       major: "プロジェクト"
       medium: "インポート"
