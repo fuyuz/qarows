@@ -1,5 +1,10 @@
-# Copy to .dev.vars for local `wrangler dev` (optional).
+# Copy to .dev.vars for local `wrangler dev`.
 #
-# Phase 2 does not require secrets for local development.
-# Auth in production uses Cloudflare Access (Cf-Access-Authenticated-User-Email).
-# Local dev accepts optional X-Qarows-User request header, or falls back to dev@local.
+# Disable Access enforcement locally (Vite proxy does not send Access headers).
+ACCESS_REQUIRED = "false"
+#
+# Optional: simulate a signed-in user in local dev
+# X-Qarows-User is read from the HTTP request header, not from here.
+#
+# Production uses Cloudflare Access (Cf-Access-Authenticated-User-Email).
+# Set ACCESS_REQUIRED = "true" in wrangler.toml [vars] for deploy.

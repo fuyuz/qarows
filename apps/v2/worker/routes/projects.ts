@@ -2,7 +2,6 @@ import { parseTestsYaml } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { deleteProject, getProject, insertProject, listProjects } from "../db";
-import { authMiddleware } from "../middleware/auth";
 import type { AppEnv } from "../types";
 
 interface CreateProjectBody {
@@ -62,7 +61,7 @@ projectsRoutes.get("/", async (c) => {
   return c.json({ projects: serializeSummaryList(projects) });
 });
 
-projectsRoutes.post("/", authMiddleware, async (c) => {
+projectsRoutes.post("/", async (c) => {
   const contentType = c.req.header("Content-Type") ?? "";
   let testsYaml: string | null = null;
 
@@ -113,7 +112,7 @@ projectsRoutes.get("/:projectId", async (c) => {
   return c.json({ project: serializeSnapshot(snapshot) });
 });
 
-projectsRoutes.delete("/:projectId", authMiddleware, async (c) => {
+projectsRoutes.delete("/:projectId", async (c) => {
   const deleted = await deleteProject(c.env.DB, c.req.param("projectId"));
   if (!deleted) throw new HTTPException(404, { message: "Project not found" });
   return c.json({ ok: true });

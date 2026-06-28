@@ -6,8 +6,9 @@ Phase 1 と Phase 2 は **別アプリとして独立デプロイ・独立利用
 
 | | Phase 1 | Phase 2 |
 |---|---|---|
-| **誰がデプロイ** | メンテナ（公式インスタンス） | 利用者各自 |
-| **誰が使う** | 誰でも（公開 URL） | セルフデプロイした人・組織 |
+| **誰がデプロイ** | メンテナ（公式インスタンス） | 利用者各自（組織・個人） |
+| **誰が使う** | 誰でも（公開 URL） | **そのデプロイの Access ポリシー内のメンバーのみ** |
+| **環境** | 公開 | **closed**（各自専用・データ非共有） |
 | **ホスティング** | Cloudflare Pages（静的） | Cloudflare Pages + Workers + DO 等 |
 
 ---
@@ -72,7 +73,9 @@ URL にアクセスするだけ。アカウント不要。
 
 ---
 
-## Phase 2: セルフデプロイ
+## Phase 2: セルフデプロイ（各自 closed 環境）
+
+Phase 2 に **公式の共通ホストはない**。fork / clone した利用者が、自分の Cloudflare アカウントに Worker + D1 + DO をデプロイし、Cloudflare Access で組織内に閉じる。A 社のデプロイと B 社のデプロイは完全に独立（マルチテナント SaaS ではない）。
 
 ### 構成
 
@@ -89,8 +92,8 @@ URL にアクセスするだけ。アカウント不要。
 1. リポジトリを fork または clone
 2. 設定ファイルをコピーして編集:
    ```bash
-   cp wrangler.toml.example wrangler.toml
-   cp .env.example .dev.vars
+   cp apps/v2/wrangler.toml.example apps/v2/wrangler.toml
+   cp apps/v2/.dev.vars.example apps/v2/.dev.vars
    ```
 3. `wrangler.toml` に Account ID 等を記入
 4. `.dev.vars` に Access 関連シークレットを設定

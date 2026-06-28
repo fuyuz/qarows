@@ -1,6 +1,10 @@
 # Phase 2 デプロイ手順（Cloudflare Workers）
 
-**qarows Phase 2**（`apps/v2`）を各自の Cloudflare アカウントにセルフデプロイする手順。
+**qarows Phase 2**（`apps/v2`）を **各自の closed 環境** にセルフデプロイする手順。
+
+- 公式の共通 Phase 2 インスタンスは **提供しない**
+- 1 デプロイ = 1 組織（または 1 チーム）の閉じた QA 環境
+- D1 / Durable Objects / Access ポリシーはデプロイごとに独立
 
 一般方針は [deployment.md](./deployment.md) を参照。Phase 1 公式インスタンスは [deploy-v1.md](./deploy-v1.md)。
 
@@ -13,7 +17,8 @@
 | 成果物 | `apps/v2/dist`（SPA）+ `apps/v2/worker`（Hono API + Durable Objects） |
 | ホスティング | 1 つの Worker（`[assets]` + API + WebSocket） |
 | 永続化 | D1（プロジェクト snapshot）+ Durable Objects（リアルタイム同期） |
-| 認証（本番） | Cloudflare Access（メールアドレス） |
+| 認証（本番） | Cloudflare Access（組織内メンバー限定）+ Worker 側 enforce |
+| データの所在 | そのデプロイの D1 / DO のみ（他環境と非共有） |
 | ローカル開発 | Vite `:5177` + Wrangler `:8787`（Vite が `/api` を proxy） |
 
 ---
@@ -139,17 +144,54 @@ bunx wrangler deploy --config wrangler.toml
 
 ---
 
-## 4. Cloudflare Access（本番認証）
+## 4. Cloudflare Access（本番認証・アクセス制限）
 
-Phase 2 Worker はリクエストヘッダ `Cf-Access-Authenticated-User-Email` からユーザーを識別する（`apps/v2/worker/auth.ts`）。
+Phase 2 Worker は **Cloudflare Access 必須** で動作するよう設定されている（`wrangler.toml` の `ACCESS_REQUIRED = "true"`）。
+
+| レイヤ | 役割 |
+|---|---|
+| Cloudflare Access（Dashboard） | 未認証ユーザーをログイン画面へリダイレクト |
+| Worker `accessMiddleware` | Access ヘッダーなしのリクエストを **401** で拒否（API・SPA・WebSocket すべて） |
+
+### 4.1 Worker 側の設定
+
+`wrangler.toml.example` をコピーした `wrangler.toml` に含まれる vars:
+
+```toml
+[vars]
+ACCESS_REQUIRED = "true"
+# 任意: Access ポリシーに加えて Worker でもドメインを確認
+# ACCESS_ALLOWED_EMAIL_DOMAIN = "example.com"
+```
+
+認証済みユーザーはヘッダ `Cf-Access-Authenticated-User-Email` から識別する（`apps/v2/worker/auth.ts`）。
+
+### 4.2 Access アプリケーション（Dashboard）
 
 1. Dashboard → **Zero Trust** → **Access** → **Applications**
-2. デプロイした Worker のホスト名（カスタムドメインまたは `*.workers.dev`）を保護対象に追加
+2. デプロイした Worker のホスト名（カスタムドメイン **および** `*.workers.dev`）を保護対象に追加
 3. ポリシーで許可メールドメイン（例: `@your-company.com`）を設定
 
-Access を設定しない場合、API は `dev@local` として動作する（**本番では必ず Access を有効化すること**）。
+**workers.dev URL を Access 外に残すと、Worker 側で 401 になるが、直接 URL を知っている人にログインを促す画面は出ない。** 本番ホストは必ず Access アプリケーションに登録すること。
 
-ローカル開発では `X-Qarows-User: you@example.com` ヘッダでユーザーを指定できる（任意）。
+Pages 側にも Access をかける場合は、同じホストに対して Access + Worker  enforcement の二重ガードになる（推奨）。
+
+### 4.3 ローカル開発
+
+`.dev.vars` で Access  enforcement を無効化する（Vite proxy は Access ヘッダーを付与しない）:
+
+```bash
+cp apps/v2/.dev.vars.example apps/v2/.dev.vars
+# ACCESS_REQUIRED = "false" がデフォルト
+```
+
+ローカルでは `X-Qarows-User: you@example.com` リクエストヘッダでユーザーを指定できる（任意）。未指定時は `dev@local`。
+
+### 4.4 動作確認
+
+- 本番: Access 未ログイン → Cloudflare ログイン画面（Access）
+- 本番: Access バイパス（ヘッダーなしで Worker 直叩き）→ `{ "error": "Cloudflare Access による認証が必要です…" }`（401）
+- ローカル: `ACCESS_REQUIRED=false` で通常どおり `/projects` が表示される
 
 ---
 
@@ -180,7 +222,9 @@ Browser
 |---|---|
 | `dev:v2` で API エラー | Worker が 8787 で起動しているか。`wrangler.toml` があるか |
 | D1 `no such table` | `bun run db:migrate:local` または `--remote` で migrations 適用 |
-| WebSocket 接続失敗 | 本番では Access / プロキシが Upgrade を妨げていないか確認 |
+| WebSocket 接続失敗 | 本番では Access が WebSocket Upgrade を許可しているか確認 |
+| API が 401 | 本番: Access ログイン済みか。ローカル: `.dev.vars` で `ACCESS_REQUIRED=false` |
+| Access 未ログインなのに Worker だけ 401 | Access アプリケーションの対象ホストに URL が含まれているか |
 | 409 on create | 同じ `project.id` の tests.yml が既に存在。上書きまたは id を変更 |
 | `wrangler.toml` がない | `cp wrangler.toml.example wrangler.toml` |
 

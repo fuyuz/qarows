@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { getAuthUser } from "./auth";
+import { isAccessRequired } from "./auth";
+import { accessMiddleware } from "./middleware/access";
 import { projectsRoutes } from "./routes/projects";
 import type { AppEnv } from "./types";
 
@@ -15,15 +16,18 @@ export function createApp() {
     return c.json({ error: "Internal Server Error" }, 500);
   });
 
+  app.use("*", accessMiddleware);
+
   app.get("/api/health", (c) =>
     c.json({
       ok: true,
       service: "qarows-v2",
       phase: 2,
+      accessRequired: isAccessRequired(c.env),
     }),
   );
 
-  app.get("/api/me", (c) => c.json({ user: getAuthUser(c.req.raw) }));
+  app.get("/api/me", (c) => c.json({ user: c.get("user") }));
 
   app.route("/api/projects", projectsRoutes);
 

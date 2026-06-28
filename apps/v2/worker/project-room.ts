@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import type { ResultsFile, SessionConfig } from "@qarows/shared";
 import { getProject, snapshotToPersisted, updateProjectSnapshot } from "./db";
+import { AccessDeniedError, requireAuthUser } from "./auth";
 import type { Env } from "./env";
 import { parseClientMessage, send, type RoomSnapshot } from "./sync-protocol";
 
@@ -17,6 +18,14 @@ export class ProjectRoom extends DurableObject<Env> {
   }
 
   override async fetch(request: Request): Promise<Response> {
+    try {
+      requireAuthUser(request, this.env);
+    } catch (err) {
+      const message =
+        err instanceof AccessDeniedError ? err.message : "Unauthorized";
+      return new Response(message, { status: 401 });
+    }
+
     const url = new URL(request.url);
     const segments = url.pathname.split("/").filter(Boolean);
     const projectId = segments[2] ?? null;
