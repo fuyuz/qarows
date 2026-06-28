@@ -787,3 +787,43 @@ testCases:
       minor: "HUD"
     prerequisites: "1件以上のプロジェクトが登録済み、/projects を表示中"
     description: "左にプロジェクト一覧（先頭は新規作成）、右に選択中プロジェクトの管理パネルが表示される（run 画面と同型の左右分割）"
+
+  - id: TC-083
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "仕様ガイド"
+    prerequisites: "/projects?project=_new を表示中"
+    description: "「tests.yml の書き方」セクションのコピーボタンで AI 向け仕様テキストがクリップボードにコピーされる"
+
+  - id: TC-084
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "ドロップゾーン"
+    prerequisites: "/projects?project=_new を表示中"
+    description: "点線枠のドロップゾーンに tests.yml をドロップ（またはクリック選択）するとファイル名が一覧に表示され「読み込む」が有効になる"
+
+  - id: TC-085
+    category:
+      major: "テスト実行"
+      medium: "ランナー"
+      minor: "レイアウト"
+    prerequisites: "セッション開始済み、/p/{projectId}/run を表示中"
+    description: "上部フィルタ・左テスト一覧・右ランナーカード・下部進捗バー・ショートカットヘルプが表示される（@qarows/runner-ui 共通化後の回帰）"
+
+  - id: TC-086
+    category:
+      major: "Phase 2"
+      medium: "テスト実行"
+      minor: "UI 同等"
+    prerequisites: "Phase 2 dev（localhost:5177）でプロジェクト作成・セッション開始済み"
+    description: "テスト実行画面が Phase 1 と同じ UI（フィルタ・一覧・ランナー・進捗バー）で表示され、結果入力がリアルタイム同期される"
+
+  - id: TC-087
+    category:
+      major: "Phase 2"
+      medium: "同期"
+      minor: "Command"
+    prerequisites: "Phase 2 dev で同一プロジェクトに2ブラウザ接続"
+    description: "一方で OK/NG 入力すると、もう一方のランナー・一覧・進捗が commandApplied 同期で更新される"
