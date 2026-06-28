@@ -1,30 +1,22 @@
-import { FilterBar } from "@/components/FilterBar";
+import { Navigate } from "react-router-dom";
+import { isValidSession } from "@qarows/shared";
+import { RunPageLayout } from "@qarows/runner-ui";
 import { AppNav } from "@/components/AppNav";
-import { RunProgressBar } from "@/components/RunProgressBar";
-import { RunnerTaskList } from "@/components/RunnerTaskList";
-import { ShortcutHelp } from "@/components/ShortcutHelp";
-import { TestRunner } from "@/components/TestRunner";
+import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { useApp } from "@/context/AppContext";
+import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 
 export function RunPage() {
   const { definition, session } = useApp();
+  const { path } = useProjectRoutes();
 
-  if (!definition || !session) return null;
+  if (!definition || !session || !isValidSession(session)) {
+    return <Navigate to={path("session")} replace />;
+  }
 
   return (
-    <div className="flex h-svh flex-col overflow-hidden">
-      <AppNav />
-      <FilterBar />
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-24 pt-4">
-        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 md:flex-row md:items-stretch">
-          <RunnerTaskList />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <TestRunner />
-          </div>
-        </div>
-      </main>
-      <RunProgressBar />
-      <ShortcutHelp />
-    </div>
+    <RunnerWorkspaceBridge>
+      <RunPageLayout nav={<AppNav />} />
+    </RunnerWorkspaceBridge>
   );
 }

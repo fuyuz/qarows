@@ -3,6 +3,7 @@ import { Navigate, createBrowserRouter, useLocation, useNavigate, useParams } fr
 import { isValidSession } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { projectPath } from "@/lib/project-routes";
 import { runnerSearchChanged, sanitizeRunnerSearchParams } from "@/lib/runner-query";
 
@@ -165,7 +166,9 @@ function ProjectRunPage() {
 function ProjectMatrixPage() {
   return (
     <RequireProjectMatch>
-      <RequireDefinition>{withSuspense(MatrixPage)}</RequireDefinition>
+      <RequireDefinition>
+        <RunnerWorkspaceBridge>{withSuspense(MatrixPage)}</RunnerWorkspaceBridge>
+      </RequireDefinition>
     </RequireProjectMatch>
   );
 }
@@ -181,7 +184,9 @@ function ProjectDashboardPage() {
 function ProjectBugsPage() {
   return (
     <RequireProjectMatch>
-      <RequireDefinition>{withSuspense(BugsPage)}</RequireDefinition>
+      <RequireDefinition>
+        <RunnerWorkspaceBridge>{withSuspense(BugsPage)}</RunnerWorkspaceBridge>
+      </RequireDefinition>
     </RequireProjectMatch>
   );
 }
