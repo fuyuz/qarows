@@ -1,11 +1,3 @@
-import { cn } from "@/lib/cn";
-
-const LOADING_SEGMENTS = [
-  { className: "bg-primary/70", delay: "0ms" },
-  { className: "bg-primary/45", delay: "120ms" },
-  { className: "bg-primary/25", delay: "240ms" },
-] as const;
-
 export function LoadingScreen({ message = "読み込み中…" }: { message?: string }) {
   return (
     <main
@@ -32,19 +24,10 @@ export function LoadingScreen({ message = "読み込み中…" }: { message?: st
 
         <div className="w-full space-y-3" role="status" aria-live="polite" aria-label={message}>
           <div
-            className="flex h-2.5 overflow-hidden rounded-full bg-muted shadow-inner"
+            className="relative h-2.5 overflow-hidden rounded-full bg-muted shadow-inner"
             aria-hidden
           >
-            {LOADING_SEGMENTS.map((segment, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "loading-screen-segment h-full min-w-0 flex-1 origin-left",
-                  segment.className,
-                )}
-                style={{ animationDelay: segment.delay }}
-              />
-            ))}
+            <div className="loading-screen-indicator absolute inset-y-0 w-2/5 rounded-full bg-primary" />
           </div>
 
           <p className="text-center text-sm font-medium text-muted-foreground">{message}</p>
