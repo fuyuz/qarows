@@ -82,7 +82,7 @@ function assertAccessConfig(env: Env): { teamDomain: string; audience: string } 
 }
 
 /** Reject cross-origin WebSocket upgrades when Origin is present. */
-export function assertWebSocketOrigin(request: Request): void {
+export function assertWebSocketOrigin(request: Request, env?: Env): void {
   const origin = request.headers.get("Origin");
   if (!origin) return;
 
@@ -95,8 +95,24 @@ export function assertWebSocketOrigin(request: Request): void {
     throw new AccessDeniedError("Invalid Origin");
   }
 
-  if (clientOrigin !== requestOrigin) {
-    throw new AccessDeniedError("Invalid Origin");
+  if (clientOrigin === requestOrigin) return;
+
+  // Vite dev proxy: browser Origin is localhost:5177, Worker sees 127.0.0.1:8787.
+  if (env && !isAccessRequired(env) && isLocalDevFrontendOrigin(clientOrigin)) {
+    return;
+  }
+
+  throw new AccessDeniedError("Invalid Origin");
+}
+
+function isLocalDevFrontendOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:") return false;
+    const port = url.port || "80";
+    return (url.hostname === "localhost" || url.hostname === "127.0.0.1") && port === "5177";
+  } catch {
+    return false;
   }
 }
 

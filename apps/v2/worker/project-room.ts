@@ -139,7 +139,7 @@ export class ProjectRoom extends DurableObject<Env> {
     }
 
     try {
-      assertWebSocketOrigin(request);
+      assertWebSocketOrigin(request, this.env);
     } catch (err) {
       const message = err instanceof AccessDeniedError ? err.message : "Forbidden";
       return new Response(message, { status: 403 });
