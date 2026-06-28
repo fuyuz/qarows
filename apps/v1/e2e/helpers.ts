@@ -9,10 +9,12 @@ export async function startFromLanding(page: Page) {
   await openLanding(page);
   await page.getByRole("button", { name: "はじめる" }).click();
   await expect(page).toHaveURL(/\/projects/);
-  await expect(page.getByRole("button", { name: "サンプルを試す" })).toBeVisible();
+  await expect(importPanel(page).getByRole("button", { name: "サンプルを試す" })).toBeVisible();
 }
 
 export async function loadSampleProject(page: Page) {
+  await page.goto("/load");
+  await expect(page).toHaveURL(/\/projects\?project=_new$/);
   const panel = importPanel(page);
   await panel.getByRole("button", { name: "サンプルを試す" }).click();
   await expect(panel.getByText("tests.yml", { exact: true })).toBeVisible();
@@ -77,4 +79,11 @@ export async function selectScenario(page: Page, scenarioName: string) {
   });
   await row.getByRole("combobox").click();
   await page.getByRole("option", { name: scenarioName }).click();
+}
+
+/** Click a button inside the topmost open dialog. */
+export async function clickDialogButton(page: Page, name: string) {
+  const button = page.getByRole("dialog").last().getByRole("button", { name, exact: true });
+  await expect(button).toBeVisible();
+  await button.evaluate((el) => (el as HTMLButtonElement).click());
 }

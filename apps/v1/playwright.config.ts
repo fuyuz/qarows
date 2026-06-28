@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-/** 開発用 preview (5173) と競合しない E2E 専用ポート */
-const PORT = 5175;
+/** 開発用 preview (5173) / v2 dev (5177) と競合しない E2E 専用ポート */
+const PORT = 5178;
 const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({

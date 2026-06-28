@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "./fixtures";
-import { skipIntroCard, startSession } from "./helpers";
+import { skipIntroCard, startSession, clickDialogButton } from "./helpers";
 import {
   continueProjectFromHub,
   importPanel,
@@ -90,7 +90,7 @@ test.describe("multi-project import", () => {
     await panel.getByRole("button", { name: "読み込む", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "既存プロジェクトを上書きしますか？" })).toBeVisible();
-    await page.getByRole("button", { name: "キャンセル" }).click();
+    await clickDialogButton(page, "キャンセル");
     await expect(page).toHaveURL(/\/projects\?project=_new$/);
   });
 
@@ -102,7 +102,7 @@ test.describe("multi-project import", () => {
     await expect(panel.getByText("セッションあり")).toBeVisible();
 
     await selectNewProjectInHub(page);
-    await uploadTestsYaml(page, ALT_TESTS_YAML);
+    await uploadTestsYaml(page, ALT_TESTS_YAML, importPanel(page));
     await importPanel(page).getByRole("button", { name: "読み込む", exact: true }).click();
     await expect(page).toHaveURL(/\/p\/alt-app\/session$/);
 
@@ -110,7 +110,7 @@ test.describe("multi-project import", () => {
     const importPanelLoc = importPanel(page);
     await importPanelLoc.getByRole("button", { name: "サンプルを試す" }).click();
     await importPanelLoc.getByRole("button", { name: "読み込む", exact: true }).click();
-    await page.getByRole("button", { name: "上書きする" }).click();
+    await clickDialogButton(page, "上書きする");
     await expect(page).toHaveURL(/\/p\/qarows\/session$/);
 
     await openProjectsHub(page);
@@ -129,7 +129,7 @@ test.describe("multi-project management", () => {
     await openProjectsHub(page);
     const panel = await openProjectDetail(page, "qarows");
     await panel.getByRole("button", { name: "結果をクリア" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "クリア" }).click();
+    await clickDialogButton(page, "クリア");
     await expect(panel.getByText("テスト結果をクリアしました")).toBeVisible();
 
     await panel.getByRole("button", { name: "続ける" }).click();
@@ -143,7 +143,7 @@ test.describe("multi-project management", () => {
 
     const panel = await openProjectDetail(page, "Alt App QA");
     await panel.getByRole("button", { name: "削除" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "削除" }).click();
+    await clickDialogButton(page, "削除");
 
     await expect(projectListItem(page, "Alt App QA")).toHaveCount(0);
     await expect(projectListItem(page, "qarows")).toBeVisible();
@@ -177,7 +177,7 @@ test.describe("multi-project routing", () => {
     await startSession(page, "qarows-tester");
     await page.getByRole("button", { name: "ナビゲーション" }).click();
     await page.getByRole("menuitem", { name: "プロジェクト一覧" }).click();
-    await expect(page).toHaveURL(/\/projects$/);
+    await expect(page).toHaveURL(/\/projects(\?project=qarows)?$/);
   });
 
   test("landing continue opens last opened project", async ({ page }) => {
@@ -201,7 +201,7 @@ test.describe("multi-project routing", () => {
     await openProjectsHub(page);
     const panel = await openProjectDetail(page, "Alt App QA");
     await panel.getByRole("button", { name: "結果をクリア" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "クリア" }).click();
+    await clickDialogButton(page, "クリア");
     await expect(panel.getByText("テスト結果をクリアしました")).toBeVisible();
 
     await page.goto("/");

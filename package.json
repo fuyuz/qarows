@@ -8,13 +8,16 @@
   ],
   "scripts": {
     "dev": "bun run --filter @qarows/v1 dev",
+    "dev:v2": "bun run --filter @qarows/v2 dev",
     "dev:stop": "bash scripts/stop-dev.sh",
     "dev:restart": "bash scripts/stop-dev.sh && bun run dev",
     "build": "bun run --filter @qarows/v1 build",
+    "build:v1": "bun run --filter @qarows/v1 build",
+    "build:v2": "bun run --filter @qarows/v2 build",
     "preview": "bun run --filter @qarows/v1 preview",
-    "preview:start": "bun run build && bun run preview",
+    "preview:start": "bun run build:v1 && bun run preview",
     "preview:restart": "bash scripts/stop-dev.sh && bun run preview:start",
-    "typecheck": "bun run --filter @qarows/shared typecheck && bun run --filter @qarows/v1 typecheck",
+    "typecheck": "bun run --filter @qarows/shared typecheck && bun run --filter @qarows/ui typecheck && bun run --filter @qarows/v1 typecheck && bun run --filter @qarows/v2 typecheck",
     "test": "bun run --filter @qarows/shared test && bun run --filter @qarows/v1 test",
     "test:e2e": "bun run --filter @qarows/v1 test:e2e",
     "test:e2e:install": "bun run --filter @qarows/v1 test:e2e:install"

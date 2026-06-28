@@ -1,0 +1,178 @@
+@keyframes ui-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes ui-highlight-flash {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  35% {
+    background-color: oklch(0.546 0.245 262.881 / 0.12);
+  }
+}
+
+@keyframes ui-highlight-flash-ok {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  35% {
+    background-color: oklch(0.55 0.18 145 / 0.15);
+  }
+}
+
+@keyframes ui-highlight-flash-ng {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  35% {
+    background-color: oklch(0.55 0.22 25 / 0.12);
+  }
+}
+
+@keyframes runner-card-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes runner-card-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes task-status-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.55;
+  }
+  55% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes task-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes task-bar-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes loading-screen-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@layer utilities {
+  .runner-card-crossfade {
+    isolation: isolate;
+  }
+
+  .runner-card-crossfade__exit {
+    z-index: 1;
+    mix-blend-mode: plus-lighter;
+    animation: runner-card-fade-out 400ms ease-in-out both;
+  }
+
+  .runner-card-crossfade__enter {
+    z-index: 0;
+    mix-blend-mode: plus-lighter;
+    animation: runner-card-fade-in 400ms ease-in-out both;
+  }
+
+  .animate-ui-shake {
+    animation: ui-shake 300ms ease-in-out;
+  }
+
+  .animate-ui-highlight {
+    animation: ui-highlight-flash 600ms ease-in-out both;
+  }
+
+  .animate-ui-highlight-ok {
+    animation: ui-highlight-flash-ok 600ms ease-in-out both;
+  }
+
+  .animate-ui-highlight-ng {
+    animation: ui-highlight-flash-ng 600ms ease-in-out both;
+  }
+
+  .animate-task-status-pop {
+    animation: task-status-pop 320ms ease-out both;
+  }
+
+  .animate-task-bar-enter {
+    animation: task-bar-enter 320ms ease-out both;
+  }
+
+  .animate-task-bar-exit {
+    animation: task-bar-exit 280ms ease-in both;
+  }
+
+  .loading-screen-indicator {
+    animation: loading-screen-slide 1.1s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ui-shake,
+  .animate-ui-highlight,
+  .animate-ui-highlight-ok,
+  .animate-ui-highlight-ng,
+  .animate-task-status-pop,
+  .animate-task-bar-enter,
+  .animate-task-bar-exit,
+  .animate-in,
+  .animate-out,
+  .runner-card-crossfade__exit,
+  .runner-card-crossfade__enter,
+  .loading-screen-indicator {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .loading-screen-indicator {
+    left: 30%;
+    transform: none;
+  }
+}
