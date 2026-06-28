@@ -15,6 +15,17 @@ export const BUG_SEVERITY_LABELS: Record<BugSeverity, string> = {
   critical: "致命的",
 };
 
+/** メインワークフロー上のステータス順（未対応 → 修正確認済み） */
+export const BUG_STATUS_WORKFLOW: BugStatus[] = [
+  "open",
+  "in_progress",
+  "fixed",
+  "resolved",
+];
+
+/** 進捗バー等の表示順（wont_fix は分岐先として末尾） */
+export const BUG_STATUS_DISPLAY_ORDER: BugStatus[] = [...BUG_STATUS_WORKFLOW, "wont_fix"];
+
 const BUG_STATUSES = new Set<string>(Object.keys(BUG_STATUS_LABELS));
 
 const BUG_SEVERITIES = new Set<string>(Object.keys(BUG_SEVERITY_LABELS));
@@ -35,6 +46,12 @@ export function normalizeBugSeverity(raw: string): BugSeverity {
 
 export function isBugClosed(status: BugStatus): boolean {
   return status === "resolved" || status === "wont_fix";
+}
+
+export function getNextBugStatus(current: BugStatus): BugStatus | null {
+  const index = BUG_STATUS_WORKFLOW.indexOf(current);
+  if (index < 0 || index >= BUG_STATUS_WORKFLOW.length - 1) return null;
+  return BUG_STATUS_WORKFLOW[index + 1]!;
 }
 
 export function buildBugPrefillFromTestCase(testCase: TestCase): {

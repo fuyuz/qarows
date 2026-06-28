@@ -1,5 +1,5 @@
 import type { Bug, BugStatus, TestCase, TestDefinition } from "@qarows/shared";
-import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS } from "@qarows/shared";
+import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getNextBugStatus } from "@qarows/shared";
 import { Copy, Pencil } from "lucide-react";
 import { useCallback, useState } from "react";
 import {
@@ -61,16 +61,19 @@ export function BugCard({
   onPrev,
   onNext,
   onStatusChange,
+  onAdvanceStatus,
   onEdit,
 }: {
   bug: Bug;
   definition: TestDefinition;
   relatedTestCase?: TestCase;
   onStatusChange: (status: BugStatus) => void;
+  onAdvanceStatus?: () => void;
   onEdit: () => void;
   busy?: boolean;
 } & RunnerCardNavProps) {
   const [copied, setCopied] = useState(false);
+  const nextStatus = getNextBugStatus(bug.status);
 
   const envNames = (bug.environmentIds ?? [])
     .map((id) => definition.environments.find((env) => env.id === id)?.name ?? id)
@@ -202,7 +205,19 @@ export function BugCard({
         busy={busy}
         onPrev={onPrev}
         onNext={onNext}
-      />
+      >
+        {nextStatus && onAdvanceStatus && (
+          <Button
+            type="button"
+            variant="default"
+            className="h-auto flex-1 py-2.5 font-semibold"
+            disabled={busy}
+            onClick={onAdvanceStatus}
+          >
+            {BUG_STATUS_LABELS[nextStatus]}にする
+          </Button>
+        )}
+      </RunnerCardFooter>
     </article>
   );
 }

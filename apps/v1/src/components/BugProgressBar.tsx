@@ -1,19 +1,11 @@
 import { useMemo } from "react";
-import { BUG_STATUS_LABELS, type Bug, type BugStatus } from "@qarows/shared";
+import { BUG_STATUS_DISPLAY_ORDER, BUG_STATUS_LABELS, type Bug, type BugStatus } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
 import { resolveFilteredBugs } from "@/lib/bug-filter";
 import { getAllEnvironmentIds } from "@/lib/run-progress";
 import { formatRunnerFilterTitle } from "@/lib/utils";
 import { cn } from "@/lib/cn";
-
-const STATUS_ORDER: BugStatus[] = [
-  "open",
-  "in_progress",
-  "fixed",
-  "resolved",
-  "wont_fix",
-];
 
 const STATUS_COLORS: Record<BugStatus, string> = {
   open: "bg-red-500",
@@ -70,7 +62,7 @@ function BugStatusRow({
         role="img"
         aria-label={`${title}: ${total}件`}
       >
-        {STATUS_ORDER.map((status) => {
+        {BUG_STATUS_DISPLAY_ORDER.map((status) => {
           const count = counts[status];
           if (count === 0) return null;
           const widthPct = (count / total) * 100;

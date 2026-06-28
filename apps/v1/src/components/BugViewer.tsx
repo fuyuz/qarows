@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Bug, BugStatus } from "@qarows/shared";
-import { isValidSession } from "@qarows/shared";
+import { getNextBugStatus, isValidSession } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { BugCard } from "@/components/BugCard";
 import { BugEditDialog } from "@/components/BugEditDialog";
@@ -116,6 +116,12 @@ export function BugViewer() {
     [busy, current, saveBug],
   );
 
+  const nextStatus = current ? getNextBugStatus(current.status) : null;
+
+  const handleAdvanceStatus = useCallback(() => {
+    if (nextStatus) handleStatusChange(nextStatus);
+  }, [handleStatusChange, nextStatus]);
+
   const handleFixNoteConfirm = useCallback(
     async (fixNote: string) => {
       if (!results || !fixNoteDialog) return;
@@ -194,6 +200,7 @@ export function BugViewer() {
               onPrev={goPrev}
               onNext={goNext}
               onStatusChange={handleStatusChange}
+              onAdvanceStatus={nextStatus ? handleAdvanceStatus : undefined}
               onEdit={() => setEditDialogOpen(true)}
             />
           ) : (

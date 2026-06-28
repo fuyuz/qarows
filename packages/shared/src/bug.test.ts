@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildBugPrefillFromTestCase,
+  getNextBugStatus,
   isBugClosed,
   nextBugId,
   normalizeBugSeverity,
@@ -29,6 +30,19 @@ describe("isBugClosed", () => {
     expect(isBugClosed("resolved")).toBe(true);
     expect(isBugClosed("wont_fix")).toBe(true);
     expect(isBugClosed("open")).toBe(false);
+  });
+});
+
+describe("getNextBugStatus", () => {
+  it("returns the next status in the main workflow", () => {
+    expect(getNextBugStatus("open")).toBe("in_progress");
+    expect(getNextBugStatus("in_progress")).toBe("fixed");
+    expect(getNextBugStatus("fixed")).toBe("resolved");
+  });
+
+  it("returns null at terminal or off-workflow statuses", () => {
+    expect(getNextBugStatus("resolved")).toBeNull();
+    expect(getNextBugStatus("wont_fix")).toBeNull();
   });
 });
 
