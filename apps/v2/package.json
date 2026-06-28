@@ -17,6 +17,7 @@
     "@qarows/shared": "*",
     "@qarows/ui": "*",
     "hono": "^4.12.27",
+    "jose": "^6.2.3",
     "lucide-react": "^1.21.0",
     "nuqs": "^2.8.9",
     "react": "^19.1.0",

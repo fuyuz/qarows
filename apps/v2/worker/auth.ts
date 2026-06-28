@@ -1,4 +1,5 @@
 import type { Env } from "./env";
+import { verifyAccessJwt } from "./access-jwt";
 
 export interface AuthUser {
   email: string;
@@ -13,11 +14,22 @@ export class AccessDeniedError extends Error {
   }
 }
 
+/**
+ * Access is always required unless AUTH_DEV_BYPASS=true (local .dev.vars only).
+ * Production wrangler.toml must not set AUTH_DEV_BYPASS — auth cannot be disabled.
+ */
 export function isAccessRequired(env: Env): boolean {
-  return env.ACCESS_REQUIRED === "true";
+  return env.AUTH_DEV_BYPASS !== "true";
 }
 
-function getAccessEmail(request: Request): string | null {
+function getAccessJwt(request: Request): string | null {
+  const token = request.headers.get("Cf-Access-Jwt-Assertion");
+  if (!token) return null;
+  const trimmed = token.trim();
+  return trimmed || null;
+}
+
+function getAccessEmailHeader(request: Request): string | null {
   const email = request.headers.get("Cf-Access-Authenticated-User-Email");
   if (!email) return null;
   const trimmed = email.trim();
@@ -31,7 +43,23 @@ function getDevEmail(request: Request): string | null {
   return trimmed || null;
 }
 
+function parseEmailAllowlist(raw: string | undefined): string[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function assertEmailAllowed(email: string, env: Env): void {
+  const allowlist = parseEmailAllowlist(env.ACCESS_ALLOWED_EMAILS);
+  if (allowlist.length > 0) {
+    if (!allowlist.includes(email.toLowerCase())) {
+      throw new AccessDeniedError("許可されていないメールアドレスです");
+    }
+    return;
+  }
+
   const domain = env.ACCESS_ALLOWED_EMAIL_DOMAIN?.trim();
   if (!domain) return;
 
@@ -41,22 +69,48 @@ function assertEmailAllowed(email: string, env: Env): void {
   }
 }
 
-/**
- * Resolve the authenticated user for this deployment's closed environment.
- * Production (ACCESS_REQUIRED=true): requires Cf-Access-Authenticated-User-Email from Cloudflare Access.
- * Local dev: optional X-Qarows-User header, otherwise dev@local.
- */
-export function resolveAuthUser(request: Request, env: Env): AuthUser {
-  const accessEmail = getAccessEmail(request);
-  if (accessEmail) {
-    assertEmailAllowed(accessEmail, env);
-    return { email: accessEmail };
+function assertAccessConfig(env: Env): string {
+  const teamDomain = env.ACCESS_TEAM_DOMAIN?.trim();
+  if (!teamDomain) {
+    throw new AccessDeniedError("サーバー設定エラー: ACCESS_TEAM_DOMAIN が未設定です");
+  }
+  return teamDomain;
+}
+
+async function resolveProductionUser(request: Request, env: Env): Promise<AuthUser> {
+  const teamDomain = assertAccessConfig(env);
+  const token = getAccessJwt(request);
+  if (!token) {
+    throw new AccessDeniedError(
+      "Cloudflare Access による認証が必要です（Cf-Access-Jwt-Assertion）",
+    );
   }
 
+  let email: string;
+  try {
+    const verified = await verifyAccessJwt(token, teamDomain, env.ACCESS_AUD?.trim() || undefined);
+    email = verified.email;
+  } catch {
+    throw new AccessDeniedError("Cloudflare Access JWT の検証に失敗しました");
+  }
+
+  const headerEmail = getAccessEmailHeader(request);
+  if (headerEmail && headerEmail.toLowerCase() !== email.toLowerCase()) {
+    throw new AccessDeniedError("Access JWT とヘッダーの email が一致しません");
+  }
+
+  assertEmailAllowed(email, env);
+  return { email };
+}
+
+/**
+ * Resolve the authenticated user for this deployment's closed environment.
+ * Production: verify Cf-Access-Jwt-Assertion, then optional allowlist/domain guard.
+ * Local dev: optional X-Qarows-User header, otherwise dev@local.
+ */
+export async function resolveAuthUser(request: Request, env: Env): Promise<AuthUser> {
   if (isAccessRequired(env)) {
-    throw new AccessDeniedError(
-      "Cloudflare Access による認証が必要です（Cf-Access-Authenticated-User-Email）",
-    );
+    return resolveProductionUser(request, env);
   }
 
   const devEmail = getDevEmail(request);
@@ -65,6 +119,6 @@ export function resolveAuthUser(request: Request, env: Env): AuthUser {
   return { email: "dev@local" };
 }
 
-export function requireAuthUser(request: Request, env: Env): AuthUser {
+export async function requireAuthUser(request: Request, env: Env): Promise<AuthUser> {
   return resolveAuthUser(request, env);
 }

@@ -41,7 +41,7 @@ export class ProjectRoom extends DurableObject<Env> {
 
   override async fetch(request: Request): Promise<Response> {
     try {
-      requireAuthUser(request, this.env);
+      await requireAuthUser(request, this.env);
     } catch (err) {
       const message = err instanceof AccessDeniedError ? err.message : "Unauthorized";
       return new Response(message, { status: 401 });

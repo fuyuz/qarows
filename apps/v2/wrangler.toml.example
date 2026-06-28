@@ -7,10 +7,17 @@ compatibility_date = "2025-04-01"
 # account_id = "YOUR_ACCOUNT_ID"
 
 [vars]
-# Require Cloudflare Access in production (Cf-Access-Authenticated-User-Email).
-ACCESS_REQUIRED = "true"
-# Optional worker-side domain guard (Access policy should also enforce this):
+# Access JWT is always enforced (cannot be disabled in production).
+# Zero Trust team name (https://<ACCESS_TEAM_DOMAIN>.cloudflareaccess.com)
+ACCESS_TEAM_DOMAIN = "your-team-name"
+# Access Application AUD tag (Zero Trust → Application → Overview)
+# ACCESS_AUD = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#
+# Worker-side allow guard (choose Method A or B in Access policy + mirror here):
+# Method B — organization domain:
 # ACCESS_ALLOWED_EMAIL_DOMAIN = "example.com"
+# Method A — named individuals (comma-separated):
+# ACCESS_ALLOWED_EMAILS = "alice@example.com,bob@example.com"
 
 [assets]
 directory = "./dist"

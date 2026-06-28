@@ -6,7 +6,7 @@ import type { AppEnv } from "../types";
 /** Enforce Cloudflare Access (production) and attach authenticated user. */
 export const accessMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   try {
-    c.set("user", resolveAuthUser(c.req.raw, c.env));
+    c.set("user", await resolveAuthUser(c.req.raw, c.env));
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       throw new HTTPException(err.status, { message: err.message });

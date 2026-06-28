@@ -1,10 +1,11 @@
 # Copy to .dev.vars for local `wrangler dev`.
-#
-# Disable Access enforcement locally (Vite proxy does not send Access headers).
 ACCESS_REQUIRED = "false"
 #
-# Optional: simulate a signed-in user in local dev
-# X-Qarows-User is read from the HTTP request header, not from here.
+# Production wrangler.toml [vars] example:
+# ACCESS_REQUIRED = "true"
+# ACCESS_TEAM_DOMAIN = "your-team-name"
+# ACCESS_AUD = "..."  # recommended
+# Method B: ACCESS_ALLOWED_EMAIL_DOMAIN = "example.com"
+# Method A: ACCESS_ALLOWED_EMAILS = "alice@example.com,bob@example.com"
 #
-# Production uses Cloudflare Access (Cf-Access-Authenticated-User-Email).
-# Set ACCESS_REQUIRED = "true" in wrangler.toml [vars] for deploy.
+# Local dev: optional X-Qarows-User request header, or defaults to dev@local.

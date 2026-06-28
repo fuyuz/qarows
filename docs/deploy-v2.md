@@ -146,52 +146,64 @@ bunx wrangler deploy --config wrangler.toml
 
 ## 4. Cloudflare Access（本番認証・アクセス制限）
 
-Phase 2 Worker は **Cloudflare Access 必須** で動作するよう設定されている（`wrangler.toml` の `ACCESS_REQUIRED = "true"`）。
+Phase 2 Worker は **Cloudflare Access 必須** で動作する（`wrangler.toml` の `ACCESS_REQUIRED = "true"`）。
 
 | レイヤ | 役割 |
 |---|---|
 | Cloudflare Access（Dashboard） | 未認証ユーザーをログイン画面へリダイレクト |
-| Worker `accessMiddleware` | Access ヘッダーなしのリクエストを **401** で拒否（API・SPA・WebSocket すべて） |
+| Worker JWT 検証 | `Cf-Access-Jwt-Assertion` を署名検証（ヘッダー偽装対策） |
+| Worker allow guard（任意） | `ACCESS_ALLOWED_EMAILS` または `ACCESS_ALLOWED_EMAIL_DOMAIN` |
 
-### 4.1 Worker 側の設定
-
-`wrangler.toml.example` をコピーした `wrangler.toml` に含まれる vars:
+### 4.1 Worker 側の必須設定
 
 ```toml
 [vars]
 ACCESS_REQUIRED = "true"
-# 任意: Access ポリシーに加えて Worker でもドメインを確認
-# ACCESS_ALLOWED_EMAIL_DOMAIN = "example.com"
+ACCESS_TEAM_DOMAIN = "your-team-name"   # *.cloudflareaccess.com のサブドメイン
+# ACCESS_AUD = "..."                    # Access Application の AUD（推奨）
 ```
 
-認証済みユーザーはヘッダ `Cf-Access-Authenticated-User-Email` から識別する（`apps/v2/worker/auth.ts`）。
+JWT 検証後、メールアドレスは **JWT の claim から取得**する（`Cf-Access-Authenticated-User-Email` 単体は信頼しない）。ヘッダー email がある場合は JWT と一致することを確認する。
 
-### 4.2 Access アプリケーション（Dashboard）
+### 4.2 ユーザー追加（Dashboard）— Method A / B
+
+Access ポリシーは Dashboard で設定する。Worker 側 allow guard は **どちらか一方** を選んで mirror する（両方設定時は **EMAILS 優先**）。
+
+| 方式 | Dashboard（Access ポリシー） | Worker `[vars]` |
+|---|---|---|
+| **A: 個人メール** | Include → **Emails** に `alice@…`, `bob@…` を列挙 | `ACCESS_ALLOWED_EMAILS = "alice@…,bob@…"` |
+| **B: 組織ドメイン** | Include → **Email domain** に `@your-company.com` | `ACCESS_ALLOWED_EMAIL_DOMAIN = "your-company.com"` |
+
+- Method A: 招待メールは自動送信されない。URL を個別共有する。
+- Method B: そのドメインの Google / GitHub 等 IdP でログイン可能。
+- allow guard を省略すると JWT + Access ポリシーのみ（非推奨だが可）。
+
+### 4.3 Access アプリケーション（Dashboard）
 
 1. Dashboard → **Zero Trust** → **Access** → **Applications**
-2. デプロイした Worker のホスト名（カスタムドメイン **および** `*.workers.dev`）を保護対象に追加
-3. ポリシーで許可メールドメイン（例: `@your-company.com`）を設定
+2. 保護対象ホストを **すべて** 登録する:
+   - カスタムドメイン（例: `qarows.example.com`）
+   - **`*.workers.dev` の Worker URL**（登録漏れが多い）
+3. 上記 Method A または B でポリシーを作成
+4. Application の **AUD** を `ACCESS_AUD` に設定（推奨）
 
-**workers.dev URL を Access 外に残すと、Worker 側で 401 になるが、直接 URL を知っている人にログインを促す画面は出ない。** 本番ホストは必ず Access アプリケーションに登録すること。
+**workers.dev を Access 外に残すと、Layer 1 がなく JWT なしの直接アクセスが可能になる。** ヘッダー偽装だけでは Worker JWT 検証で防げるが、**必ず workers.dev も Access Application に含めること。**
 
-Pages 側にも Access をかける場合は、同じホストに対して Access + Worker  enforcement の二重ガードになる（推奨）。
-
-### 4.3 ローカル開発
-
-`.dev.vars` で Access  enforcement を無効化する（Vite proxy は Access ヘッダーを付与しない）:
+### 4.4 ローカル開発
 
 ```bash
 cp apps/v2/.dev.vars.example apps/v2/.dev.vars
-# ACCESS_REQUIRED = "false" がデフォルト
+# ACCESS_REQUIRED = "false"
 ```
 
-ローカルでは `X-Qarows-User: you@example.com` リクエストヘッダでユーザーを指定できる（任意）。未指定時は `dev@local`。
+ローカルでは `X-Qarows-User: you@example.com` ヘッダ（任意）。未指定時は `dev@local`。
 
-### 4.4 動作確認
+### 4.5 動作確認
 
-- 本番: Access 未ログイン → Cloudflare ログイン画面（Access）
-- 本番: Access バイパス（ヘッダーなしで Worker 直叩き）→ `{ "error": "Cloudflare Access による認証が必要です…" }`（401）
-- ローカル: `ACCESS_REQUIRED=false` で通常どおり `/projects` が表示される
+- 本番: 未ログイン → Access ログイン画面
+- 本番: JWT なし / 無効 JWT → 401
+- 本番: 偽装ヘッダーのみ → 401（JWT 必須）
+- ローカル: `ACCESS_REQUIRED=false` で `/projects` が表示される
 
 ---
 
@@ -223,8 +235,8 @@ Browser
 | `dev:v2` で API エラー | Worker が 8787 で起動しているか。`wrangler.toml` があるか |
 | D1 `no such table` | `bun run db:migrate:local` または `--remote` で migrations 適用 |
 | WebSocket 接続失敗 | 本番では Access が WebSocket Upgrade を許可しているか確認 |
-| API が 401 | 本番: Access ログイン済みか。ローカル: `.dev.vars` で `ACCESS_REQUIRED=false` |
-| Access 未ログインなのに Worker だけ 401 | Access アプリケーションの対象ホストに URL が含まれているか |
+| API が 401 | JWT / AUD / TEAM_DOMAIN 設定。Access ログイン済みか。ローカルは `ACCESS_REQUIRED=false` |
+| workers.dev が Access 外 | **必ず** Access Application に workers.dev ホストを追加 |
 | 409 on create | 同じ `project.id` の tests.yml が既に存在。上書きまたは id を変更 |
 | `wrangler.toml` がない | `cp wrangler.toml.example wrangler.toml` |
 
@@ -233,8 +245,8 @@ Browser
 ## セキュリティ
 
 - `wrangler.toml`（account_id 等）、`.dev.vars`、API トークンは **コミットしない**
-- 許可メールドメイン・Access ポリシー ID は Dashboard で管理
-- Phase 2 は組織内利用想定。Access なしの公開 Worker は避ける
+- 本番は `ACCESS_TEAM_DOMAIN` + JWT 検証必須。allow guard は Method A（`ACCESS_ALLOWED_EMAILS`）または B（`ACCESS_ALLOWED_EMAIL_DOMAIN`）を推奨
+- workers.dev とカスタムドメイン **両方** を Access Application に登録する
 
 ---
 
