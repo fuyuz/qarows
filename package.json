@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "bun run --filter @qarows/v1 dev",
     "dev:v2": "bun run --filter @qarows/v2 dev",
+    "dev:v2:worker": "bun run --filter @qarows/v2 dev:worker",
+    "deploy:v2": "bun run --filter @qarows/v2 deploy",
     "dev:stop": "bash scripts/stop-dev.sh",
     "dev:restart": "bash scripts/stop-dev.sh && bun run dev",
     "build": "bun run --filter @qarows/v1 build",

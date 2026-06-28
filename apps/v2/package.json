@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "bash scripts/dev.sh",
+    "dev:frontend": "vite",
     "build": "tsc --noEmit && vite build",
-    "dev:worker": "wrangler dev --config wrangler.toml",
+    "dev:worker": "wrangler dev --config wrangler.toml --port 8787",
     "db:migrate:local": "wrangler d1 migrations apply qarows-v2 --local --config wrangler.toml",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
-    "deploy": "wrangler deploy --config wrangler.toml"
+    "deploy": "bun run build && wrangler deploy --config wrangler.toml"
   },
   "dependencies": {
     "@qarows/shared": "*",

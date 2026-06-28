@@ -108,18 +108,24 @@ qarows/
 
 | コマンド | URL | 用途 |
 |---|---|---|
-| `bun run preview:start` | http://localhost:5173 | 本番ビルドの確認（常時起動用） |
-| `bun run dev` | http://localhost:5174 | 開発（HMR） |
+| `bun run preview:start` | http://localhost:5173 | Phase 1 本番ビルド確認 |
+| `bun run dev` | http://localhost:5174 | Phase 1 開発（HMR） |
+| `bun run dev:v2` | http://localhost:5177 | Phase 2 開発（Vite + Worker `:8787`） |
 
-5173 は **preview 専用**。開発中は 5174 を使う。
+5173 は **preview 専用**。Phase 1 開発中は 5174、Phase 2 は 5177 を使う。
 
 ```bash
-# 5173 / 5174 を掴んでいるプロセスを止める
+# dev ポートを止める（Phase 1 + Phase 2）
 bun run dev:stop
+
+# Phase 2 初回: cp apps/v2/wrangler.toml.example apps/v2/wrangler.toml
+bun run dev:v2
 
 # preview をビルドして 5173 で起動
 bun run preview:start
 ```
+
+Phase 2 デプロイ手順: [docs/deploy-v2.md](docs/deploy-v2.md)
 
 ## ドキュメント
 
