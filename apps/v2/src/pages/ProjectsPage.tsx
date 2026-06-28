@@ -8,6 +8,7 @@ import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { useProjects } from "@/context/ProjectsContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
 import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";
+import { readFileAsText } from "@/lib/file-utils";
 import { sortProjectSummaries } from "@/lib/project-summaries";
 
 function resolveDefaultSelection(
@@ -31,6 +32,7 @@ export function ProjectsPage() {
     lastOpenedProjectId,
     removeProject,
     clearProjectResults,
+    mergeResultsIntoProject,
     markProjectOpened,
   } = useProjects();
   const { projectId, setProjectId } = useProjectsQueryState();
@@ -66,6 +68,14 @@ export function ProjectsPage() {
       navigate(projectPath(targetProjectId, hasValidSession ? "run" : "session"));
     },
     [markProjectOpened, navigate],
+  );
+
+  const handleMerge = useCallback(
+    async (targetProjectId: string, files: File[]) => {
+      const jsons = await Promise.all(files.map((file) => readFileAsText(file)));
+      await mergeResultsIntoProject(targetProjectId, jsons);
+    },
+    [mergeResultsIntoProject],
   );
 
   const handleClearResults = useCallback(
@@ -130,6 +140,7 @@ export function ProjectsPage() {
                         onContinue={(hasValidSession) =>
                           handleContinue(selectedSummary.id, hasValidSession)
                         }
+                        onMerge={(files) => handleMerge(selectedSummary.id, files)}
                         onClearResults={() => handleClearResults(selectedSummary.id)}
                         onDelete={() => handleDelete(selectedSummary.id)}
                       />

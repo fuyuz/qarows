@@ -1,6 +1,9 @@
 /** Maximum tests.yml upload size (5 MiB). */
 export const MAX_TESTS_YAML_BYTES = 5 * 1024 * 1024;
 
+/** Maximum merge-results request body size (5 MiB). */
+export const MAX_RESULTS_JSON_BYTES = 5 * 1024 * 1024;
+
 export class BodyTooLargeError extends Error {
   readonly maxBytes: number;
 

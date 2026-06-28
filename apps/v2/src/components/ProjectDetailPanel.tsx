@@ -11,15 +11,18 @@ import {
   CardHeader,
   CardTitle,
   cn,
+  classifyResultsFiles,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  FileDropZone,
+  Separator,
 } from "@qarows/ui";
 import { getProject, type ProjectSnapshot } from "@/lib/api/projects";
-import { downloadText } from "@/lib/file-utils";
+import { appendUniqueFiles, downloadText, fileKey } from "@/lib/file-utils";
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);
@@ -39,6 +42,7 @@ export interface ProjectDetailPanelProps {
   updatedAt: string;
   isLastOpened: boolean;
   onContinue: (hasValidSession: boolean) => void;
+  onMerge: (files: File[]) => Promise<void>;
   onClearResults: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
@@ -49,11 +53,14 @@ export function ProjectDetailPanel({
   updatedAt,
   isLastOpened,
   onContinue,
+  onMerge,
   onClearResults,
   onDelete,
 }: ProjectDetailPanelProps) {
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loadingSnapshot, setLoadingSnapshot] = useState(true);
+  const [mergeFiles, setMergeFiles] = useState<File[]>([]);
+  const [merging, setMerging] = useState(false);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -82,6 +89,7 @@ export function ProjectDetailPanel({
 
   useEffect(() => {
     setSuccessMessage(null);
+    setMergeFiles([]);
     setSnapshot(null);
     void loadSnapshot(projectId);
   }, [projectId, loadSnapshot]);
@@ -97,6 +105,36 @@ export function ProjectDetailPanel({
   const handleExportResults = () => {
     if (!snapshot) return;
     downloadText(serializeResultsJson(snapshot.results), "results.json", "application/json");
+  };
+
+  const appendMergeFiles = (files: File[]) => {
+    const { results, unknown } = classifyResultsFiles(files);
+    if (unknown.length > 0) {
+      setError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
+    } else {
+      setError(null);
+    }
+    if (results.length === 0) return;
+    setMergeFiles((prev) => appendUniqueFiles(prev, results));
+    setSuccessMessage(null);
+  };
+
+  const handleMerge = async () => {
+    if (mergeFiles.length === 0) return;
+    setMerging(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await onMerge(mergeFiles);
+      const count = mergeFiles.length;
+      setMergeFiles([]);
+      setSuccessMessage(`${count} 件の results.json を取り込みました`);
+      await loadSnapshot(projectId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "results.json の取り込みに失敗しました");
+    } finally {
+      setMerging(false);
+    }
   };
 
   const handleClear = async () => {
@@ -169,9 +207,36 @@ export function ProjectDetailPanel({
               </Button>
             </div>
 
-            <p className="text-sm text-muted-foreground">
-              Phase 2 では結果のマージはワークスペース内でリアルタイム同期されます。
-            </p>
+            <Separator />
+
+            <div>
+              <p className="mb-2 text-sm font-medium">results.json をマージ</p>
+              <FileDropZone
+                title="results.json をここにドロップ"
+                hint="複数ファイル可"
+                accept=".json,application/json"
+                onFiles={appendMergeFiles}
+              />
+              {mergeFiles.length > 0 && (
+                <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+                  {mergeFiles.map((file) => (
+                    <li key={fileKey(file)} className="truncate text-muted-foreground">
+                      {file.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                disabled={mergeFiles.length === 0 || merging}
+                onClick={() => void handleMerge()}
+              >
+                {merging ? "取り込み中…" : "取り込む"}
+              </Button>
+            </div>
 
             <div className="flex flex-wrap gap-2">
               <Button variant="destructive" size="sm" onClick={() => setClearDialogOpen(true)}>

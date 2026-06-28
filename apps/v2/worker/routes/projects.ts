@@ -1,13 +1,22 @@
-import { parseTestsYaml, getProjectIdFromDefinition } from "@qarows/shared";
+import { parseTestsYaml, getProjectIdFromDefinition, parseResultsJson } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { deleteProject, getProject, insertProject, listProjects, ProjectIdMismatchError } from "../db";
-import { BodyTooLargeError, MAX_TESTS_YAML_BYTES, readRequestTextWithLimit } from "../request-body";
+import {
+  BodyTooLargeError,
+  MAX_RESULTS_JSON_BYTES,
+  MAX_TESTS_YAML_BYTES,
+  readRequestTextWithLimit,
+} from "../request-body";
 import type { AppEnv } from "../types";
 
 interface CreateProjectBody {
   name?: string;
   testsYaml?: string;
+}
+
+interface MergeResultsBody {
+  resultsJsonList?: string[];
 }
 
 function serializeSummaryList(projects: Awaited<ReturnType<typeof listProjects>>) {
@@ -216,6 +225,67 @@ projectsRoutes.post("/:projectId/clear-results", async (c) => {
     throw new HTTPException(500, {
       message: err instanceof Error ? err.message : "Failed to clear results",
     });
+  }
+
+  return c.json({ ok: true });
+});
+
+projectsRoutes.post("/:projectId/merge-results", async (c) => {
+  const projectId = c.req.param("projectId");
+  const snapshot = await getProject(c.env.DB, projectId);
+  if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
+
+  let body: MergeResultsBody;
+  try {
+    const raw = await readRequestTextWithLimit(c.req.raw, MAX_RESULTS_JSON_BYTES);
+    if (!raw.trim()) {
+      throw new HTTPException(400, { message: "Request body is required" });
+    }
+    body = JSON.parse(raw) as MergeResultsBody;
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) {
+      throw new HTTPException(413, {
+        message: `Request body exceeds maximum size (${MAX_RESULTS_JSON_BYTES} bytes)`,
+      });
+    }
+    if (err instanceof HTTPException) throw err;
+    throw new HTTPException(400, { message: "Invalid JSON body" });
+  }
+
+  const resultsJsonList = body.resultsJsonList;
+  if (!Array.isArray(resultsJsonList) || resultsJsonList.length === 0) {
+    throw new HTTPException(400, { message: "resultsJsonList is required" });
+  }
+  if (!resultsJsonList.every((item) => typeof item === "string")) {
+    throw new HTTPException(400, { message: "resultsJsonList must contain strings" });
+  }
+
+  const stub = c.env.PROJECT.getByName(projectId);
+  const user = c.get("user").email;
+
+  for (const resultsJson of resultsJsonList) {
+    let incoming;
+    try {
+      incoming = parseResultsJson(resultsJson, { definition: snapshot.definition });
+    } catch (err) {
+      throw new HTTPException(400, {
+        message: err instanceof Error ? err.message : "Invalid results.json",
+      });
+    }
+
+    try {
+      await stub.applyCommandFromWorker({
+        projectId,
+        commandId: crypto.randomUUID(),
+        command: { type: "mergeResults", incoming },
+        user,
+      });
+    } catch (err) {
+      console.error("Failed to merge project results", err);
+      throw new HTTPException(500, {
+        message: err instanceof Error ? err.message : "Failed to merge results",
+      });
+    }
   }
 
   return c.json({ ok: true });

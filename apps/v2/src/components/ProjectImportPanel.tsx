@@ -14,13 +14,15 @@ import {
 import { useProjects } from "@/context/ProjectsContext";
 import { ApiError } from "@/lib/api/client";
 import { projectPath } from "@/lib/project-routes";
-import { readFileAsText } from "@/lib/file-utils";
+import { appendUniqueFiles, fileKey, readFileAsText } from "@/lib/file-utils";
 
 export function ProjectImportPanel() {
   const navigate = useNavigate();
-  const { importProject, createNamedProject, projectSummaries } = useProjects();
+  const { importProject, createNamedProject, mergeResultsIntoProject, projectSummaries } =
+    useProjects();
 
   const [testsFile, setTestsFile] = useState<File | null>(null);
+  const [resultsFiles, setResultsFiles] = useState<File[]>([]);
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export function ProjectImportPanel() {
     projectId: string;
     name: string;
     yaml: string;
+    resultsJsonList: string[];
   } | null>(null);
 
   const showError = (message: string) => {
@@ -42,17 +45,18 @@ export function ProjectImportPanel() {
     const { tests, results, unknown } = classifyDroppedFiles(files);
     if (tests) setTestsFile(tests);
     if (results.length > 0) {
-      showError("Phase 2 では results.json はインポート時に取り込めません。ワークスペースで同期します。");
+      setResultsFiles((prev) => appendUniqueFiles(prev, results));
     }
     if (unknown.length > 0) {
       showError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
-    } else if (results.length === 0) {
+    } else {
       setError(null);
     }
   };
 
   const clearLocalFiles = () => {
     setTestsFile(null);
+    setResultsFiles([]);
     setError(null);
   };
 
@@ -69,8 +73,20 @@ export function ProjectImportPanel() {
     }
   };
 
-  const finishImport = async (yaml: string, existingProjectId?: string) => {
+  const readResultsJsonList = async (files: File[]): Promise<string[]> => {
+    if (files.length === 0) return [];
+    return Promise.all(files.map((file) => readFileAsText(file)));
+  };
+
+  const finishImport = async (
+    yaml: string,
+    resultsJsonList: string[],
+    existingProjectId?: string,
+  ) => {
     const projectId = await importProject(yaml, existingProjectId);
+    if (resultsJsonList.length > 0) {
+      await mergeResultsIntoProject(projectId, resultsJsonList);
+    }
     clearLocalFiles();
     setOverwriteDialogOpen(false);
     setPendingImport(null);
@@ -83,6 +99,7 @@ export function ProjectImportPanel() {
     setError(null);
     try {
       const yaml = await readFileAsText(testsFile);
+      const resultsJsonList = await readResultsJsonList(resultsFiles);
       const parsedDefinition = parseTestsYaml(yaml);
       const projectId = getProjectIdFromDefinition(parsedDefinition);
       const existing = projectSummaries.find((summary) => summary.id === projectId);
@@ -92,12 +109,13 @@ export function ProjectImportPanel() {
           projectId,
           name: parsedDefinition.project.name,
           yaml,
+          resultsJsonList,
         });
         setOverwriteDialogOpen(true);
         return;
       }
 
-      await finishImport(yaml);
+      await finishImport(yaml, resultsJsonList);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         showError("同じ id のプロジェクトが既に存在します");
@@ -114,7 +132,11 @@ export function ProjectImportPanel() {
     setLoading(true);
     setError(null);
     try {
-      await finishImport(pendingImport.yaml, pendingImport.projectId);
+      await finishImport(
+        pendingImport.yaml,
+        pendingImport.resultsJsonList,
+        pendingImport.projectId,
+      );
     } catch (err) {
       showError(err instanceof Error ? err.message : "読み込みに失敗しました");
     } finally {
@@ -144,7 +166,7 @@ export function ProjectImportPanel() {
   return (
     <>
       <ProjectImportShell
-        description="tests.yml をアップロードするか、空のプロジェクトを作成します"
+        description="tests.yml と results.json（任意・複数可）をアップロードするか、空のプロジェクトを作成します"
         error={error}
         errorShake={errorShake}
         footer={
@@ -155,7 +177,7 @@ export function ProjectImportPanel() {
             <Button variant="ghost" onClick={() => void loadSample()}>
               サンプルを試す
             </Button>
-            {testsFile && (
+            {(testsFile || resultsFiles.length > 0) && (
               <Button variant="outline" onClick={clearLocalFiles}>
                 選択をクリア
               </Button>
@@ -194,17 +216,28 @@ export function ProjectImportPanel() {
       >
         <FileDropZone
           title="ファイルをここにドロップ"
-          hint="tests.yml をドロップするか、クリックして選択"
-          accept=".yml,.yaml"
+          hint="tests.yml（必須）と results.json（任意・複数）を同時にドロップできます"
+          accept=".yml,.yaml,.json,application/json"
           onFiles={applyInitialFiles}
         />
 
-        {testsFile && (
+        {(testsFile || resultsFiles.length > 0) && (
           <ul className="mt-6 flex flex-col gap-2">
-            <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
-              <span className="break-all font-medium">{testsFile.name}</span>
-              <Badge>必須</Badge>
-            </li>
+            {testsFile && (
+              <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+                <span className="break-all font-medium">{testsFile.name}</span>
+                <Badge>必須</Badge>
+              </li>
+            )}
+            {resultsFiles.map((file) => (
+              <li
+                key={fileKey(file)}
+                className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm"
+              >
+                <span className="break-all font-medium">{file.name}</span>
+                <Badge variant="secondary">results</Badge>
+              </li>
+            ))}
           </ul>
         )}
       </ProjectImportShell>

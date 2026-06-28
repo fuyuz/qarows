@@ -14,6 +14,7 @@ import {
   listProjects,
   replaceProjectFromYaml,
   clearProjectResults as clearProjectResultsApi,
+  mergeProjectResults as mergeProjectResultsApi,
   type ProjectSummary,
 } from "@/lib/api/projects";
 
@@ -34,6 +35,7 @@ interface ProjectsContextValue {
   createNamedProject: (name: string) => Promise<string>;
   removeProject: (projectId: string) => Promise<void>;
   clearProjectResults: (projectId: string) => Promise<void>;
+  mergeResultsIntoProject: (projectId: string, resultsJsonList: string[]) => Promise<void>;
   markProjectOpened: (projectId: string) => void;
 }
 
@@ -127,6 +129,15 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [refreshProjects],
   );
 
+  const mergeResultsIntoProject = useCallback(
+    async (projectId: string, resultsJsonList: string[]) => {
+      if (resultsJsonList.length === 0) return;
+      await mergeProjectResultsApi(projectId, resultsJsonList);
+      await refreshProjects();
+    },
+    [refreshProjects],
+  );
+
   const markProjectOpened = useCallback((projectId: string) => {
     writeLastOpenedProjectId(projectId);
     setLastOpenedProjectId(projectId);
@@ -144,6 +155,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       createNamedProject,
       removeProject,
       clearProjectResults,
+      mergeResultsIntoProject,
       markProjectOpened,
     }),
     [
@@ -157,6 +169,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       createNamedProject,
       removeProject,
       clearProjectResults,
+      mergeResultsIntoProject,
       markProjectOpened,
     ],
   );

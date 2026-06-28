@@ -67,6 +67,18 @@ export async function clearProjectResults(projectId: string): Promise<void> {
   });
 }
 
+export async function mergeProjectResults(
+  projectId: string,
+  resultsJsonList: string[],
+): Promise<void> {
+  if (resultsJsonList.length === 0) return;
+  await apiJson<{ ok: true }>(`/api/projects/${encodeURIComponent(projectId)}/merge-results`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resultsJsonList }),
+  });
+}
+
 export async function replaceProjectFromYaml(
   projectId: string,
   testsYaml: string,
