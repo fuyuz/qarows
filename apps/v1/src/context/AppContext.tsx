@@ -11,6 +11,7 @@ import {
 import {
   clearTestCaseEnvironmentResult,
   createEmptyResults,
+  getProjectIdFromDefinition,
   getTestCaseVersion,
   mergeResultsFiles,
   parseResultsJson,
@@ -34,6 +35,8 @@ import {
   type ProjectRecord,
   type ProjectSummary,
 } from "@/lib/storage";
+import { buildProjectRecord } from "@/lib/project-record";
+import { projectRecordToSummary, sortProjectSummaries } from "@/lib/project-summaries";
 
 interface AppContextValue {
   ready: boolean;
@@ -49,6 +52,7 @@ interface AppContextValue {
   hasProject: (projectId: string) => Promise<boolean>;
   mergeResultsFromFile: (json: string) => Promise<void>;
   mergeResultsFromFiles: (jsons: string[]) => Promise<void>;
+  mergeResultsIntoProject: (projectId: string, jsons: string[]) => Promise<boolean>;
   setSession: (session: SessionConfig) => Promise<void>;
   updateResults: (
     testCaseId: string,
@@ -67,6 +71,7 @@ interface AppContextValue {
   ) => Promise<void>;
   clearTestResult: (testCaseId: string, envId: string) => Promise<void>;
   clearResults: () => Promise<void>;
+  clearResultsForProject: (projectId: string) => Promise<boolean>;
   deleteProject: (projectId: string) => Promise<void>;
   refreshProjectSummaries: () => Promise<void>;
 }
@@ -86,23 +91,6 @@ function useSerialMutationQueue() {
   }, []);
 
   return runSerial;
-}
-
-function resolveProjectId(definition: TestDefinition): string {
-  return definition.project.id ?? "project";
-}
-
-function recordFromSnapshot(snapshot: {
-  definition: TestDefinition;
-  results: ResultsFile;
-  session: SessionConfig | null;
-}): ProjectRecord {
-  return {
-    definition: snapshot.definition,
-    results: snapshot.results,
-    session: snapshot.session,
-    updatedAt: snapshot.results.updatedAt ?? new Date().toISOString(),
-  };
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -137,6 +125,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshProjectSummaries = useCallback(async () => {
     const summaries = await listProjectSummaries();
     setProjectSummaries(summaries);
+  }, []);
+
+  const upsertProjectSummary = useCallback((projectId: string, record: ProjectRecord) => {
+    const summary = projectRecordToSummary(projectId, record);
+    setProjectSummaries((prev) => {
+      const rest = prev.filter((entry) => entry.projectId !== projectId);
+      return sortProjectSummaries([...rest, summary]);
+    });
   }, []);
 
   useEffect(() => {
@@ -196,6 +192,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLastUpdatedTestId(null);
   }, []);
 
+  const saveProjectRecord = useCallback(
+    async (
+      projectId: string,
+      record: ProjectRecord,
+      options?: { syncActiveIfMatches?: boolean },
+    ) => {
+      await saveProject(projectId, record);
+      upsertProjectSummary(projectId, record);
+      if (options?.syncActiveIfMatches && activeProjectIdRef.current === projectId) {
+        applyActiveSnapshot(projectId, {
+          definition: record.definition,
+          results: record.results,
+          session: record.session,
+        });
+      }
+    },
+    [applyActiveSnapshot, upsertProjectSummary],
+  );
+
   const persistActive = useCallback(
     async (next: {
       definition?: TestDefinition | null;
@@ -208,15 +223,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const snapshot = applyActiveSnapshot(projectId, next);
       if (!snapshot.definition || !snapshot.results) return;
 
-      const record = recordFromSnapshot({
+      const record = buildProjectRecord({
         definition: snapshot.definition,
         results: snapshot.results,
         session: snapshot.session,
       });
-      await saveProject(projectId, record);
-      await refreshProjectSummaries();
+      await saveProjectRecord(projectId, record);
     },
-    [applyActiveSnapshot, refreshProjectSummaries],
+    [applyActiveSnapshot, saveProjectRecord],
   );
 
   const activateProject = useCallback(
@@ -258,19 +272,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (yaml: string, resultsJson?: string) => {
       return runSerial(async () => {
         const parsedDefinition = parseTestsYaml(yaml);
-        const projectId = resolveProjectId(parsedDefinition);
+        const projectId = getProjectIdFromDefinition(parsedDefinition);
         let parsedResults = createEmptyResults(projectId);
         if (resultsJson) {
           parsedResults = parseResultsJson(resultsJson, { definition: parsedDefinition });
         }
 
-        const record: ProjectRecord = {
+        const record = buildProjectRecord({
           definition: parsedDefinition,
           results: parsedResults,
           session: null,
-          updatedAt: parsedResults.updatedAt,
-        };
-        await saveProject(projectId, record);
+        });
+        await saveProjectRecord(projectId, record);
 
         setLastUpdatedTestId(null);
         applyActiveSnapshot(projectId, {
@@ -281,11 +294,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setLastOpenedProjectId(projectId);
         await saveAppMeta({ lastOpenedProjectId: projectId });
-        await refreshProjectSummaries();
         return projectId;
       });
     },
-    [applyActiveSnapshot, refreshProjectSummaries, runSerial],
+    [applyActiveSnapshot, runSerial, saveProjectRecord],
   );
 
   const mergeResultsFromFiles = useCallback(
@@ -312,6 +324,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await mergeResultsFromFiles([json]);
     },
     [mergeResultsFromFiles],
+  );
+
+  const mergeResultsIntoProject = useCallback(
+    async (projectId: string, jsons: string[]): Promise<boolean> => {
+      return runSerial(async () => {
+        if (jsons.length === 0) return true;
+        const record = await getProject(projectId);
+        if (!record) return false;
+
+        let merged = record.results;
+        for (const json of jsons) {
+          const incoming = parseResultsJson(json, { definition: record.definition });
+          merged = mergeResultsFiles(merged, incoming);
+        }
+
+        const nextRecord = buildProjectRecord({
+          definition: record.definition,
+          results: merged,
+          session: record.session,
+        });
+        await saveProjectRecord(projectId, nextRecord, { syncActiveIfMatches: true });
+        return true;
+      });
+    },
+    [runSerial, saveProjectRecord],
   );
 
   const setSession = useCallback(
@@ -439,13 +476,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await runSerial(async () => {
       const currentDefinition = definitionRef.current;
       if (!currentDefinition) return;
-      const projectId = resolveProjectId(currentDefinition);
+      const projectId = getProjectIdFromDefinition(currentDefinition);
       await persistActive({
         results: createEmptyResults(projectId),
         session: null,
       });
     });
   }, [persistActive, runSerial]);
+
+  const clearResultsForProject = useCallback(
+    async (projectId: string): Promise<boolean> => {
+      return runSerial(async () => {
+        const record = await getProject(projectId);
+        if (!record) return false;
+
+        const nextRecord = buildProjectRecord({
+          definition: record.definition,
+          results: createEmptyResults(projectId),
+          session: null,
+        });
+        await saveProjectRecord(projectId, nextRecord, { syncActiveIfMatches: true });
+        return true;
+      });
+    },
+    [runSerial, saveProjectRecord],
+  );
 
   const deleteProject = useCallback(
     async (projectId: string) => {
@@ -456,12 +511,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           clearActiveSnapshot();
         }
 
-        const summaries = await listProjectSummaries();
-        setProjectSummaries(summaries);
+        const sortedRemaining = await listProjectSummaries();
+        setProjectSummaries(sortedRemaining);
 
         const meta = await getAppMeta();
         if (meta.lastOpenedProjectId === projectId) {
-          const nextLastOpened = summaries[0]?.projectId ?? null;
+          const nextLastOpened = sortedRemaining[0]?.projectId ?? null;
           setLastOpenedProjectId(nextLastOpened);
           await saveAppMeta({ lastOpenedProjectId: nextLastOpened });
         }
@@ -485,6 +540,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       hasProject: checkHasProject,
       mergeResultsFromFile,
       mergeResultsFromFiles,
+      mergeResultsIntoProject,
       setSession,
       updateResults,
       updateResultsBatch,
@@ -492,6 +548,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateTestCase,
       clearTestResult,
       clearResults,
+      clearResultsForProject,
       deleteProject,
       refreshProjectSummaries,
     }),
@@ -509,6 +566,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       checkHasProject,
       mergeResultsFromFile,
       mergeResultsFromFiles,
+      mergeResultsIntoProject,
       setSession,
       updateResults,
       updateResultsBatch,
@@ -516,6 +574,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateTestCase,
       clearTestResult,
       clearResults,
+      clearResultsForProject,
       deleteProject,
       refreshProjectSummaries,
     ],

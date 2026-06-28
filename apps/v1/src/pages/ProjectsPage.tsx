@@ -27,7 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { useApp } from "@/context/AppContext";
 import { getProject } from "@/lib/storage";
 import { projectPath } from "@/lib/project-routes";
-import { readFileAsText, downloadText } from "@/lib/utils";
+import { readFileAsText, downloadText, appendUniqueFiles, fileKey } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 
 function formatUpdatedAt(iso: string): string {
@@ -40,22 +40,6 @@ function formatUpdatedAt(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function fileKey(file: File): string {
-  return `${file.name}:${file.size}:${file.lastModified}`;
-}
-
-function appendUniqueFiles(prev: File[], incoming: File[]): File[] {
-  const seen = new Set(prev.map(fileKey));
-  const next = [...prev];
-  for (const file of incoming) {
-    const key = fileKey(file);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    next.push(file);
-  }
-  return next;
 }
 
 interface ProjectCardProps {
@@ -276,9 +260,10 @@ export function ProjectsPage() {
     projectSummaries,
     lastOpenedProjectId,
     activateProject,
-    mergeResultsFromFiles,
-    clearResults,
+    mergeResultsIntoProject,
+    clearResultsForProject,
     deleteProject,
+    refreshProjectSummaries,
   } = useApp();
 
   const handleContinue = useCallback(
@@ -291,19 +276,25 @@ export function ProjectsPage() {
 
   const handleMerge = useCallback(
     async (projectId: string, files: File[]) => {
-      await activateProject(projectId);
       const jsons = await Promise.all(files.map((file) => readFileAsText(file)));
-      await mergeResultsFromFiles(jsons);
+      const ok = await mergeResultsIntoProject(projectId, jsons);
+      if (!ok) {
+        await refreshProjectSummaries();
+        throw new Error("プロジェクトが見つかりません。一覧を更新しました。");
+      }
     },
-    [activateProject, mergeResultsFromFiles],
+    [mergeResultsIntoProject, refreshProjectSummaries],
   );
 
   const handleClearResults = useCallback(
     async (projectId: string) => {
-      await activateProject(projectId);
-      await clearResults();
+      const ok = await clearResultsForProject(projectId);
+      if (!ok) {
+        await refreshProjectSummaries();
+        throw new Error("プロジェクトが見つかりません。一覧を更新しました。");
+      }
     },
-    [activateProject, clearResults],
+    [clearResultsForProject, refreshProjectSummaries],
   );
 
   const handleExportYaml = useCallback(async (projectId: string) => {

@@ -181,4 +181,25 @@ test.describe("multi-project routing", () => {
     await page.getByRole("link", { name: "作業を続ける" }).click();
     await expect(page).toHaveURL(/\/p\/qarows\/run$/);
   });
+
+  test("hub clear on another project does not change landing continue target", async ({ page }) => {
+    await loadSampleFromLoadPage(page);
+    await startSession(page, "qarows-tester");
+
+    await loadAltProjectFromLoadPage(page);
+    await startSession(page, "alt-tester", "alt-app");
+
+    await continueProjectFromHub(page, "qarows");
+    await expect(page).toHaveURL(/\/p\/qarows\/run$/);
+
+    await openProjectsHub(page);
+    const altCard = projectCard(page, "Alt App QA");
+    await altCard.getByRole("button", { name: "結果をクリア" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "クリア" }).click();
+    await expect(altCard.getByText("テスト結果をクリアしました")).toBeVisible();
+
+    await page.goto("/");
+    await page.getByRole("link", { name: "作業を続ける" }).click();
+    await expect(page).toHaveURL(/\/p\/qarows\/run$/);
+  });
 });

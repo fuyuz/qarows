@@ -13,3 +13,4 @@ export * from "./resolve-test-targets";
 export * from "./resolve-runner-targets";
 export * from "./test-case-version";
 export * from "./serialize-tests";
+export * from "./project-id";

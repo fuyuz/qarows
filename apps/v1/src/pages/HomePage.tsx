@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   createEmptyResults,
+  getProjectIdFromDefinition,
   mergeResultsFiles,
   parseResultsJson,
   parseTestsYaml,
@@ -21,31 +22,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { readFileAsText } from "@/lib/utils";
+import { readFileAsText, appendUniqueFiles, fileKey } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import { projectPath } from "@/lib/project-routes";
 import { cn } from "@/lib/cn";
 
-function fileKey(file: File): string {
-  return `${file.name}:${file.size}:${file.lastModified}`;
-}
-
-function appendUniqueFiles(prev: File[], incoming: File[]): File[] {
-  const seen = new Set(prev.map(fileKey));
-  const next = [...prev];
-  for (const file of incoming) {
-    const key = fileKey(file);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    next.push(file);
-  }
-  return next;
-}
-
 async function mergeResultsJsonStrings(yaml: string, jsons: string[]): Promise<string | undefined> {
   if (jsons.length === 0) return undefined;
   const parsedDefinition = parseTestsYaml(yaml);
-  const projectId = parsedDefinition.project.id ?? "project";
+  const projectId = getProjectIdFromDefinition(parsedDefinition);
   let merged = createEmptyResults(projectId);
   for (const json of jsons) {
     merged = mergeResultsFiles(merged, parseResultsJson(json, { definition: parsedDefinition }));
@@ -126,7 +111,7 @@ export function HomePage() {
       const jsons = await Promise.all(resultsFiles.map((file) => readFileAsText(file)));
       const resultsJson = await mergeResultsJsonStrings(yaml, jsons);
       const parsedDefinition = parseTestsYaml(yaml);
-      const projectId = parsedDefinition.project.id ?? "project";
+      const projectId = getProjectIdFromDefinition(parsedDefinition);
       const existing = projectSummaries.find((summary) => summary.projectId === projectId);
 
       if (existing) {

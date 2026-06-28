@@ -1,5 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import { isValidSession, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
+import { getProjectIdFromDefinition, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
+import { projectRecordToSummary, sortProjectSummaries } from "@/lib/project-summaries";
 
 /** @deprecated v1 single-project blob — migrated to v2 on first load */
 interface LegacyPersistedState {
@@ -47,10 +48,6 @@ const defaultAppMeta: AppMeta = {
 let dbPromise: Promise<IDBPDatabase<QarowsDB>> | null = null;
 let migrationPromise: Promise<void> | null = null;
 
-function resolveProjectId(definition: TestDefinition): string {
-  return definition.project.id ?? "project";
-}
-
 function getDb() {
   if (!dbPromise) {
     dbPromise = openDB<QarowsDB>(DB_NAME, DB_VERSION, {
@@ -79,7 +76,7 @@ async function migrateFromV1(): Promise<void> {
   const legacy = await db.get("meta", "state");
   if (!legacy || !("definition" in legacy) || !legacy.definition) return;
 
-  const projectId = resolveProjectId(legacy.definition);
+  const projectId = getProjectIdFromDefinition(legacy.definition);
   const results =
     legacy.results ??
     ({
@@ -103,25 +100,20 @@ async function migrateFromV1(): Promise<void> {
 }
 
 function recordToSummary(projectId: string, record: ProjectRecord): ProjectSummary {
-  return {
-    projectId,
-    name: record.definition.project.name,
-    updatedAt: record.updatedAt,
-    hasValidSession: record.session != null && isValidSession(record.session),
-  };
+  return projectRecordToSummary(projectId, record);
 }
 
 export async function listProjectSummaries(): Promise<ProjectSummary[]> {
   await ensureMigrated();
   const db = await getDb();
-  const keys = await db.getAllKeys("projects");
-  const records = await db.getAll("projects");
+  const tx = db.transaction("projects", "readonly");
+  const store = tx.objectStore("projects");
+  const [keys, records] = await Promise.all([store.getAllKeys(), store.getAll()]);
+  await tx.done;
   const summaries = keys.map((projectId, index) =>
     recordToSummary(projectId, records[index]!),
   );
-  return summaries.sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  );
+  return sortProjectSummaries(summaries);
 }
 
 export async function hasProject(projectId: string): Promise<boolean> {
