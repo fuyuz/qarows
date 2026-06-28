@@ -16,7 +16,6 @@ export interface SessionSetupFormProps {
     selectedEnvironmentIds: string[];
   }) => Promise<void>;
   syncError?: string | null;
-  /** Phase1: disable submit until name + env selected. Phase2: allow click to show validation. */
   disableSubmitUntilValid?: boolean;
   idleSubmitLabel?: string;
   submittingSubmitLabel?: string;

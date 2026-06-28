@@ -93,4 +93,7 @@ export {
   TESTS_YAML_AI_GUIDE,
   type FileDropZoneProps,
   type ProjectImportShellProps,
+  WorkspaceAppNav,
+  type WorkspaceAppNavProps,
+  type WorkspaceProjectPage,
 } from "./workspace";

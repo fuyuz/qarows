@@ -27,3 +27,8 @@ export {
   ProjectImportShell,
   type ProjectImportShellProps,
 } from "./components/workspace/project-import-shell";
+export {
+  WorkspaceAppNav,
+  type WorkspaceAppNavProps,
+  type WorkspaceProjectPage,
+} from "./components/workspace/workspace-app-nav";

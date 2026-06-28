@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, AlertDescription } from "@qarows/ui";
+import { Alert, AlertDescription, LoadingScreen } from "@qarows/ui";
 import { ProjectDetailPanel } from "@/components/ProjectDetailPanel";
 import { ProjectImportPanel } from "@/components/ProjectImportPanel";
 import { ProjectList } from "@/components/ProjectList";
@@ -81,11 +81,7 @@ export function ProjectsPage() {
   );
 
   if (!ready && loading) {
-    return (
-      <div className="flex h-svh items-center justify-center text-sm text-muted-foreground">
-        読み込み中…
-      </div>
-    );
+    return <LoadingScreen message="サーバーからプロジェクト一覧を読み込み中…" />;
   }
 
   const isNewSelected = projectId === NEW_PROJECT_SELECTION;

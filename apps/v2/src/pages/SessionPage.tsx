@@ -12,25 +12,23 @@ export function SessionPage() {
   if (!definition) return null;
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <>
       <AppNav />
-      <main className="mx-auto max-w-2xl flex-1 px-5 py-8 pb-12">
+      <main className="mx-auto max-w-2xl px-5 py-8 pb-12">
         <SessionSetupForm
           projectName={definition.project.name}
           environments={definition.environments}
           initialExecutorName={session?.executorName}
           initialSelectedEnvIds={session?.selectedEnvironmentIds}
           syncError={syncError}
-          disableSubmitUntilValid={false}
           submittingSubmitLabel="保存中…"
-          showEmptyEnvHint={false}
           onSubmit={async (nextSession) => {
             await setSession(nextSession);
             navigate(path("run"));
           }}
         />
       </main>
-    </div>
+    </>
   );
 }
 
