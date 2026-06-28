@@ -115,10 +115,10 @@ projectsRoutes.get("/:projectId", async (c) => {
 projectsRoutes.delete("/:projectId", async (c) => {
   const projectId = c.req.param("projectId");
   const stub = c.env.PROJECT.getByName(projectId);
-  const destroyResponse = await stub.fetch(
-    new Request(new URL(`/api/projects/${projectId}`, c.req.url), { method: "DELETE" }),
-  );
-  if (!destroyResponse.ok && destroyResponse.status !== 404) {
+  try {
+    await stub.destroy();
+  } catch (err) {
+    console.error("Failed to destroy project room", err);
     throw new HTTPException(500, { message: "Failed to clear project room" });
   }
 

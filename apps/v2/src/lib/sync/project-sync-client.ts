@@ -53,6 +53,7 @@ export class ProjectSyncClient {
   private snapshotReceived = false;
   private readonly pendingPatches = new Map<string, PendingPatch>();
   private readonly outboundQueue: QueuedPatch[] = [];
+  private readonly abandonedPatchIds = new Set<string>();
 
   connect(projectId: string, _user: string, handlers: ProjectSyncHandlers): void {
     this.disconnect(false);
@@ -73,6 +74,7 @@ export class ProjectSyncClient {
     this.ws = null;
     this.snapshotReceived = false;
     this.outboundQueue.length = 0;
+    this.abandonedPatchIds.clear();
     if (rejectPending) {
       this.rejectAllPending(new SyncSendError("Sync client disconnected"));
     }
@@ -87,8 +89,7 @@ export class ProjectSyncClient {
 
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        this.pendingPatches.delete(patchId);
-        reject(new SyncSendError("Patch acknowledgement timed out"));
+        this.abandonPatch(patchId, new SyncSendError("Patch acknowledgement timed out"));
       }, PATCH_ACK_TIMEOUT_MS);
 
       this.pendingPatches.set(patchId, {
@@ -154,6 +155,11 @@ export class ProjectSyncClient {
           this.flushOutboundQueue();
           return;
         case "patch":
+          if (this.abandonedPatchIds.has(message.patchId)) {
+            this.abandonedPatchIds.delete(message.patchId);
+            this.removeQueuedPatch(message.patchId);
+            return;
+          }
           this.handlers?.onPatch(message.document, message.payload, message.revision);
           this.resolvePendingPatch(message.patchId);
           return;
@@ -182,7 +188,7 @@ export class ProjectSyncClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.snapshotReceived) return;
 
     for (const queued of this.outboundQueue) {
-      if (queued.inFlight) continue;
+      if (queued.inFlight || this.abandonedPatchIds.has(queued.patchId)) continue;
       const sent = this.sendRaw({
         type: "patch",
         document: queued.document,
@@ -204,17 +210,30 @@ export class ProjectSyncClient {
   }
 
   private resolvePendingPatch(patchId: string): void {
+    this.removeQueuedPatch(patchId);
+
+    const pending = this.pendingPatches.get(patchId);
+    if (!pending) return;
+
+    this.pendingPatches.delete(patchId);
+    pending.resolve();
+    this.flushOutboundQueue();
+  }
+
+  private abandonPatch(patchId: string, error: Error): void {
+    this.abandonedPatchIds.add(patchId);
+    this.removeQueuedPatch(patchId);
     const pending = this.pendingPatches.get(patchId);
     if (!pending) return;
     this.pendingPatches.delete(patchId);
+    pending.reject(error);
+  }
 
+  private removeQueuedPatch(patchId: string): void {
     const index = this.outboundQueue.findIndex((queued) => queued.patchId === patchId);
     if (index >= 0) {
       this.outboundQueue.splice(index, 1);
     }
-
-    pending.resolve();
-    this.flushOutboundQueue();
   }
 
   private rejectAllPending(error: Error): void {

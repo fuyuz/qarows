@@ -3,9 +3,27 @@ import type { ResultsFile, SessionConfig } from "@qarows/shared";
 import { getProject, snapshotToPersisted, updateProjectSnapshot } from "./db";
 import { AccessDeniedError, requireAuthUser } from "./auth";
 import type { Env } from "./env";
-import { parseClientMessage, send, type RoomSnapshot } from "./sync-protocol";
+import { parseClientMessage, send, type RoomSnapshot, type SyncDocument } from "./sync-protocol";
 
 interface StoredRoomState extends RoomSnapshot {}
+
+interface ProcessedPatchRecord {
+  revision: number;
+  document: SyncDocument;
+  payload: ResultsFile | SessionConfig | null;
+  user: string;
+}
+
+interface ApplyPatchResult {
+  revision: number;
+  duplicate: boolean;
+  document: SyncDocument;
+  payload: ResultsFile | SessionConfig | null;
+  user: string;
+}
+
+const MAX_PROCESSED_PATCHES = 256;
+const PROCESSED_PATCHES_KEY = "processedPatches";
 
 export class ProjectRoom extends DurableObject<Env> {
   private projectId: string | null = null;
@@ -14,6 +32,11 @@ export class ProjectRoom extends DurableObject<Env> {
   async initFromD1(): Promise<void> {
     this.state = null;
     await this.ensureLoaded(true);
+  }
+
+  /** Worker-internal RPC: clear room state without HTTP auth headers. */
+  async destroy(): Promise<void> {
+    await this.destroyRoom();
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -69,15 +92,20 @@ export class ProjectRoom extends DurableObject<Env> {
       return;
     }
 
-    const applied = await this.applyPatch(parsed.document, parsed.payload, parsed.user);
+    const applied = await this.applyPatch(
+      parsed.patchId,
+      parsed.document,
+      parsed.payload,
+      parsed.user,
+    );
     const appliedAt = new Date().toISOString();
 
     const broadcast: Parameters<typeof send>[1] = {
       type: "patch",
-      document: parsed.document,
-      payload: parsed.payload,
+      document: applied.document,
+      payload: applied.payload,
       patchId: parsed.patchId,
-      user: parsed.user,
+      user: applied.user,
       revision: applied.revision,
       appliedAt,
     };
@@ -86,7 +114,9 @@ export class ProjectRoom extends DurableObject<Env> {
       send(socket, broadcast);
     }
 
-    await this.persistToD1();
+    if (!applied.duplicate) {
+      await this.persistToD1();
+    }
   }
 
   private publicSnapshot(): RoomSnapshot {
@@ -128,11 +158,38 @@ export class ProjectRoom extends DurableObject<Env> {
     await this.ctx.storage.put("state", this.state);
   }
 
+  private async loadProcessedPatches(): Promise<Map<string, ProcessedPatchRecord>> {
+    const raw = await this.ctx.storage.get<Record<string, ProcessedPatchRecord>>(PROCESSED_PATCHES_KEY);
+    return new Map(Object.entries(raw ?? {}));
+  }
+
+  private async saveProcessedPatches(map: Map<string, ProcessedPatchRecord>): Promise<void> {
+    while (map.size > MAX_PROCESSED_PATCHES) {
+      const oldest = map.keys().next().value;
+      if (!oldest) break;
+      map.delete(oldest);
+    }
+    await this.ctx.storage.put(PROCESSED_PATCHES_KEY, Object.fromEntries(map));
+  }
+
   private async applyPatch(
-    document: "results" | "session",
+    patchId: string,
+    document: SyncDocument,
     payload: ResultsFile | SessionConfig | null,
     user: string,
-  ): Promise<{ revision: number }> {
+  ): Promise<ApplyPatchResult> {
+    const processed = await this.loadProcessedPatches();
+    const existing = processed.get(patchId);
+    if (existing) {
+      return {
+        revision: existing.revision,
+        duplicate: true,
+        document: existing.document,
+        payload: existing.payload,
+        user: existing.user,
+      };
+    }
+
     const state = this.state!;
     state.revision += 1;
 
@@ -143,8 +200,23 @@ export class ProjectRoom extends DurableObject<Env> {
     }
 
     await this.ctx.storage.put("state", state);
-    void user;
-    return { revision: state.revision };
+
+    const record: ProcessedPatchRecord = {
+      revision: state.revision,
+      document,
+      payload,
+      user,
+    };
+    processed.set(patchId, record);
+    await this.saveProcessedPatches(processed);
+
+    return {
+      revision: state.revision,
+      duplicate: false,
+      document,
+      payload,
+      user,
+    };
   }
 
   private async destroyRoom(): Promise<void> {
