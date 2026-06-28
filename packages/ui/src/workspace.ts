@@ -15,3 +15,15 @@ export {
   type ProjectOverwriteDialogProps,
 } from "./components/workspace/project-overwrite-dialog";
 export { formatUpdatedAtShort } from "./lib/format-updated-at";
+export {
+  FileDropZone,
+  classifyDroppedFiles,
+  classifyResultsFiles,
+  type FileDropZoneProps,
+} from "./components/workspace/file-drop-zone";
+export { TestsYamlGuide } from "./components/workspace/tests-yaml-guide";
+export { TESTS_YAML_AI_GUIDE } from "./lib/tests-yaml-guide";
+export {
+  ProjectImportShell,
+  type ProjectImportShellProps,
+} from "./components/workspace/project-import-shell";

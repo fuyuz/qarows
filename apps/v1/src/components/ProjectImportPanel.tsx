@@ -8,23 +8,10 @@ import {
   parseTestsYaml,
   serializeResultsJson,
 } from "@qarows/shared";
-import { classifyDroppedFiles, FileDropZone } from "@/components/FileDropZone";
-import { TestsYamlGuide } from "@/components/TestsYamlGuide";
-import { ProjectOverwriteDialog } from "@qarows/ui";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { classifyDroppedFiles, FileDropZone, ProjectImportShell, ProjectOverwriteDialog, Badge, Button } from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { projectPath } from "@/lib/project-routes";
 import { readFileAsText, appendUniqueFiles, fileKey } from "@/lib/utils";
-import { cn } from "@/lib/cn";
 
 async function mergeResultsJsonStrings(yaml: string, jsons: string[]): Promise<string | undefined> {
   if (jsons.length === 0) return undefined;
@@ -147,60 +134,12 @@ export function ProjectImportPanel() {
 
   return (
     <>
-      <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-        <CardHeader className="shrink-0 pb-3">
-          <CardTitle className="text-lg">新規作成</CardTitle>
-          <CardDescription>
-            tests.yml と results.json（任意・複数可）を読み込みます
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="min-h-0 flex-1 overflow-y-auto">
-          <TestsYamlGuide />
-
-          <div className="mt-6">
-            <FileDropZone
-              title="ファイルをここにドロップ"
-              hint="tests.yml（必須）と results.json（任意・複数）を同時にドロップできます"
-              accept=".yml,.yaml,.json"
-              onFiles={applyInitialFiles}
-            />
-          </div>
-
-          {(testsFile || resultsFiles.length > 0) && (
-            <ul className="mt-6 flex flex-col gap-2">
-              {testsFile && (
-                <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
-                  <span className="break-all font-medium">{testsFile.name}</span>
-                  <Badge>必須</Badge>
-                </li>
-              )}
-              {resultsFiles.map((file) => (
-                <li
-                  key={fileKey(file)}
-                  className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm"
-                >
-                  <span className="min-w-0 break-all font-medium">{file.name}</span>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant="secondary">results</Badge>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setResultsFiles((prev) =>
-                          prev.filter((entry) => fileKey(entry) !== fileKey(file)),
-                        )
-                      }
-                    >
-                      削除
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <footer className="mt-6 flex flex-wrap items-center gap-3">
+      <ProjectImportShell
+        description="tests.yml と results.json（任意・複数可）を読み込みます"
+        error={error}
+        errorShake={errorShake}
+        footer={
+          <>
             <Button disabled={!testsFile || loading} onClick={() => void performLoad()}>
               {loading ? "読み込み中…" : "読み込む"}
             </Button>
@@ -212,15 +151,50 @@ export function ProjectImportPanel() {
                 選択をクリア
               </Button>
             )}
-          </footer>
+          </>
+        }
+      >
+        <FileDropZone
+          title="ファイルをここにドロップ"
+          hint="tests.yml（必須）と results.json（任意・複数）を同時にドロップできます"
+          accept=".yml,.yaml,.json"
+          onFiles={applyInitialFiles}
+        />
 
-          {error && (
-            <Alert variant="destructive" className={cn("mt-4", errorShake && "animate-ui-shake")}>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+        {(testsFile || resultsFiles.length > 0) && (
+          <ul className="mt-6 flex flex-col gap-2">
+            {testsFile && (
+              <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+                <span className="break-all font-medium">{testsFile.name}</span>
+                <Badge>必須</Badge>
+              </li>
+            )}
+            {resultsFiles.map((file) => (
+              <li
+                key={fileKey(file)}
+                className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm"
+              >
+                <span className="min-w-0 break-all font-medium">{file.name}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Badge variant="secondary">results</Badge>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setResultsFiles((prev) =>
+                        prev.filter((entry) => fileKey(entry) !== fileKey(file)),
+                      )
+                    }
+                  >
+                    削除
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </ProjectImportShell>
 
       <ProjectOverwriteDialog
         open={overwriteDialogOpen}

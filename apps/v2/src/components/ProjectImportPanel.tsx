@@ -2,22 +2,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProjectIdFromDefinition, parseTestsYaml } from "@qarows/shared";
 import {
-  Alert,
-  AlertDescription,
   Badge,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  cn,
+  classifyDroppedFiles,
+  FileDropZone,
   Input,
   Label,
+  ProjectImportShell,
   ProjectOverwriteDialog,
 } from "@qarows/ui";
-import { classifyDroppedFiles, FileDropZone } from "@/components/FileDropZone";
-import { TestsYamlGuide } from "@/components/TestsYamlGuide";
 import { useProjects } from "@/context/ProjectsContext";
 import { ApiError } from "@/lib/api/client";
 import { projectPath } from "@/lib/project-routes";
@@ -150,35 +143,12 @@ export function ProjectImportPanel() {
 
   return (
     <>
-      <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-        <CardHeader className="shrink-0 pb-3">
-          <CardTitle className="text-lg">新規作成</CardTitle>
-          <CardDescription>
-            tests.yml をアップロードするか、空のプロジェクトを作成します
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="min-h-0 flex-1 overflow-y-auto">
-          <TestsYamlGuide />
-
-          <div className="mt-6">
-            <FileDropZone
-              title="ファイルをここにドロップ"
-              hint="tests.yml をドロップするか、クリックして選択"
-              accept=".yml,.yaml"
-              onFiles={applyInitialFiles}
-            />
-          </div>
-
-          {(testsFile || error) && testsFile && (
-            <ul className="mt-6 flex flex-col gap-2">
-              <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
-                <span className="break-all font-medium">{testsFile.name}</span>
-                <Badge>必須</Badge>
-              </li>
-            </ul>
-          )}
-
-          <footer className="mt-6 flex flex-wrap items-center gap-3">
+      <ProjectImportShell
+        description="tests.yml をアップロードするか、空のプロジェクトを作成します"
+        error={error}
+        errorShake={errorShake}
+        footer={
+          <>
             <Button disabled={!testsFile || loading} onClick={() => void performLoad()}>
               {loading ? "読み込み中…" : "読み込む"}
             </Button>
@@ -190,8 +160,9 @@ export function ProjectImportPanel() {
                 選択をクリア
               </Button>
             )}
-          </footer>
-
+          </>
+        }
+        extra={
           <div className="mt-8 rounded-lg border bg-muted/20 px-4 py-4">
             <Label htmlFor="empty-project-name" className="text-sm font-medium">
               空のプロジェクト
@@ -219,14 +190,24 @@ export function ProjectImportPanel() {
               </Button>
             </div>
           </div>
+        }
+      >
+        <FileDropZone
+          title="ファイルをここにドロップ"
+          hint="tests.yml をドロップするか、クリックして選択"
+          accept=".yml,.yaml"
+          onFiles={applyInitialFiles}
+        />
 
-          {error && (
-            <Alert variant="destructive" className={cn("mt-4", errorShake && "animate-ui-shake")}>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+        {testsFile && (
+          <ul className="mt-6 flex flex-col gap-2">
+            <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
+              <span className="break-all font-medium">{testsFile.name}</span>
+              <Badge>必須</Badge>
+            </li>
+          </ul>
+        )}
+      </ProjectImportShell>
 
       <ProjectOverwriteDialog
         open={overwriteDialogOpen}

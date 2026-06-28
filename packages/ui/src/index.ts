@@ -84,3 +84,13 @@ export {
   type ProjectListItem,
   type ProjectOverwriteDialogProps,
 } from "./workspace";
+export {
+  FileDropZone,
+  classifyDroppedFiles,
+  classifyResultsFiles,
+  TestsYamlGuide,
+  ProjectImportShell,
+  TESTS_YAML_AI_GUIDE,
+  type FileDropZoneProps,
+  type ProjectImportShellProps,
+} from "./workspace";
