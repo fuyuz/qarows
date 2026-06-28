@@ -15,7 +15,7 @@ export type ClientMessage =
       type: "patch";
       document: SyncDocument;
       payload: ResultsFile | SessionConfig | null;
-      sentAt: string;
+      patchId: string;
       user: string;
     };
 
@@ -26,9 +26,10 @@ export type ServerMessage =
       type: "patch";
       document: SyncDocument;
       payload: ResultsFile | SessionConfig | null;
-      sentAt: string;
+      patchId: string;
       user: string;
       revision: number;
+      appliedAt: string;
     }
   | { type: "error"; message: string };
 
@@ -37,5 +38,12 @@ export function parseServerMessage(raw: string): ServerMessage | null {
     return JSON.parse(raw) as ServerMessage;
   } catch {
     return null;
+  }
+}
+
+export class SyncSendError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SyncSendError";
   }
 }

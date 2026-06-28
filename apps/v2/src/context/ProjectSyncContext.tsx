@@ -131,12 +131,7 @@ export function ProjectSyncProvider({
     async (document: "results" | "session", payload: ResultsFile | SessionConfig | null) => {
       const client = clientRef.current;
       if (!client) throw new Error("Sync client not ready");
-      client.patch(document, payload, userRef.current);
-      if (document === "results") {
-        setResults(payload as ResultsFile);
-      } else {
-        setSessionState(payload as SessionConfig | null);
-      }
+      await client.patch(document, payload, userRef.current);
     },
     [],
   );

@@ -5,24 +5,22 @@ import { AccessDeniedError, requireAuthUser } from "./auth";
 import type { Env } from "./env";
 import { parseClientMessage, send, type RoomSnapshot } from "./sync-protocol";
 
-interface StoredRoomState extends RoomSnapshot {
-  lastWriteAt: Record<"results" | "session", string>;
-}
+interface StoredRoomState extends RoomSnapshot {}
 
 export class ProjectRoom extends DurableObject<Env> {
   private projectId: string | null = null;
   private state: StoredRoomState | null = null;
 
   async initFromD1(): Promise<void> {
-    await this.ensureLoaded();
+    this.state = null;
+    await this.ensureLoaded(true);
   }
 
   override async fetch(request: Request): Promise<Response> {
     try {
       requireAuthUser(request, this.env);
     } catch (err) {
-      const message =
-        err instanceof AccessDeniedError ? err.message : "Unauthorized";
+      const message = err instanceof AccessDeniedError ? err.message : "Unauthorized";
       return new Response(message, { status: 401 });
     }
 
@@ -32,6 +30,11 @@ export class ProjectRoom extends DurableObject<Env> {
     if (!projectId) return new Response("Missing project id", { status: 400 });
 
     this.projectId = projectId;
+
+    if (request.method === "DELETE") {
+      await this.destroyRoom();
+      return Response.json({ ok: true });
+    }
 
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected WebSocket", { status: 426 });
@@ -66,16 +69,17 @@ export class ProjectRoom extends DurableObject<Env> {
       return;
     }
 
-    const accepted = await this.applyPatch(parsed.document, parsed.payload, parsed.sentAt, parsed.user);
-    if (!accepted) return;
+    const applied = await this.applyPatch(parsed.document, parsed.payload, parsed.user);
+    const appliedAt = new Date().toISOString();
 
     const broadcast: Parameters<typeof send>[1] = {
       type: "patch",
       document: parsed.document,
       payload: parsed.payload,
-      sentAt: parsed.sentAt,
+      patchId: parsed.patchId,
       user: parsed.user,
-      revision: this.state.revision,
+      revision: applied.revision,
+      appliedAt,
     };
 
     for (const socket of this.ctx.getWebSockets()) {
@@ -95,31 +99,31 @@ export class ProjectRoom extends DurableObject<Env> {
     };
   }
 
-  private async ensureLoaded(): Promise<void> {
-    if (this.state) return;
+  private async ensureLoaded(forceFromD1 = false): Promise<void> {
+    if (this.state && !forceFromD1) return;
 
-    const cached = await this.ctx.storage.get<StoredRoomState>("state");
-    if (cached) {
-      this.state = cached;
-      if (!this.projectId) this.projectId = cached.definition.project.id ?? null;
-      return;
+    if (!forceFromD1) {
+      const cached = await this.ctx.storage.get<StoredRoomState>("state");
+      if (cached) {
+        this.state = cached;
+        if (!this.projectId) this.projectId = cached.definition.project.id ?? null;
+        return;
+      }
     }
 
     if (!this.projectId) return;
 
     const snapshot = await getProject(this.env.DB, this.projectId);
-    if (!snapshot) return;
+    if (!snapshot) {
+      this.state = null;
+      return;
+    }
 
-    const updatedAt = snapshot.updatedAt;
     this.state = {
       revision: 0,
       definition: snapshot.definition,
       results: snapshot.results,
       session: snapshot.session,
-      lastWriteAt: {
-        results: updatedAt,
-        session: updatedAt,
-      },
     };
     await this.ctx.storage.put("state", this.state);
   }
@@ -127,16 +131,10 @@ export class ProjectRoom extends DurableObject<Env> {
   private async applyPatch(
     document: "results" | "session",
     payload: ResultsFile | SessionConfig | null,
-    sentAt: string,
     user: string,
-  ): Promise<boolean> {
+  ): Promise<{ revision: number }> {
     const state = this.state!;
-    if (sentAt < state.lastWriteAt[document]) {
-      return false;
-    }
-
     state.revision += 1;
-    state.lastWriteAt[document] = sentAt;
 
     if (document === "results") {
       state.results = payload as ResultsFile;
@@ -146,7 +144,15 @@ export class ProjectRoom extends DurableObject<Env> {
 
     await this.ctx.storage.put("state", state);
     void user;
-    return true;
+    return { revision: state.revision };
+  }
+
+  private async destroyRoom(): Promise<void> {
+    for (const socket of this.ctx.getWebSockets()) {
+      socket.close(1012, "Project deleted");
+    }
+    await this.ctx.storage.deleteAll();
+    this.state = null;
   }
 
   private async persistToD1(): Promise<void> {

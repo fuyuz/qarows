@@ -113,7 +113,16 @@ projectsRoutes.get("/:projectId", async (c) => {
 });
 
 projectsRoutes.delete("/:projectId", async (c) => {
-  const deleted = await deleteProject(c.env.DB, c.req.param("projectId"));
+  const projectId = c.req.param("projectId");
+  const stub = c.env.PROJECT.getByName(projectId);
+  const destroyResponse = await stub.fetch(
+    new Request(new URL(`/api/projects/${projectId}`, c.req.url), { method: "DELETE" }),
+  );
+  if (!destroyResponse.ok && destroyResponse.status !== 404) {
+    throw new HTTPException(500, { message: "Failed to clear project room" });
+  }
+
+  const deleted = await deleteProject(c.env.DB, projectId);
   if (!deleted) throw new HTTPException(404, { message: "Project not found" });
   return c.json({ ok: true });
 });
