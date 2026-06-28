@@ -1,0 +1,789 @@
+project:
+  name: "qarows"
+  id: qarows
+  version: 1
+
+environments:
+  - id: chrome-desktop
+    name: "Chrome (Desktop)"
+  - id: firefox-desktop
+    name: "Firefox (Desktop)"
+  - id: safari-desktop
+    name: "Safari (Desktop)"
+
+categoryTargets:
+  - match:
+      major: "ファイル読み込み"
+    required: all
+
+  - match:
+      major: "セッション"
+    required: any
+    targets:
+      - chrome-desktop
+      - firefox-desktop
+
+  - match:
+      major: "テスト実行"
+    required: all
+    targets:
+      - chrome-desktop
+      - firefox-desktop
+      - safari-desktop
+
+  - match:
+      major: "閲覧"
+    required: any
+
+  - match:
+      major: "プロジェクト"
+    required: all
+
+scenarios:
+  - id: first-time-setup
+    name: "初回セットアップ"
+    description: |
+      未読み込み状態から tests.yml を読み込み、セッションを開始し、
+      ランナーで1件目の結果入力までを通しで確認する。
+    steps:
+      - TC-001
+      - TC-002
+      - TC-007
+      - TC-009
+      - TC-010
+
+  - id: filter-and-progress
+    name: "フィルタと進捗"
+    description: |
+      大・中・小分類フィルタと進捗バーが連動することを、
+      意図した順で触って確認する。
+    steps:
+      - TC-015
+      - TC-016
+      - TC-022
+      - TC-018
+      - TC-019
+
+  - id: runner-full
+    name: "ランナー一通り"
+    description: |
+      使い方カードから完了カードまで、ランナーの画面・入力・操作を
+      一通り確認する。
+    steps:
+      - TC-009
+      - TC-010
+      - TC-011
+      - TC-014
+      - TC-020
+      - TC-021
+      - TC-012
+
+  - id: bugs-flow
+    name: "バグ起票から閲覧"
+    description: |
+      ランナーで NG 入力 → バグ起票 → バグ画面で確認・編集する流れ。
+    steps:
+      - TC-033
+      - TC-034
+      - TC-035
+      - TC-050
+      - TC-053
+      - TC-054
+      - TC-055
+
+  - id: viewing
+    name: "閲覧画面"
+    description: |
+      ダッシュボード・マトリクス・バグ画面への遷移と基本表示を確認する。
+    steps:
+      - TC-045
+      - TC-042
+      - TC-043
+      - TC-050
+
+  - id: export-flow
+    name: "エクスポート"
+    description: |
+      results.json / tests.yml のエクスポートと再読み込みを確認する。
+    steps:
+      - TC-030
+      - TC-041
+      - TC-057
+
+  - id: multi-project
+    name: "複数プロジェクト"
+    description: |
+      プロジェクト一覧での追加・切替・管理を確認する。
+    steps:
+      - TC-062
+      - TC-063
+      - TC-064
+      - TC-066
+      - TC-067
+      - TC-069
+      - TC-070
+      - TC-071
+      - TC-073
+      - TC-074
+      - TC-057
+      - TC-058
+      - TC-059
+      - TC-082
+
+testCases:
+  - id: TC-001
+    category:
+      major: "ファイル読み込み"
+      minor: "ドロップ"
+    prerequisites: "プロジェクト一覧（/projects）で新規作成または対象プロジェクトを選択中"
+    description: "tests.yml をドロップゾーンにドロップしてファイル名が表示される"
+
+  - id: TC-002
+    category:
+      major: "ファイル読み込み"
+      minor: "サンプル"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
+    description: "「サンプルを試す」で tests.yml が読み込まれ、セッション設定へ進める"
+
+  - id: TC-003
+    category:
+      major: "ファイル読み込み"
+      minor: "results.json"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "results.json を複数同時に選べ、読み込み時にマージされる"
+
+  - id: TC-057
+    category:
+      major: "ファイル読み込み"
+      medium: "results.json"
+      minor: "追加"
+    prerequisites: "プロジェクト一覧（/projects）で左一覧から対象プロジェクトを選択し、右パネルを表示中"
+    description: "「results.json をマージ」で複数ファイルを選び「取り込む」すると、現在の結果にマージされる"
+
+  - id: TC-058
+    category:
+      major: "ファイル読み込み"
+      medium: "状態"
+      minor: "結果クリア"
+    prerequisites: "プロジェクト一覧（/projects）で左一覧から対象プロジェクトを選択し、右パネルを表示中"
+    description: "「結果をクリア」で実行結果・バグ・セッション設定のみ削除でき、tests.yml の定義は残る"
+
+  - id: TC-059
+    category:
+      major: "ファイル読み込み"
+      medium: "状態"
+      minor: "読み込み解除"
+    prerequisites: "プロジェクト一覧（/projects）で左一覧から対象プロジェクトを選択し、右パネルを表示中"
+    description: "「削除」で tests.yml・実行結果・セッション設定をすべて削除し、一覧から消える"
+
+  - id: TC-004
+    category:
+      major: "永続化"
+      minor: "IndexedDB"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "ページをリロードしてもプロジェクト・セッション・結果が IndexedDB から復元される"
+
+  - id: TC-005
+    category:
+      major: "セッション"
+      medium: "設定"
+      minor: "環境選択"
+    prerequisites: "tests.yml 読み込み済み、セッション未開始"
+    description: "端末/環境をチェックボックスで選択でき、「すべて選択」で一括選択できる"
+
+  - id: TC-006
+    category:
+      major: "セッション"
+      medium: "設定"
+      minor: "実施者名"
+    prerequisites: "tests.yml 読み込み済み、セッション未開始"
+    description: "実施者名が未入力、または端末/環境が未選択の場合、テスト実行を開始できない"
+
+  - id: TC-007
+    category:
+      major: "セッション"
+      medium: "設定"
+      minor: "開始"
+    prerequisites: "実施者名と端末/環境を1つ以上選択済み"
+    description: "テスト実行を開始して /run に遷移する。有効なセッションがあれば / のトップから「作業を続ける」で /run に進める"
+
+  - id: TC-008
+    category:
+      major: "対象端末"
+      medium: "解決"
+      minor: "categoryTargets"
+    description: "categoryTargets と targetEnvironments で対象端末が解決され、セッション選択との交差後に inScope が判定される"
+    targetEnvironments:
+      required: any
+      targets:
+        - safari-desktop
+
+  - id: TC-009
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "使い方"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "最初に使い方カード（START）が表示され、次へでテスト入力に進める"
+
+  - id: TC-010
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "結果"
+    prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
+    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに OK/NG/SKIP を入力できる。メモも保存される"
+
+  - id: TC-011
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "自動移動"
+    prerequisites: "テスト実行画面を表示中"
+    description: "OK/SKIP で全端末入力完了後、約500ms待ってから次のテストへ自動移動する。NG の場合はバグ起票 Dialog を閉じた後に同様に自動移動する。最後のテスト後は完了カードへ進む"
+
+  - id: TC-033
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "NG連動"
+    prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
+    description: "NG 入力後にバグ起票 Dialog が開き、起票は任意（キャンセルで Dialog を閉じられる）。Dialog 完全クローズ後に自動移動する"
+
+  - id: TC-034
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "起票Dialog"
+    prerequisites: "テスト実行画面を表示中"
+    description: "「バグ報告」ボタンまたは b キーで Dialog を開き、タイトル・重要度・ステータス・担当者・再現手順・期待・実際を入力して起票できる。担当者はセッションの実施者名で prefill される。関連 TC・端末は変更可能。Create more で連続起票できる"
+
+  - id: TC-035
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "prefill"
+    prerequisites: "テスト実行画面を表示中"
+    description: "バグ Dialog の再現手順・期待はテストケースから prefill される（編集可）。個別 NG はその端末、一括 NG は対象端末すべてが初期選択される"
+
+  - id: TC-036
+    category:
+      major: "テスト実行"
+      medium: "バグ"
+      minor: "関連バグ"
+    prerequisites: "表示中のテストケースに紐づく起票済みバグが1件以上あること"
+    description: "「バグ (n)」ボタンで関連バグ一覧 Dialog が開き、左右ボタンまたは h/l で切り替え・編集できる。変更がないとき保存は無効、保存後も Dialog は開いたまま保存ボタンが再び無効になる"
+
+  - id: TC-012
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "完了"
+    prerequisites: "表示中のフィルタ対象テストをすべて入力済み"
+    description: "最後のテスト入力後に完了カード（完了バッジ・スコープ完了メッセージ）が表示される"
+
+  - id: TC-013
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "カード幅"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "テストカードの横幅が画面幅の約88%以内に収まり、最大幅（42rem）を超えて広がらない"
+
+  - id: TC-014
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "ナビ"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "←/h →/l で前後のテストに移動できる（使い方・完了カードを含む）。一括入力は全端末が対象"
+
+  - id: TC-015
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "大分類"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "大分類を選ぶと対象件数・ランナー・進捗バーのフィルタ行が絞り込まれる"
+
+  - id: TC-016
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "中分類"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "中分類を選ぶと対象件数がさらに絞り込まれる。大分類変更時は無効な中分類がクリアされる"
+
+  - id: TC-022
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "小分類"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "小分類を選ぶと対象件数がさらに絞り込まれる。大分類・中分類変更時は無効な小分類がクリアされる"
+
+  - id: TC-017
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "未実施のみ"
+    prerequisites: "テスト実行画面 (/run) を表示中、完了済みテストが1件以上あること"
+    description: "未実施のみをオンにすると、完了済みテストがランナーから除外される"
+
+  - id: TC-018
+    category:
+      major: "テスト実行"
+      medium: "進捗"
+      minor: "バー"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "画面下部にフィルタ行と全体行の2本の進捗バーが表示される（バー上・ラベル下）"
+
+  - id: TC-019
+    category:
+      major: "テスト実行"
+      medium: "進捗"
+      minor: "ホバー"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "進捗バーの色付き部分にホバーすると、ステータス別件数と N / M 完了が表示される"
+
+  - id: TC-020
+    category:
+      major: "テスト実行"
+      medium: "操作"
+      minor: "キーボード"
+    prerequisites: "テストカード表示中（メモ欄フォーカス外）"
+    description: "o/n/s で選択中の全端末に一括 OK/NG/SKIP を入力できる。メモ入力中はキーボード操作が無効"
+
+  - id: TC-021
+    category:
+      major: "テスト実行"
+      medium: "操作"
+      minor: "ショートカットヘルプ"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "画面右下の ? にホバーするとキーボードショートカット一覧が表示される"
+
+  - id: TC-023
+    category:
+      major: "テスト実行"
+      medium: "シナリオ"
+      minor: "モード切替"
+    prerequisites: "tests.yml に scenarios が定義されていること"
+    description: "フィルタとシナリオを排他で切り替えられ、シナリオ選択時は分類フィルタが無効になる"
+
+  - id: TC-024
+    category:
+      major: "テスト実行"
+      medium: "シナリオ"
+      minor: "タスク一覧"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "左のテスト一覧にシナリオの steps 順で項目が並び、name/description・進行状況が表示され、クリックでジャンプできる"
+
+  - id: TC-025
+    category:
+      major: "テスト実行"
+      medium: "フィードバック"
+      minor: "入力"
+    prerequisites: "テスト実行画面を表示中、複数端末のテストを表示中"
+    description: "OK/NG 入力時にステータスバッジが切り替わり、一覧の該当行が一瞬ハイライトされ、次のテストへクロスフェード遷移する"
+
+  - id: TC-026
+    category:
+      major: "テスト実行"
+      medium: "進捗"
+      minor: "残り件数"
+    prerequisites: "テスト実行画面 (/run) を表示中、未完了のテストが1件以上あること"
+    description: "進捗バー右側に N / M と残り件数が表示される"
+
+  - id: TC-027
+    category:
+      major: "ファイル読み込み"
+      medium: "フィードバック"
+      minor: "ファイル追加"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
+    description: "tests.yml を追加するとファイル行がフェードインで表示される"
+
+  - id: TC-028
+    category:
+      major: "セッション"
+      medium: "フィードバック"
+      minor: "バリデーション"
+    prerequisites: "セッション設定画面を表示中"
+    description: "実施者名未入力で開始しようとすると入力欄が軽く揺れ、エラーメッセージが表示される"
+
+  - id: TC-029
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "結果クリア"
+    prerequisites: "テスト実行画面を表示中、表示中のテストケースに入力済みの端末があること"
+    description: "テストカードの端末行ごとに「クリア」が常に表示され、入力済みの端末のみ押せる。そのテストケース × 端末の結果だけを削除できる"
+
+  - id: TC-030
+    category:
+      major: "エクスポート"
+      medium: "results.json"
+      minor: "ダウンロード"
+    prerequisites: "tests.yml 読み込み済み、結果が1件以上あること"
+    description: "ナビメニューから results.json をエクスポートでき、再読み込みして内容が復元される"
+
+  - id: TC-031
+    category:
+      major: "ファイル読み込み"
+      medium: "ガイド"
+      minor: "AI プロンプト"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
+    description: "tests.yml の書き方ガイドが表示され、「仕様をコピー」で AI 向け仕様テキストをクリップボードにコピーできる"
+
+  - id: TC-032
+    category:
+      major: "ファイル読み込み"
+      medium: "置き換え"
+      minor: "確認ダイアログ"
+    prerequisites: "同一 project.id のプロジェクトが既に登録済み、/projects?project=_new で新しい tests.yml を選択済み"
+    description: "「読み込む」で上書き警告が表示され、確認後のみ定義・結果・セッションが置き換わる"
+
+  - id: TC-037
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "項目編集"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "テストカードの「編集」からダイアログが開き、大分類・前提条件・確認内容を変更して保存できる"
+
+  - id: TC-038
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "バージョン更新"
+    prerequisites: "テスト実行画面 (/run) を表示中、表示中のテストに結果が入力済みであること"
+    description: "編集ダイアログで「バージョンを更新」にチェックして保存すると version がインクリメントされ、既存結果が未実施扱い（要再テスト）になる"
+
+  - id: TC-039
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "Markdown コピー"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "テストカードの「コピー」で Markdown 形式のテスト内容がクリップボードにコピーされる"
+
+  - id: TC-040
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "Markdown コピー"
+    prerequisites: "テスト実行画面 (/run) を表示中、表示中のテストに関連バグが1件以上あること"
+    description: "「コピー」した Markdown に関連バグのタイトル・ステータス・手順等が含まれる"
+
+  - id: TC-041
+    category:
+      major: "エクスポート"
+      medium: "tests.yml"
+      minor: "ダウンロード"
+    prerequisites: "tests.yml 読み込み済み、テスト項目を1件以上編集済みであること"
+    description: "ナビメニューから tests.yml をエクスポートでき、編集内容（version 含む）が反映されている"
+
+  - id: TC-042
+    category:
+      major: "閲覧"
+      medium: "マトリクス"
+      minor: "表示"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "Compass メニューからマトリクス画面へ遷移し、全環境列を含む表が表示される"
+
+  - id: TC-043
+    category:
+      major: "閲覧"
+      medium: "マトリクス"
+      minor: "フィルタ"
+    prerequisites: "マトリクス画面を表示中、セッション開始済み"
+    description: "大分類フィルタ・未実施のみがテスト実行画面と連動し、表示行が絞り込まれる"
+
+  - id: TC-044
+    category:
+      major: "閲覧"
+      medium: "マトリクス"
+      minor: "ジャンプ"
+    prerequisites: "マトリクス画面を表示中、セッション開始済み、ジャンプ可能な行を表示中"
+    description: "行クリックでテスト実行画面へ遷移し、同じフィルタ状態で該当テストが開く"
+
+  - id: TC-045
+    category:
+      major: "閲覧"
+      medium: "ダッシュボード"
+      minor: "進捗"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "Compass メニューからダッシュボードへ遷移し、全体進捗と大項目別の OK率・NG率が表示される"
+
+  - id: TC-046
+    category:
+      major: "閲覧"
+      medium: "ダッシュボード"
+      minor: "ジャンプ"
+    prerequisites: "tests.yml 読み込み済み、セッション開始済み"
+    description: "大項目別の行をクリックすると /p/{projectId}/run?major=... へ遷移し、該当大項目でフィルタがかかる"
+
+  - id: TC-047
+    category:
+      major: "URL"
+      medium: "プロジェクト"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "各画面の URL に /p/{projectId}/... 形式でプロジェクト ID が含まれる"
+
+  - id: TC-048
+    category:
+      major: "URL"
+      medium: "プロジェクト"
+      minor: "不一致"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "URL の projectId が IndexedDB に未登録の場合、プロジェクト一覧（/projects）へ戻る"
+
+  - id: TC-049
+    category:
+      major: "URL"
+      medium: "フィルタ"
+    prerequisites: "テスト実行画面を表示中"
+    description: "大分類・未実施のみ・表示中テスト（test=）が URL クエリに反映され、リロード後も同じ状態になる"
+
+  - id: TC-050
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "表示"
+    prerequisites: "tests.yml 読み込み済み、起票済みバグが1件以上あること"
+    description: "Compass メニューからバグ画面へ遷移し、左にバグ一覧・右にバグ詳細カードが表示される"
+
+  - id: TC-051
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "フィルタ"
+    prerequisites: "バグ画面を表示中、重要度・ステータスで絞り込めるバグが存在すること"
+    description: "大分類・シナリオ切替に加え、フィルタアイコンボタンからダイアログを開き、重要度・ステータスを複数選択（OR）で絞り込みができ、一覧とカードが連動する。未選択時はすべて表示"
+
+  - id: TC-052
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "テスト hover"
+    prerequisites: "バグ画面を表示中、関連テストケース付きのバグを選択していること"
+    description: "カード上の関連テスト ID に hover すると、テストケースの分類・前提・確認内容がツールチップ表示される"
+
+  - id: TC-053
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "ナビ"
+    prerequisites: "バグ画面を表示中、フィルタ内にバグが2件以上あること"
+    description: "左一覧のクリックまたはカードの前後ボタン・h/l キーでバグを切り替えられる。bug= が URL に反映される"
+
+  - id: TC-054
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "ステータス"
+    prerequisites: "バグ画面を表示中、バグを1件選択していること"
+    description: "カード上の対応状況ドロップダウンでステータスを変更できる（未対応/修正中/修正済み/修正確認済み/対応しない）。修正済み選択時は修正内容入力ダイアログが開く"
+
+  - id: TC-083
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "ステータス"
+    prerequisites: "バグ画面を表示中、未対応・修正中・修正済みのいずれかのバグを1件選択していること"
+    description: "フッターの「次のステータス」ボタン（例: 修正中にする）でワークフロー上の次ステータスへ進める。修正済みへの遷移時は修正内容ダイアログが開く。修正確認済み・対応しないではボタンが表示されない"
+
+  - id: TC-055
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "編集"
+    prerequisites: "バグ画面を表示中、バグを1件選択していること"
+    description: "「編集」からバグ内容を変更して保存できる。メモ欄に自由記入でき、修正済み以降のステータスでは修正内容フィールドも編集できる"
+
+  - id: TC-056
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "Markdown コピー"
+    prerequisites: "バグ画面を表示中、バグを1件選択していること"
+    description: "「コピー」で Markdown 形式のバグ内容（ステータス・手順・修正内容等）がクリップボードにコピーされる"
+
+  - id: TC-060
+    category:
+      major: "トップ"
+      minor: "表示"
+    prerequisites: "プロジェクト未読み込み、IndexedDB 空（/ を表示）"
+    description: "トップページにできること・GitHub リンク・データはローカルのみの説明が表示され、「はじめる」で /projects へ進める"
+
+  - id: TC-061
+    category:
+      major: "閲覧"
+      medium: "ナビ"
+      minor: "トップ"
+    prerequisites: "tests.yml 読み込み済み、プロジェクト画面を表示中"
+    description: "Compass メニューの「移動」から「トップ」を選ぶと / に遷移する。プロジェクトは IndexedDB に保持され「作業を続ける」で再開できる"
+
+  - id: TC-062
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+    prerequisites: "IndexedDB 空、または /projects を表示中"
+    description: "左一覧に登録済みプロジェクトが名前・ID・最終更新付きで表示され、先頭の「新規作成」で右パネルに import UI が表示される"
+
+  - id: TC-063
+    category:
+      major: "プロジェクト"
+      medium: "切替"
+    prerequisites: "2件以上のプロジェクトが IndexedDB に登録済み"
+    description: "左一覧でプロジェクトを選び、右パネルの「続ける」で各プロジェクトに切り替わり、セッション・結果がプロジェクトごとに復元される（URL クエリは引き継がない）"
+
+  - id: TC-064
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "共存"
+    prerequisites: "1件以上のプロジェクトが登録済み、/projects?project=_new を表示中"
+    description: "別 project.id の tests.yml を読み込んでも既存プロジェクトは消えず、一覧に追加される"
+
+  - id: TC-065
+    category:
+      major: "プロジェクト"
+      medium: "URL"
+      minor: "ID スコープ"
+    prerequisites: "2件以上のプロジェクトに同じ testCaseId（例: TC-001）が存在する"
+    description: "プロジェクト A から B へ切り替えたとき、A の ?test= が B に同名 ID があっても内容が異なる場合でも、B に存在しない test/bug クエリは除去される"
+
+  - id: TC-066
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "空状態"
+    prerequisites: "IndexedDB 空（/projects を表示）"
+    description: "プロジェクト0件のとき左一覧に「新規作成」のみ表示され、右パネルに tests.yml 読み込み UI が表示される"
+
+  - id: TC-067
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "前回"
+    prerequisites: "2件以上のプロジェクトがあり、直前に一方を開いた状態"
+    description: "最後に開いたプロジェクトの左一覧行と右パネルに「前回」バッジが表示される"
+
+  - id: TC-068
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "セッション"
+    prerequisites: "有効なセッションを保存済みのプロジェクトが一覧にある"
+    description: "セッション設定済みプロジェクトの左一覧行に「セッション」、右パネルに「セッションあり」バッジが表示される"
+
+  - id: TC-069
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "戻る"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
+    description: "左一覧で別プロジェクトを選ぶと右パネルが切り替わり、/projects?project={id} が URL に反映される"
+
+  - id: TC-070
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "上書き"
+    prerequisites: "同一 project.id が既に登録済み、/projects?project=_new で tests.yml 選択済み"
+    description: "上書き確認ダイアログでキャンセルすると読み込まれず /projects?project=_new に留まる"
+
+  - id: TC-071
+    category:
+      major: "プロジェクト"
+      medium: "エクスポート"
+      minor: "tests.yml"
+    prerequisites: "プロジェクト一覧で対象プロジェクトを選択し、右パネルを表示中"
+    description: "右パネルの tests.yml ボタンで定義ファイルをダウンロードできる"
+
+  - id: TC-072
+    category:
+      major: "プロジェクト"
+      medium: "エクスポート"
+      minor: "results.json"
+    prerequisites: "プロジェクト一覧で対象プロジェクトを選択し、右パネルを表示中、結果が1件以上ある"
+    description: "右パネルの results.json ボタンで結果ファイルをダウンロードできる"
+
+  - id: TC-073
+    category:
+      major: "プロジェクト"
+      medium: "ルーティング"
+      minor: "未登録"
+    prerequisites: "IndexedDB に存在しない projectId"
+    description: "/p/{未登録id}/run 等へ直接アクセスすると /projects へリダイレクトされる"
+
+  - id: TC-074
+    category:
+      major: "プロジェクト"
+      medium: "ルーティング"
+      minor: "直接 URL"
+    prerequisites: "登録済み projectId、セッション未開始"
+    description: "/p/{projectId}/session へ直接アクセスすると lazy activation されセッション設定画面が開く"
+
+  - id: TC-075
+    category:
+      major: "プロジェクト"
+      medium: "ナビ"
+    prerequisites: "プロジェクト画面（/p/{id}/run 等）を表示中"
+    description: "Compass メニューの「プロジェクト一覧」で /projects へ遷移する"
+
+  - id: TC-076
+    category:
+      major: "プロジェクト"
+      medium: "削除"
+      minor: "選択的"
+    prerequisites: "2件以上のプロジェクトが登録済み"
+    description: "一覧から1件だけ削除しても、他プロジェクトは残る"
+
+  - id: TC-077
+    category:
+      major: "プロジェクト"
+      medium: "トップ"
+      minor: "続ける"
+    prerequisites: "最後に開いたプロジェクトに有効セッションあり、/ を表示"
+    description: "「作業を続ける」で lastOpenedProjectId の run（クエリなし）へ進む"
+
+  - id: TC-078
+    category:
+      major: "プロジェクト"
+      medium: "URL"
+      minor: "test クエリ"
+    prerequisites: "alt-app 等、TC-999 を持たないプロジェクトで run 画面"
+    description: "/p/{id}/run?test=TC-999 のように存在しない test クエリは除去され、通常の先頭テストから表示される"
+
+  - id: TC-079
+    category:
+      major: "プロジェクト"
+      medium: "URL"
+      minor: "bug クエリ"
+    prerequisites: "bugs 画面、存在しない bug id をクエリ指定"
+    description: "/p/{id}/bugs?bug=BUG-999 のように存在しない bug クエリは除去され一覧表示される"
+
+  - id: TC-080
+    category:
+      major: "プロジェクト"
+      medium: "永続化"
+      minor: "v1 移行"
+    prerequisites: "v1 形式（meta/state 単一レコード）の IndexedDB データがあるブラウザ"
+    description: "アプリ更新後の初回起動で v1 データが projects ストアへ自動移行され、プロジェクト一覧に表示される"
+
+  - id: TC-081
+    category:
+      major: "プロジェクト"
+      medium: "ルーティング"
+      minor: "ローディング"
+    prerequisites: "初回起動または /p/{projectId}/run 等へ直接アクセス"
+    description: "画面切り替え中に qarows ロゴと進捗バー付きのローディング画面が表示される"
+
+  - id: TC-082
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "HUD"
+    prerequisites: "1件以上のプロジェクトが登録済み、/projects を表示中"
+    description: "左にプロジェクト一覧（先頭は新規作成）、右に選択中プロジェクトの管理パネルが表示される（run 画面と同型の左右分割）"

@@ -16,8 +16,11 @@
     "@qarows/shared": "*",
     "@qarows/ui": "*",
     "hono": "^4.12.27",
+    "lucide-react": "^1.21.0",
+    "nuqs": "^2.8.9",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250628.0",
