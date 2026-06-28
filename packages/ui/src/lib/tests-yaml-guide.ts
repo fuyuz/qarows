@@ -65,8 +65,8 @@ targets:        # optional string[] of environment ids
 
 ### required
 
-- \`all\`: every in-scope environment must have a result before the case is "complete"
-- \`any\`: one result in any in-scope environment completes the case
+- \`all\`: every environment in the effective pool must have a result for global completion; the runner incomplete filter treats the case as done once every **session-selected** in-scope environment has a result
+- \`any\`: one result in any environment in the effective pool completes the case (including results recorded outside the current session by others)
 
 ### targets
 
@@ -80,7 +80,7 @@ targets:        # optional string[] of environment ids
 3. Apply case \`targetEnvironments\` last
 4. At each step: intersect \`targets\` if present; overwrite \`required\` if present
 
-At runtime, the session's selected environments are intersected again.
+At runtime, the session's selected environments are intersected to determine the user's in-scope targets for input UI. Incomplete-filter checks use the full effective pool for \`any\`, and the session intersection for \`all\`.
 
 ## categoryTargets (optional)
 

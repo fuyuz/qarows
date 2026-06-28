@@ -3,6 +3,7 @@ import {
   getTestCaseVersion,
   isResultEntryValid,
   nextBugId,
+  resolveIncompleteCheckTargets,
   resolveSessionTestTargets,
   testCaseNeedsRetest,
   type Bug,
@@ -266,7 +267,7 @@ export function TestRunner() {
 
   const applySingle = useCallback(
     async (envId: string, status: TestStatus) => {
-      if (!current || !session || !envTargets || !results || busy || testSlideIndex == null) return;
+      if (!current || !session || !envTargets || !results || !definition || busy || testSlideIndex == null) return;
       cancelPendingAdvance();
       setBusy(true);
       try {
@@ -289,10 +290,19 @@ export function TestRunner() {
           ...(results.results[current.id] ?? {}),
           [envId]: nextEntry,
         };
+        const completionTargets = resolveIncompleteCheckTargets(
+          current,
+          definition,
+          session.selectedEnvironmentIds,
+        );
         const isComplete =
-          envTargets.required === "any"
-            ? envTargets.environmentIds.some((id) => isResultEntryValid(nextByEnv[id], current))
-            : envTargets.environmentIds.every((id) => isResultEntryValid(nextByEnv[id], current));
+          completionTargets.required === "any"
+            ? completionTargets.environmentIds.some((id) =>
+                isResultEntryValid(nextByEnv[id], current),
+              )
+            : completionTargets.environmentIds.every((id) =>
+                isResultEntryValid(nextByEnv[id], current),
+              );
 
         if (isComplete) {
           const nextSlide =
@@ -317,6 +327,7 @@ export function TestRunner() {
       busy,
       cancelPendingAdvance,
       current,
+      definition,
       envTargets,
       advanceAfterComplete,
       memo,

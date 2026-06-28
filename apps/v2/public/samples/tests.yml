@@ -218,6 +218,32 @@ testCases:
       targets:
         - safari-desktop
 
+  - id: TC-093
+    category:
+      major: "対象端末"
+      medium: "完了条件"
+      minor: "any"
+    prerequisites: "required: any のテストケース、セッション外端末にのみ結果がある results.json"
+    description: "any のテストはセッション外端末で他者が実施済みなら未実施フィルタ・進捗で完了扱いになる"
+    targetEnvironments:
+      required: any
+      targets:
+        - chrome-desktop
+        - firefox-desktop
+
+  - id: TC-094
+    category:
+      major: "対象端末"
+      medium: "完了条件"
+      minor: "all"
+    prerequisites: "required: all のテストケース、セッション内端末のみ結果あり（セッション外は未実施）"
+    description: "all のテストはセッション内の対象端末がすべて入力済みなら未実施フィルタ・進捗で完了扱いになる（全端末完了でなくてもよい）"
+    targetEnvironments:
+      required: all
+      targets:
+        - chrome-desktop
+        - firefox-desktop
+
   - id: TC-009
     category:
       major: "テスト実行"

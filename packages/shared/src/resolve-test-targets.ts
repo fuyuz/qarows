@@ -112,6 +112,49 @@ function hasResult(entry: TestResultEntry | undefined, testCase: TestCase): bool
   return isResultEntryValid(entry, testCase);
 }
 
+/**
+ * 未実施フィルタ・進捗・ランナー完了判定で参照する環境 id。
+ * - any: プロジェクト有効プール全体（セッション外の結果も完了に含める）
+ * - all: セッションとの交差のみ（自分の担当端末が揃えば未実施に含めない）
+ */
+export function resolveIncompleteCheckTargets(
+  testCase: TestCase,
+  definition: TestDefinition,
+  sessionEnvironmentIds: string[],
+): SessionTestTargets {
+  const sessionTargets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
+  if (!sessionTargets.inScope) return sessionTargets;
+
+  if (sessionTargets.required === "any") {
+    const projectTargets = resolveTestTargets(testCase, definition);
+    return {
+      environmentIds: projectTargets.environmentIds,
+      required: "any",
+      inScope: true,
+    };
+  }
+
+  return sessionTargets;
+}
+
+/** 真の完了条件（有効プール全体。all は全端末、any はいずれか1端末） */
+export function isTestGloballyComplete(
+  testCase: TestCase,
+  definition: TestDefinition,
+  results: TestResults,
+): boolean {
+  const targets = resolveTestTargets(testCase, definition);
+  if (targets.environmentIds.length === 0) return true;
+
+  const byEnv = results[testCase.id] ?? {};
+
+  if (targets.required === "any") {
+    return targets.environmentIds.some((envId) => hasResult(byEnv[envId], testCase));
+  }
+
+  return targets.environmentIds.every((envId) => hasResult(byEnv[envId], testCase));
+}
+
 export function isTestInScope(
   testCase: TestCase,
   definition: TestDefinition,
@@ -126,7 +169,7 @@ export function isTestIncomplete(
   sessionEnvironmentIds: string[],
   results: TestResults,
 ): boolean {
-  const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
+  const targets = resolveIncompleteCheckTargets(testCase, definition, sessionEnvironmentIds);
   if (!targets.inScope) return false;
 
   const byEnv = results[testCase.id] ?? {};
@@ -161,7 +204,7 @@ export function testCaseNeedsRetest(
     return false;
   }
 
-  const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
+  const targets = resolveIncompleteCheckTargets(testCase, definition, sessionEnvironmentIds);
   const byEnv = results[testCase.id] ?? {};
 
   return targets.environmentIds.some((envId) => {

@@ -1,7 +1,7 @@
 import {
   isTestInScope,
   isTestIncomplete,
-  resolveSessionTestTargets,
+  resolveIncompleteCheckTargets,
   aggregateValidTestStatus,
   type TestDefinition,
   type TestResults,
@@ -36,7 +36,7 @@ function aggregateTestStatus(
     return "incomplete";
   }
 
-  const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
+  const targets = resolveIncompleteCheckTargets(testCase, definition, sessionEnvironmentIds);
   const strongest = aggregateValidTestStatus(testCase, targets.environmentIds, results);
 
   return strongest ?? "incomplete";

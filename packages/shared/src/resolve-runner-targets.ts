@@ -2,6 +2,7 @@ import { aggregateValidTestStatus } from "./aggregate-test-status";
 import {
   isTestIncomplete,
   isTestInScope,
+  resolveIncompleteCheckTargets,
   resolveSessionTestTargets,
 } from "./resolve-test-targets";
 import { isResultEntryValid } from "./test-case-version";
@@ -126,7 +127,7 @@ export function getTestCaseAggregateStatus(
     return "incomplete";
   }
 
-  const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
+  const targets = resolveIncompleteCheckTargets(testCase, definition, sessionEnvironmentIds);
   const strongest = aggregateValidTestStatus(testCase, targets.environmentIds, results);
 
   return strongest ?? "incomplete";

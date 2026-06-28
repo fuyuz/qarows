@@ -137,6 +137,33 @@ describe("resolveRunnerTestCases", () => {
     expect(cases.some((tc) => tc.id === "TC-001")).toBe(false);
   });
 
+  it("excludes any-case complete via out-of-session result when onlyIncomplete is true", () => {
+    const anyDefinition = makeDefinition({
+      testCases: [
+        {
+          id: "TC-001",
+          category: { major: "Auth" },
+          description: "Any env ok",
+          targetEnvironments: { required: "any", targets: ["chrome", "firefox"] },
+        },
+      ],
+    });
+    const chromeSession: SessionConfig = {
+      ...session,
+      selectedEnvironmentIds: ["chrome"],
+    };
+    const results: TestResults = {
+      "TC-001": { firefox: { status: "OK" } },
+    };
+    const cases = resolveRunnerTestCases(
+      anyDefinition,
+      chromeSession,
+      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false },
+      results,
+    );
+    expect(cases.some((tc) => tc.id === "TC-001")).toBe(false);
+  });
+
   it("includes only tests with linked bugs when onlyWithBugs is true", () => {
     const bugs = [
       { id: "BUG-001", title: "Issue", severity: "high" as const, status: "open" as const, testCaseId: "TC-002" },
