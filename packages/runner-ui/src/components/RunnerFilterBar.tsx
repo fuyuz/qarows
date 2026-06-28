@@ -341,7 +341,7 @@ export function RunnerFilterBar({
     <div className={cn("border-b bg-card shadow-sm", className)}>
       <div
         className={cn(
-          "mx-auto flex flex-col gap-2 px-5 py-2.5 pr-16",
+          "mx-auto flex flex-col gap-2 px-5 py-2.5 pr-24",
           maxWidthClass,
         )}
       >
@@ -462,6 +462,7 @@ export function RunnerFilterBar({
             <label
               className={cn(
                 "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
+                "max-md:basis-full max-md:order-last",
                 runnerFilters.onlyIncomplete && "bg-primary/10 text-primary",
               )}
             >

@@ -18,7 +18,7 @@ import type {
   TestStatus,
 } from "@qarows/shared";
 import type { ConnectionStatus, ProjectCommand, ProjectEvent } from "@qarows/application";
-import { createPhase2WorkspaceController } from "@/lib/adapters/create-phase2-workspace";
+import { createTeamWorkspaceController } from "@/lib/adapters/create-team-workspace";
 import { getSyncUser } from "@/lib/sync/sync-user";
 
 interface ProjectSyncContextValue {
@@ -33,6 +33,7 @@ interface ProjectSyncContextValue {
   results: ResultsFile | null;
   session: SessionConfig | null;
   lastUpdatedTestId: string | null;
+  syncPulseKey: number;
   setSession: (session: SessionConfig) => Promise<void>;
   updateResults: (
     testCaseId: string,
@@ -88,13 +89,20 @@ export function ProjectSyncProvider({
   const [results, setResults] = useState<ResultsFile | null>(null);
   const [session, setSessionState] = useState<SessionConfig | null>(null);
   const [lastUpdatedTestId, setLastUpdatedTestId] = useState<string | null>(null);
+  const [syncPulseKey, setSyncPulseKey] = useState(0);
 
-  const workspaceRef = useRef<ReturnType<typeof createPhase2WorkspaceController> | null>(null);
+  const workspaceRef = useRef<ReturnType<typeof createTeamWorkspaceController> | null>(null);
   const definitionRef = useRef<TestDefinition | null>(null);
   const resultsRef = useRef<ResultsFile | null>(null);
   const sessionRef = useRef<SessionConfig | null>(null);
   const highlightClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const readyRef = useRef(false);
+  const connectedRef = useRef(false);
+
+  const pulseSyncIndicator = useCallback(() => {
+    setSyncPulseKey((key) => key + 1);
+  }, []);
 
   const markTestUpdated = useCallback((testCaseId: string) => {
     setLastUpdatedTestId(testCaseId);
@@ -127,40 +135,49 @@ export function ProjectSyncProvider({
 
   useEffect(() => {
     let cancelled = false;
-    const workspace = createPhase2WorkspaceController();
+    const workspace = createTeamWorkspaceController();
     workspaceRef.current = workspace;
 
     const handleEvent = (event: ProjectEvent) => {
       if (cancelled) return;
       switch (event.type) {
-        case "snapshot":
+        case "snapshot": {
+          const wasReady = readyRef.current;
           setRevision(event.revision);
           applySnapshotState(event.snapshot);
           setReady(true);
+          readyRef.current = true;
           setSyncError(null);
           setSyncNotice(null);
+          if (wasReady && connectedRef.current) pulseSyncIndicator();
           return;
+        }
         case "snapshotReplaced":
           setRevision(event.revision);
           applySnapshotState(event.snapshot);
           setReady(true);
+          readyRef.current = true;
           setSyncError(null);
           setSyncNotice("tests.ymlが更新されました");
           setLastUpdatedTestId(null);
           if (noticeClearTimerRef.current) clearTimeout(noticeClearTimerRef.current);
           noticeClearTimerRef.current = setTimeout(() => setSyncNotice(null), 8000);
+          if (connectedRef.current) pulseSyncIndicator();
           return;
         case "commandApplied":
           setRevision(event.revision);
           applySnapshotState(event.snapshot);
           setReady(true);
+          readyRef.current = true;
           setSyncError(null);
+          if (connectedRef.current) pulseSyncIndicator();
           {
             const affected = affectedTestCaseFromCommand(event.command);
             if (affected) markTestUpdated(affected);
           }
           return;
         case "connectionState":
+          connectedRef.current = event.state.status === "connected";
           setConnected(event.state.status === "connected");
           setConnectionStatus(event.state.status);
           setRevision(event.state.revision);
@@ -197,7 +214,7 @@ export function ProjectSyncProvider({
       workspace.controller.deactivateProject();
       workspaceRef.current = null;
     };
-  }, [applySnapshotState, markTestUpdated, projectId]);
+  }, [applySnapshotState, markTestUpdated, projectId, pulseSyncIndicator]);
 
   const dispatch = useCallback(async (command: ProjectCommand) => {
     const workspace = workspaceRef.current;
@@ -279,6 +296,7 @@ export function ProjectSyncProvider({
       results,
       session,
       lastUpdatedTestId,
+      syncPulseKey,
       setSession,
       updateResults,
       updateResultsBatch,
@@ -299,6 +317,7 @@ export function ProjectSyncProvider({
       results,
       session,
       lastUpdatedTestId,
+      syncPulseKey,
       setSession,
       updateResults,
       updateResultsBatch,

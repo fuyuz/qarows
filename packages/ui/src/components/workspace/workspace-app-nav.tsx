@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Compass } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isValidSession, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
@@ -14,6 +14,11 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import {
+  SyncConnectionIndicator,
+  SyncStatusMenuSection,
+  type WorkspaceSyncStatus,
+} from "./sync-status-badge";
 
 export type WorkspaceProjectPage = AppNavigationPage;
 
@@ -28,12 +33,12 @@ export interface WorkspaceAppNavProps {
   session: SessionConfig | null;
   results?: ResultsFile | null;
   path: (page: WorkspaceProjectPage) => string;
-  /** ナビに表示してよいプロジェクト内ページ。未指定時は Phase1 相当の全ページ */
+  /** ナビに表示してよいプロジェクト内ページ。未指定時は Local 版相当の全ページ */
   availablePages?: readonly WorkspaceProjectPage[];
   onExportYaml?: () => void;
   onExportResults?: () => void;
-  /** Phase2: 同期状態など、Compass メニュー横に表示するスロット */
-  statusSlot?: ReactNode;
+  /** Team 版: 同期状態（メニュー内表示。切断・再接続時は Compass 横にドット） */
+  syncStatus?: WorkspaceSyncStatus;
 }
 
 const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
@@ -114,7 +119,7 @@ export function WorkspaceAppNav({
   availablePages,
   onExportYaml,
   onExportResults,
-  statusSlot,
+  syncStatus,
 }: WorkspaceAppNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -155,8 +160,15 @@ export function WorkspaceAppNav({
   const hasBrowse = browseLinks.length > 0;
 
   return (
-    <div ref={rootRef} className="fixed top-3.5 right-5 z-40 flex items-center gap-2">
-      {statusSlot}
+    <div ref={rootRef} className="fixed top-3.5 right-5 z-40 flex items-center gap-1.5">
+      {syncStatus ? (
+        <SyncConnectionIndicator
+          connected={syncStatus.connected}
+          connectionStatus={syncStatus.connectionStatus}
+          pendingCommands={syncStatus.pendingCommands}
+          syncPulseKey={syncStatus.syncPulseKey}
+        />
+      ) : null}
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Button
@@ -169,6 +181,12 @@ export function WorkspaceAppNav({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
+          {syncStatus ? (
+            <>
+              <SyncStatusMenuSection {...syncStatus} />
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
           {hasWorkflow && (
             <>
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">

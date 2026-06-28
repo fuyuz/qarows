@@ -9,7 +9,16 @@ export {
   type ProjectListItem,
   sortProjectListItems,
 } from "./components/workspace/project-list-item";
-export { SyncStatusBadge } from "./components/workspace/sync-status-badge";
+export {
+  SyncStatusBadge,
+  SyncConnectionIndicator,
+  SyncStatusMenuSection,
+  connectionStatusLabel,
+  resolveConnectionStatus,
+  shouldShowConnectionDot,
+  type ConnectionStatus,
+  type WorkspaceSyncStatus,
+} from "./components/workspace/sync-status-badge";
 export {
   ProjectOverwriteDialog,
   type ProjectOverwriteDialogProps,
