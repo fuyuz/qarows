@@ -160,7 +160,11 @@ export function TestMatrixTable({
     const envColumns = definition.environments.map((env) =>
       helper.display({
         id: `env-${env.id}`,
-        header: env.name,
+        header: () => (
+          <span className="block truncate" title={env.name}>
+            {env.name}
+          </span>
+        ),
         size: COLUMN_SIZES.env,
         cell: ({ row }) =>
           results ? (
@@ -244,7 +248,7 @@ export function TestMatrixTable({
               {headerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="border-b border-r border-border/60 px-2 py-2 text-xs font-semibold text-muted-foreground whitespace-nowrap"
+                  className="overflow-hidden border-b border-r border-border/60 px-2 py-2 text-xs font-semibold text-muted-foreground"
                   style={{
                     ...cellWidthStyle(header.column),
                     ...pinningStyles(header.column, true),
