@@ -37,7 +37,18 @@ export async function getProject(projectId: string): Promise<ProjectSnapshot> {
   return data.project;
 }
 
-export async function createProjectFromYaml(testsYaml: string): Promise<ProjectSnapshot> {
+export async function createProjectFromYaml(
+  testsYaml: string,
+  resultsJsonList?: string[],
+): Promise<ProjectSnapshot> {
+  if (resultsJsonList?.length) {
+    const data = await apiJson<ProjectResponse>("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ testsYaml, resultsJsonList }),
+    });
+    return data.project;
+  }
   const data = await apiJson<ProjectResponse>("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "text/yaml; charset=utf-8" },
@@ -70,19 +81,32 @@ export async function clearProjectResults(projectId: string): Promise<void> {
 export async function mergeProjectResults(
   projectId: string,
   resultsJsonList: string[],
+  expectedGeneration: string,
 ): Promise<void> {
   if (resultsJsonList.length === 0) return;
   await apiJson<{ ok: true }>(`/api/projects/${encodeURIComponent(projectId)}/merge-results`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ resultsJsonList }),
+    body: JSON.stringify({ resultsJsonList, expectedGeneration }),
   });
 }
 
 export async function replaceProjectFromYaml(
   projectId: string,
   testsYaml: string,
+  resultsJsonList?: string[],
 ): Promise<ProjectSnapshot> {
+  if (resultsJsonList?.length) {
+    const data = await apiJson<ProjectResponse>(
+      `/api/projects/${encodeURIComponent(projectId)}/definition`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testsYaml, resultsJsonList }),
+      },
+    );
+    return data.project;
+  }
   const data = await apiJson<ProjectResponse>(
     `/api/projects/${encodeURIComponent(projectId)}/definition`,
     {

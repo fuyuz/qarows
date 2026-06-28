@@ -31,11 +31,18 @@ interface ProjectsContextValue {
   projectSummaries: EnrichedProjectSummary[];
   lastOpenedProjectId: string | null;
   refreshProjects: () => Promise<void>;
-  importProject: (testsYaml: string, existingProjectId?: string) => Promise<string>;
+  importProject: (
+    testsYaml: string,
+    options?: { existingProjectId?: string; resultsJsonList?: string[] },
+  ) => Promise<string>;
   createNamedProject: (name: string) => Promise<string>;
   removeProject: (projectId: string) => Promise<void>;
   clearProjectResults: (projectId: string) => Promise<void>;
-  mergeResultsIntoProject: (projectId: string, resultsJsonList: string[]) => Promise<void>;
+  mergeResultsIntoProject: (
+    projectId: string,
+    resultsJsonList: string[],
+    expectedGeneration: string,
+  ) => Promise<void>;
   markProjectOpened: (projectId: string) => void;
 }
 
@@ -86,10 +93,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   }, [refreshProjects]);
 
   const importProject = useCallback(
-    async (testsYaml: string, existingProjectId?: string) => {
+    async (
+      testsYaml: string,
+      options?: { existingProjectId?: string; resultsJsonList?: string[] },
+    ) => {
+      const { existingProjectId, resultsJsonList } = options ?? {};
       const snapshot = existingProjectId
-        ? await replaceProjectFromYaml(existingProjectId, testsYaml)
-        : await createProjectFromYaml(testsYaml);
+        ? await replaceProjectFromYaml(existingProjectId, testsYaml, resultsJsonList)
+        : await createProjectFromYaml(testsYaml, resultsJsonList);
       await refreshProjects();
       writeLastOpenedProjectId(snapshot.id);
       setLastOpenedProjectId(snapshot.id);
@@ -130,9 +141,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   const mergeResultsIntoProject = useCallback(
-    async (projectId: string, resultsJsonList: string[]) => {
+    async (projectId: string, resultsJsonList: string[], expectedGeneration: string) => {
       if (resultsJsonList.length === 0) return;
-      await mergeProjectResultsApi(projectId, resultsJsonList);
+      await mergeProjectResultsApi(projectId, resultsJsonList, expectedGeneration);
       await refreshProjects();
     },
     [refreshProjects],

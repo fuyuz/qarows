@@ -42,7 +42,7 @@ export interface ProjectDetailPanelProps {
   updatedAt: string;
   isLastOpened: boolean;
   onContinue: (hasValidSession: boolean) => void;
-  onMerge: (files: File[]) => Promise<void>;
+  onMerge: (files: File[], expectedGeneration: string) => Promise<void>;
   onClearResults: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
@@ -120,12 +120,12 @@ export function ProjectDetailPanel({
   };
 
   const handleMerge = async () => {
-    if (mergeFiles.length === 0) return;
+    if (mergeFiles.length === 0 || !snapshot?.generation) return;
     setMerging(true);
     setError(null);
     setSuccessMessage(null);
     try {
-      await onMerge(mergeFiles);
+      await onMerge(mergeFiles, snapshot.generation);
       const count = mergeFiles.length;
       setMergeFiles([]);
       setSuccessMessage(`${count} 件の results.json を取り込みました`);

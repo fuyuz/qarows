@@ -71,9 +71,9 @@ export function ProjectsPage() {
   );
 
   const handleMerge = useCallback(
-    async (targetProjectId: string, files: File[]) => {
+    async (targetProjectId: string, files: File[], expectedGeneration: string) => {
       const jsons = await Promise.all(files.map((file) => readFileAsText(file)));
-      await mergeResultsIntoProject(targetProjectId, jsons);
+      await mergeResultsIntoProject(targetProjectId, jsons, expectedGeneration);
     },
     [mergeResultsIntoProject],
   );
@@ -140,7 +140,9 @@ export function ProjectsPage() {
                         onContinue={(hasValidSession) =>
                           handleContinue(selectedSummary.id, hasValidSession)
                         }
-                        onMerge={(files) => handleMerge(selectedSummary.id, files)}
+                        onMerge={(files, expectedGeneration) =>
+                          handleMerge(selectedSummary.id, files, expectedGeneration)
+                        }
                         onClearResults={() => handleClearResults(selectedSummary.id)}
                         onDelete={() => handleDelete(selectedSummary.id)}
                       />

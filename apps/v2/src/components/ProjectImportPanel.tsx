@@ -18,8 +18,7 @@ import { appendUniqueFiles, fileKey, readFileAsText } from "@/lib/file-utils";
 
 export function ProjectImportPanel() {
   const navigate = useNavigate();
-  const { importProject, createNamedProject, mergeResultsIntoProject, projectSummaries } =
-    useProjects();
+  const { importProject, createNamedProject, projectSummaries } = useProjects();
 
   const [testsFile, setTestsFile] = useState<File | null>(null);
   const [resultsFiles, setResultsFiles] = useState<File[]>([]);
@@ -83,10 +82,7 @@ export function ProjectImportPanel() {
     resultsJsonList: string[],
     existingProjectId?: string,
   ) => {
-    const projectId = await importProject(yaml, existingProjectId);
-    if (resultsJsonList.length > 0) {
-      await mergeResultsIntoProject(projectId, resultsJsonList);
-    }
+    const projectId = await importProject(yaml, { existingProjectId, resultsJsonList });
     clearLocalFiles();
     setOverwriteDialogOpen(false);
     setPendingImport(null);

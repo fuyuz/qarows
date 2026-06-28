@@ -1,6 +1,7 @@
 import {
   createEmptyResults,
   getProjectIdFromDefinition,
+  mergeResultsFiles,
   parseResultsJson,
   parseTestsYaml,
   reconcileResultsOnDefinitionReplace,
@@ -187,6 +188,7 @@ export async function replaceProjectDefinition(
   db: D1Database,
   projectId: string,
   testsYaml: string,
+  options?: { mergeIncoming?: ResultsFile },
 ): Promise<ProjectSnapshot | null> {
   const existing = await db
     .prepare("SELECT * FROM projects WHERE id = ?")
@@ -203,7 +205,10 @@ export async function replaceProjectDefinition(
   }
 
   const current = rowToSnapshot(existing);
-  const results = reconcileResultsOnDefinitionReplace(current.results, definition);
+  let results = reconcileResultsOnDefinitionReplace(current.results, definition);
+  if (options?.mergeIncoming) {
+    results = mergeResultsFiles(results, options.mergeIncoming);
+  }
   const session = sanitizeSessionOnDefinitionReplace(current.session, definition);
   const generation = crypto.randomUUID();
   const updatedAt = new Date().toISOString();
