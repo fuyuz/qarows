@@ -35,6 +35,10 @@ categoryTargets:
       major: "閲覧"
     required: any
 
+  - match:
+      major: "プロジェクト"
+    required: all
+
 scenarios:
   - id: first-time-setup
     name: "初回セットアップ"
@@ -106,19 +110,38 @@ scenarios:
       - TC-041
       - TC-057
 
+  - id: multi-project
+    name: "複数プロジェクト"
+    description: |
+      プロジェクト一覧での追加・切替・管理を確認する。
+    steps:
+      - TC-062
+      - TC-063
+      - TC-064
+      - TC-066
+      - TC-067
+      - TC-069
+      - TC-070
+      - TC-071
+      - TC-073
+      - TC-074
+      - TC-057
+      - TC-058
+      - TC-059
+
 testCases:
   - id: TC-001
     category:
       major: "ファイル読み込み"
       minor: "ドロップ"
-    prerequisites: "プロジェクト未読み込みの状態"
+    prerequisites: "プロジェクト一覧（/projects）または /load を表示中"
     description: "tests.yml をドロップゾーンにドロップしてファイル名が表示される"
 
   - id: TC-002
     category:
       major: "ファイル読み込み"
       minor: "サンプル"
-    prerequisites: "プロジェクト未読み込みの状態"
+    prerequisites: "/load を表示中"
     description: "「サンプルを試す」で tests.yml が読み込まれ、セッション設定へ進める"
 
   - id: TC-003
@@ -133,24 +156,24 @@ testCases:
       major: "ファイル読み込み"
       medium: "results.json"
       minor: "追加"
-    prerequisites: "プロジェクト読み込み済み、/load を表示中"
-    description: "「results.json を追加」で複数ファイルを選び「取り込む」すると、現在の結果にマージされる。メインのドロップゾーンから追加してもよい"
+    prerequisites: "プロジェクト一覧（/projects）で対象プロジェクトのカードを表示中"
+    description: "「results.json をマージ」で複数ファイルを選び「取り込む」すると、現在の結果にマージされる"
 
   - id: TC-058
     category:
       major: "ファイル読み込み"
       medium: "状態"
       minor: "結果クリア"
-    prerequisites: "プロジェクト読み込み済み、/load を表示中"
-    description: "「テスト結果をクリア」で実行結果・バグ・セッション設定のみ削除でき、tests.yml は残る"
+    prerequisites: "プロジェクト一覧（/projects）で対象プロジェクトのカードを表示中"
+    description: "「結果をクリア」で実行結果・バグ・セッション設定のみ削除でき、tests.yml の定義は残る"
 
   - id: TC-059
     category:
       major: "ファイル読み込み"
       medium: "状態"
       minor: "読み込み解除"
-    prerequisites: "プロジェクト読み込み済み、/load を表示中"
-    description: "「tests.yml の読み込みを解除」で tests.yml・実行結果・セッション設定をすべて削除し、未読み込みのファイル選択 UI に切り替わる"
+    prerequisites: "プロジェクト一覧（/projects）で対象プロジェクトのカードを表示中"
+    description: "「削除」で tests.yml・実行結果・セッション設定をすべて削除し、一覧から消える"
 
   - id: TC-004
     category:
@@ -375,7 +398,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "フィードバック"
       minor: "ファイル追加"
-    prerequisites: "プロジェクト未読み込みの状態"
+    prerequisites: "/load を表示中"
     description: "tests.yml を追加するとファイル行がフェードインで表示される"
 
   - id: TC-028
@@ -407,7 +430,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "ガイド"
       minor: "AI プロンプト"
-    prerequisites: "プロジェクト未読み込みの状態（/load 画面）"
+    prerequisites: "/load を表示中"
     description: "tests.yml の書き方ガイドが表示され、「仕様をコピー」で AI 向け仕様テキストをクリップボードにコピーできる"
 
   - id: TC-032
@@ -415,8 +438,8 @@ testCases:
       major: "ファイル読み込み"
       medium: "置き換え"
       minor: "確認ダイアログ"
-    prerequisites: "tests.yml 読み込み済み（/load 画面に戻った状態）、新しい tests.yml を選択済み"
-    description: "「テストを開始」で置き換え警告が表示され、確認後のみ新しいプロジェクトが読み込まれる"
+    prerequisites: "同一 project.id のプロジェクトが既に登録済み、/load で新しい tests.yml を選択済み"
+    description: "「読み込む」で上書き警告が表示され、確認後のみ定義・結果・セッションが置き換わる"
 
   - id: TC-037
     category:
@@ -511,7 +534,7 @@ testCases:
       medium: "プロジェクト"
       minor: "不一致"
     prerequisites: "tests.yml 読み込み済み"
-    description: "URL の projectId が読み込み済みプロジェクトと異なる場合、ファイル読み込み画面へ戻る"
+    description: "URL の projectId が IndexedDB に未登録の場合、プロジェクト一覧（/projects）へ戻る"
 
   - id: TC-049
     category:
@@ -581,7 +604,7 @@ testCases:
       major: "トップ"
       minor: "表示"
     prerequisites: "プロジェクト未読み込み、IndexedDB 空（/ を表示）"
-    description: "トップページにできること・GitHub リンク・データはローカルのみの説明が表示され、「はじめる」で /load へ進める"
+    description: "トップページにできること・GitHub リンク・データはローカルのみの説明が表示され、「はじめる」で /projects へ進める"
 
   - id: TC-061
     category:
@@ -590,3 +613,152 @@ testCases:
       minor: "トップ"
     prerequisites: "tests.yml 読み込み済み、プロジェクト画面を表示中"
     description: "Compass メニューの「移動」から「トップ」を選ぶと / に遷移する。プロジェクトは IndexedDB に保持され「作業を続ける」で再開できる"
+
+  - id: TC-062
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+    prerequisites: "IndexedDB 空、または /projects を表示中"
+    description: "プロジェクト一覧に登録済みプロジェクトが名前・ID・最終更新付きで表示され、「新しいプロジェクトを追加」で /load へ進める"
+
+  - id: TC-063
+    category:
+      major: "プロジェクト"
+      medium: "切替"
+    prerequisites: "2件以上のプロジェクトが IndexedDB に登録済み"
+    description: "プロジェクト一覧の「続ける」で各プロジェクトに切り替わり、セッション・結果がプロジェクトごとに復元される（URL クエリは引き継がない）"
+
+  - id: TC-064
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "共存"
+    prerequisites: "1件以上のプロジェクトが登録済み、/load を表示中"
+    description: "別 project.id の tests.yml を読み込んでも既存プロジェクトは消えず、一覧に追加される"
+
+  - id: TC-065
+    category:
+      major: "プロジェクト"
+      medium: "URL"
+      minor: "ID スコープ"
+    prerequisites: "2件以上のプロジェクトに同じ testCaseId（例: TC-001）が存在する"
+    description: "プロジェクト A から B へ切り替えたとき、A の ?test= が B に同名 ID があっても内容が異なる場合でも、B に存在しない test/bug クエリは除去される"
+
+  - id: TC-066
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "空状態"
+    prerequisites: "IndexedDB 空（/projects を表示）"
+    description: "プロジェクトが0件のとき「プロジェクトがありません」と tests.yml 読み込み CTA が表示される"
+
+  - id: TC-067
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "前回"
+    prerequisites: "2件以上のプロジェクトがあり、直前に一方を開いた状態"
+    description: "最後に開いたプロジェクトのカードに「前回」バッジが表示される"
+
+  - id: TC-068
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "セッション"
+    prerequisites: "有効なセッションを保存済みのプロジェクトが一覧にある"
+    description: "セッション設定済みプロジェクトのカードに「セッションあり」バッジが表示される"
+
+  - id: TC-069
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "戻る"
+    prerequisites: "/load を表示中"
+    description: "「← プロジェクト一覧」で /projects に戻れる"
+
+  - id: TC-070
+    category:
+      major: "プロジェクト"
+      medium: "インポート"
+      minor: "上書き"
+    prerequisites: "同一 project.id が既に登録済み、/load で tests.yml 選択済み"
+    description: "上書き確認ダイアログでキャンセルすると読み込まれず /load に留まる"
+
+  - id: TC-071
+    category:
+      major: "プロジェクト"
+      medium: "エクスポート"
+      minor: "tests.yml"
+    prerequisites: "プロジェクト一覧で対象カードを表示中"
+    description: "カードの tests.yml ボタンで定義ファイルをダウンロードできる"
+
+  - id: TC-072
+    category:
+      major: "プロジェクト"
+      medium: "エクスポート"
+      minor: "results.json"
+    prerequisites: "プロジェクト一覧で対象カードを表示中、結果が1件以上ある"
+    description: "カードの results.json ボタンで結果ファイルをダウンロードできる"
+
+  - id: TC-073
+    category:
+      major: "プロジェクト"
+      medium: "ルーティング"
+      minor: "未登録"
+    prerequisites: "IndexedDB に存在しない projectId"
+    description: "/p/{未登録id}/run 等へ直接アクセスすると /projects へリダイレクトされる"
+
+  - id: TC-074
+    category:
+      major: "プロジェクト"
+      medium: "ルーティング"
+      minor: "直接 URL"
+    prerequisites: "登録済み projectId、セッション未開始"
+    description: "/p/{projectId}/session へ直接アクセスすると lazy activation されセッション設定画面が開く"
+
+  - id: TC-075
+    category:
+      major: "プロジェクト"
+      medium: "ナビ"
+    prerequisites: "プロジェクト画面（/p/{id}/run 等）を表示中"
+    description: "Compass メニューの「プロジェクト一覧」で /projects へ遷移する"
+
+  - id: TC-076
+    category:
+      major: "プロジェクト"
+      medium: "削除"
+      minor: "選択的"
+    prerequisites: "2件以上のプロジェクトが登録済み"
+    description: "一覧から1件だけ削除しても、他プロジェクトは残る"
+
+  - id: TC-077
+    category:
+      major: "プロジェクト"
+      medium: "トップ"
+      minor: "続ける"
+    prerequisites: "最後に開いたプロジェクトに有効セッションあり、/ を表示"
+    description: "「作業を続ける」で lastOpenedProjectId の run（クエリなし）へ進む"
+
+  - id: TC-078
+    category:
+      major: "プロジェクト"
+      medium: "URL"
+      minor: "test クエリ"
+    prerequisites: "alt-app 等、TC-999 を持たないプロジェクトで run 画面"
+    description: "/p/{id}/run?test=TC-999 のように存在しない test クエリは除去され、通常の先頭テストから表示される"
+
+  - id: TC-079
+    category:
+      major: "プロジェクト"
+      medium: "URL"
+      minor: "bug クエリ"
+    prerequisites: "bugs 画面、存在しない bug id をクエリ指定"
+    description: "/p/{id}/bugs?bug=BUG-999 のように存在しない bug クエリは除去され一覧表示される"
+
+  - id: TC-080
+    category:
+      major: "プロジェクト"
+      medium: "永続化"
+      minor: "v1 移行"
+    prerequisites: "v1 形式（meta/state 単一レコード）の IndexedDB データがあるブラウザ"
+    description: "アプリ更新後の初回起動で v1 データが projects ストアへ自動移行され、プロジェクト一覧に表示される"

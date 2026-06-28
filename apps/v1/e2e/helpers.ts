@@ -7,21 +7,23 @@ export async function openLanding(page: Page) {
 export async function startFromLanding(page: Page) {
   await openLanding(page);
   await page.getByRole("button", { name: "はじめる" }).click();
+  await expect(page).toHaveURL(/\/projects$/);
+  await page.getByRole("button", { name: "新しいプロジェクトを追加" }).click();
   await expect(page).toHaveURL(/\/load$/);
 }
 
 export async function loadSampleProject(page: Page) {
   await page.getByRole("button", { name: "サンプルを試す" }).click();
   await expect(page.getByText("tests.yml", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "テストを開始" }).click();
+  await page.getByRole("button", { name: "読み込む" }).click();
   await expect(page).toHaveURL(/\/p\/qarows\/session$/);
 }
 
-export async function startSession(page: Page, executorName = "e2e-tester") {
+export async function startSession(page: Page, executorName = "e2e-tester", projectId = "qarows") {
   await page.getByLabel("実施者名").fill(executorName);
   await page.getByRole("button", { name: "すべて選択" }).click();
   await page.getByRole("button", { name: "テスト実行を開始" }).click();
-  await expect(page).toHaveURL(/\/p\/qarows\/run/);
+  await expect(page).toHaveURL(new RegExp(`/p/${projectId}/run`));
 }
 
 export async function skipIntroCard(page: Page) {

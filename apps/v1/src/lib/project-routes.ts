@@ -10,6 +10,14 @@ export function resolveProjectId(
   return routeProjectId ?? definition?.project.id ?? "project";
 }
 
+/** Whether runner URL query (filters, test, bug) may be inherited from the current location. */
+export function inheritsRunnerQueryFromLocation(
+  locationProjectId: string | null,
+  targetProjectId: string,
+): boolean {
+  return locationProjectId === targetProjectId;
+}
+
 export function projectPath(
   projectId: string,
   page: ProjectPage,

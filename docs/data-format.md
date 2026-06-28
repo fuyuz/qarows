@@ -304,10 +304,22 @@ iOS Safari でレイアウト崩れあり（suzuki）
 
 ## IndexedDB（Phase 1 ローカル保存）
 
-ブラウザ内の IndexedDB に、現在の `tests.yml` パース結果と `results.json` 相当のデータを保存する。
+ブラウザ内の IndexedDB（DB 名 `qarows-v1`、version 2）に、**プロジェクトごと**に `tests.yml` パース結果と `results.json` 相当のデータを保存する。
 
-- ファイルアップロード時に読み込み
-- 結果入力のたびに自動保存
+| ストア | キー | 内容 |
+|---|---|---|
+| `projects` | `project.id` | 定義・結果・セッション・`updatedAt` |
+| `meta` | `"app"` | 最後に開いた `projectId` |
+
+- ファイルアップロード時に読み込み（同一 `project.id` は上書き）
+- 結果入力のたびに自動保存（アクティブプロジェクトのみ）
 - エクスポート時に JSON / YAML として書き出し
+- v1（単一 `"state"` レコード）は初回起動時に v2 へ自動移行
+
+### ID のスコープ
+
+- **`project.id`** … IndexedDB のキー。アプリ内でプロジェクトを識別する
+- **`testCaseId` / `bug.id`** … **プロジェクト内でのみ一意**。別プロジェクト間で同じ ID（例: `TC-001`）が重複しうる。ストレージは `projectId` で分離する
+- URL の `?test=` / `?bug=` … プロジェクト切替時に、現プロジェクトに存在しない ID は除去する
 
 スキーマは `results.json` と整合させる。

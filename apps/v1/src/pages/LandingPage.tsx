@@ -1,6 +1,5 @@
 import { ArrowRight, ExternalLink, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { isValidSession } from "@qarows/shared";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +14,7 @@ import { projectPath } from "@/lib/project-routes";
 
 const FEATURES = [
   "tests.yml からテストケースと端末/環境を読み込み",
+  "複数プロジェクトを IndexedDB に保存して切り替え",
   "1件ずつ集中入力するテストランナー（OK / NG / SKIP、キーボード操作）",
   "端末/環境の選択、大・中・小分類フィルタ、シナリオモード",
   "バグの起票・編集、ダッシュボード・マトリクスでの進捗確認",
@@ -22,22 +22,16 @@ const FEATURES = [
   "作業内容の IndexedDB 自動保存（ページを閉じても復元）",
 ] as const;
 
-function resolveContinuePath(
-  definition: ReturnType<typeof useApp>["definition"],
-  session: ReturnType<typeof useApp>["session"],
-): string | null {
-  if (!definition) return null;
-  const projectId = definition.project.id ?? "project";
-  if (session && isValidSession(session)) {
-    return projectPath(projectId, "run");
-  }
-  return projectPath(projectId, "session");
-}
-
 export function LandingPage() {
   const navigate = useNavigate();
-  const { definition, session } = useApp();
-  const continuePath = resolveContinuePath(definition, session);
+  const { projectSummaries, lastOpenedProjectId } = useApp();
+
+  const lastProject = projectSummaries.find(
+    (summary) => summary.projectId === lastOpenedProjectId,
+  );
+  const continuePath = lastProject
+    ? projectPath(lastProject.projectId, lastProject.hasValidSession ? "run" : "session")
+    : null;
 
   return (
     <div className="min-h-svh bg-background">
@@ -68,7 +62,7 @@ export function LandingPage() {
             ブラウザ上の専用 UI で解消します。
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button size="lg" onClick={() => navigate("/load")}>
+            <Button size="lg" onClick={() => navigate("/projects")}>
               はじめる
               <ArrowRight className="size-4" aria-hidden />
             </Button>

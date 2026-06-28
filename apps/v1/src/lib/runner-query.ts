@@ -4,7 +4,7 @@ import {
   parseAsStringLiteral,
   type UrlKeys,
 } from "nuqs";
-import type { RunnerFilters, RunnerTargetMode } from "@qarows/shared";
+import type { ResultsFile, RunnerFilters, RunnerTargetMode, TestDefinition } from "@qarows/shared";
 
 export const defaultRunnerFilters: RunnerFilters = {
   targetMode: "filter",
@@ -131,6 +131,31 @@ export function runnerFiltersToSearchParams(
   if (testId) params.set("test", testId);
   if (bugId) params.set("bug", bugId);
   return params;
+}
+
+/** Removes test/bug query keys that do not exist in the active project. */
+export function sanitizeRunnerSearchParams(
+  definition: TestDefinition,
+  results: ResultsFile,
+  search: URLSearchParams,
+): URLSearchParams {
+  const next = new URLSearchParams(search);
+  const testId = next.get("test");
+  if (testId && !definition.testCases.some((tc) => tc.id === testId)) {
+    next.delete("test");
+  }
+  const bugId = next.get("bug");
+  if (bugId && !results.bugs.some((bug) => bug.id === bugId)) {
+    next.delete("bug");
+  }
+  return next;
+}
+
+export function runnerSearchChanged(
+  before: URLSearchParams,
+  after: URLSearchParams,
+): boolean {
+  return before.toString() !== after.toString();
 }
 
 export const runnerQueryKeys = {

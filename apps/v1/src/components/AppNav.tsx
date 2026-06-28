@@ -21,35 +21,31 @@ interface NavLinkItem {
   to: string;
 }
 
-function currentProjectPage(pathname: string): ProjectPage | "load" | null {
+function currentProjectPage(pathname: string): ProjectPage | "load" | "projects" | null {
   const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs)$/);
   if (match) return match[1] as ProjectPage;
   if (pathname === "/load") return "load";
+  if (pathname === "/projects") return "projects";
   return null;
 }
 
 function workflowLinks(
   path: (page: ProjectPage) => string,
-  page: ProjectPage | "load" | null,
+  page: ProjectPage | "load" | "projects" | null,
   session: ReturnType<typeof useApp>["session"],
 ): NavLinkItem[] {
-  const items: NavLinkItem[] = [{ label: "トップ", to: "/" }];
+  const items: NavLinkItem[] = [
+    { label: "トップ", to: "/" },
+    { label: "プロジェクト一覧", to: "/projects" },
+  ];
 
   if (page === "run") {
     items.push({ label: "セッション設定", to: path("session") });
-    items.push({ label: "ファイル読み込み", to: "/load" });
   } else if (page === "session") {
-    items.push({ label: "ファイル読み込み", to: "/load" });
-    if (session && isValidSession(session)) {
-      items.push({ label: "テスト実行", to: path("run") });
-    }
-  } else if (page === "load") {
-    items.push({ label: "セッション設定", to: path("session") });
     if (session && isValidSession(session)) {
       items.push({ label: "テスト実行", to: path("run") });
     }
   } else if (page === "matrix" || page === "dashboard" || page === "bugs") {
-    items.push({ label: "ファイル読み込み", to: "/load" });
     items.push({ label: "セッション設定", to: path("session") });
     if (session && isValidSession(session)) {
       items.push({ label: "テスト実行", to: path("run") });

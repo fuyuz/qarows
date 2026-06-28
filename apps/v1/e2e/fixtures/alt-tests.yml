@@ -1,0 +1,18 @@
+project:
+  name: "Alt App QA"
+  id: alt-app
+
+environments:
+  - id: chrome-desktop
+    name: "Chrome (Desktop)"
+
+testCases:
+  - id: TC-001
+    category:
+      major: "Smoke"
+    description: "Alt project smoke test"
+
+  - id: TC-ALT-002
+    category:
+      major: "Smoke"
+    description: "Unique to alt project"
