@@ -7,7 +7,14 @@ import { projectPath } from "@/lib/project-routes";
 describe("LoadingScreen", () => {
   it("shows loading message", () => {
     render(<LoadingScreen />);
-    expect(screen.getByText("読み込み中…")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "読み込み中…" })).toBeInTheDocument();
+  });
+
+  it("accepts a custom message", () => {
+    render(<LoadingScreen message="プロジェクトを切り替えています…" />);
+    expect(
+      screen.getByRole("status", { name: "プロジェクトを切り替えています…" }),
+    ).toBeInTheDocument();
   });
 });
 

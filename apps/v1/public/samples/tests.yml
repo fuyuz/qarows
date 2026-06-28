@@ -762,3 +762,11 @@ testCases:
       minor: "v1 移行"
     prerequisites: "v1 形式（meta/state 単一レコード）の IndexedDB データがあるブラウザ"
     description: "アプリ更新後の初回起動で v1 データが projects ストアへ自動移行され、プロジェクト一覧に表示される"
+
+  - id: TC-081
+    category:
+      major: "プロジェクト"
+      medium: "ルーティング"
+      minor: "ローディング"
+    prerequisites: "初回起動または /p/{projectId}/run 等へ直接アクセス"
+    description: "画面切り替え中に qarows ロゴと進捗バー付きのローディング画面が表示される"
