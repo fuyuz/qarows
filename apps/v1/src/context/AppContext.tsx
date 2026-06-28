@@ -374,13 +374,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }).snapshot;
       await repository.saveSnapshot(cleared);
       await refreshProjectSummaries();
-
-      if (workspace.getActiveProjectId() === projectId) {
-        await activateProject(projectId);
-      }
       return true;
     },
-    [activateProject, refreshProjectSummaries],
+    [refreshProjectSummaries],
   );
 
   const deleteProject = useCallback(

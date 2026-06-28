@@ -128,9 +128,12 @@ test.describe("multi-project management", () => {
 
     await openProjectsHub(page);
     const panel = await openProjectDetail(page, "qarows");
+    await expect(panel.getByText("セッションあり")).toBeVisible();
     await panel.getByRole("button", { name: "結果をクリア" }).click();
     await clickDialogButton(page, "クリア");
-    await expect(panel.getByText("テスト結果をクリアしました")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(panel.getByText("セッションあり")).toHaveCount(0);
+    await expect(page.getByRole("alert").filter({ hasText: "テスト結果をクリアしました" })).toBeVisible();
 
     await panel.getByRole("button", { name: "続ける" }).click();
     await expect(page).toHaveURL(/\/p\/qarows\/session$/);
@@ -200,9 +203,12 @@ test.describe("multi-project routing", () => {
 
     await openProjectsHub(page);
     const panel = await openProjectDetail(page, "Alt App QA");
+    await expect(panel.getByText("セッションあり")).toBeVisible();
     await panel.getByRole("button", { name: "結果をクリア" }).click();
     await clickDialogButton(page, "クリア");
-    await expect(panel.getByText("テスト結果をクリアしました")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(panel.getByText("セッションあり")).toHaveCount(0);
+    await expect(page.getByRole("alert").filter({ hasText: "テスト結果をクリアしました" })).toBeVisible();
 
     await page.goto("/");
     await page.getByRole("link", { name: "作業を続ける" }).click();
