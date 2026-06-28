@@ -3,7 +3,11 @@ import { Compass } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isValidSession, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
 import { useAppNavigationShortcuts } from "../../hooks/use-app-navigation-shortcuts";
-import { formatAppNavShortcutForPage, type AppNavigationPage } from "../../lib/app-keybindings";
+import {
+  formatAppNavShortcutForPage,
+  type AppNavigationPage,
+  type WorkspaceProjectPage,
+} from "../../lib/app-keybindings";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -20,12 +24,10 @@ import {
   type WorkspaceSyncStatus,
 } from "./sync-status-badge";
 
-export type WorkspaceProjectPage = AppNavigationPage;
-
 interface NavLinkItem {
   label: string;
   to: string;
-  page?: WorkspaceProjectPage;
+  page?: AppNavigationPage;
 }
 
 export interface WorkspaceAppNavProps {
@@ -67,7 +69,7 @@ function workflowLinks(
 ): NavLinkItem[] {
   const items: NavLinkItem[] = [
     { label: "トップ", to: "/" },
-    { label: "プロジェクト一覧", to: "/projects" },
+    { label: "プロジェクト一覧", to: "/projects", page: "projects" },
   ];
 
   const canSession = availablePages.has("session");

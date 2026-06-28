@@ -1,4 +1,13 @@
-export type AppNavigationPage = "session" | "run" | "matrix" | "dashboard" | "bugs";
+export type AppNavigationPage =
+  | "session"
+  | "run"
+  | "matrix"
+  | "dashboard"
+  | "bugs"
+  | "projects";
+
+/** プロジェクト内画面（/p/:id/...）のみ。projects は一覧へのグローバル遷移 */
+export type WorkspaceProjectPage = Exclude<AppNavigationPage, "projects">;
 
 /** 画面遷移ショートカット（Cmd/Ctrl + Shift + 文字） */
 export const APP_NAV_KEYBINDINGS: Record<AppNavigationPage, string> = {
@@ -7,6 +16,7 @@ export const APP_NAV_KEYBINDINGS: Record<AppNavigationPage, string> = {
   dashboard: "d",
   bugs: "b",
   matrix: "m",
+  projects: "p",
 };
 
 export const APP_NAV_LABELS: Record<AppNavigationPage, string> = {
@@ -15,10 +25,12 @@ export const APP_NAV_LABELS: Record<AppNavigationPage, string> = {
   dashboard: "ダッシュボード",
   bugs: "バグ",
   matrix: "マトリクス",
+  projects: "プロジェクト一覧",
 };
 
 /** ShortcutHelp 等での表示順 */
 export const APP_NAV_PAGES: AppNavigationPage[] = [
+  "projects",
   "run",
   "session",
   "dashboard",

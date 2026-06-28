@@ -34,6 +34,15 @@ describe("app navigation keybindings", () => {
         altKey: false,
       }),
     ).toBeNull();
+    expect(
+      matchAppNavigationPage({
+        key: "p",
+        metaKey: true,
+        ctrlKey: false,
+        shiftKey: true,
+        altKey: false,
+      }),
+    ).toBe("projects");
   });
 
   it("formats shortcut labels", () => {

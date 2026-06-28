@@ -1,8 +1,11 @@
 import { useEffect } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { isValidSession, type SessionConfig } from "@qarows/shared";
-import type { WorkspaceProjectPage } from "../components/workspace/workspace-app-nav";
-import { isKeyboardTypingTarget, matchAppNavigationPage } from "../lib/app-keybindings";
+import {
+  isKeyboardTypingTarget,
+  matchAppNavigationPage,
+  type WorkspaceProjectPage,
+} from "../lib/app-keybindings";
 
 const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
   "session",
@@ -18,6 +21,8 @@ export interface UseAppNavigationShortcutsOptions {
   path: (page: WorkspaceProjectPage) => string;
   session: SessionConfig | null;
   availablePages?: readonly WorkspaceProjectPage[];
+  /** プロジェクト一覧へのパス（既定: /projects） */
+  projectsPath?: string;
 }
 
 export function useAppNavigationShortcuts({
@@ -26,6 +31,7 @@ export function useAppNavigationShortcuts({
   path,
   session,
   availablePages = DEFAULT_AVAILABLE_PAGES,
+  projectsPath = "/projects",
 }: UseAppNavigationShortcutsOptions): void {
   useEffect(() => {
     if (!enabled) return;
@@ -36,7 +42,15 @@ export function useAppNavigationShortcuts({
       if (isKeyboardTypingTarget(event.target)) return;
 
       const page = matchAppNavigationPage(event);
-      if (!page || !pageSet.has(page)) return;
+      if (!page) return;
+
+      if (page === "projects") {
+        event.preventDefault();
+        navigate(projectsPath);
+        return;
+      }
+
+      if (!pageSet.has(page)) return;
       if (page === "run" && (!session || !isValidSession(session))) return;
 
       event.preventDefault();
@@ -45,5 +59,5 @@ export function useAppNavigationShortcuts({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [availablePages, enabled, navigate, path, session]);
+  }, [availablePages, enabled, navigate, path, projectsPath, session]);
 }

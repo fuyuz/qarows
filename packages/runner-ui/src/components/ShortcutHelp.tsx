@@ -22,7 +22,9 @@ export function ShortcutHelp({
 }: {
   availableNavPages?: readonly AppNavigationPage[];
 }) {
-  const navPages = APP_NAV_PAGES.filter((page) => availableNavPages.includes(page));
+  const navPages = APP_NAV_PAGES.filter(
+    (page) => page === "projects" || availableNavPages.includes(page),
+  );
 
   return (
     <div className="group fixed right-5 bottom-20 z-30">
