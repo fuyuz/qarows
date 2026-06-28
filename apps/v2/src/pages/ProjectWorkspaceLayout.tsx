@@ -9,7 +9,11 @@ function ProjectWorkspaceShell() {
   const { ready, syncError, connected } = useProjectSync();
 
   if (!ready) {
-    return <LoadingScreen label={connected ? "同期データを読み込み中…" : "サーバーに接続中…"} />;
+    return (
+      <LoadingScreen
+        message={connected ? "同期データを読み込み中…" : "サーバーに接続中…"}
+      />
+    );
   }
 
   if (syncError && !ready) {

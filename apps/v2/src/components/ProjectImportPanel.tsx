@@ -12,14 +12,9 @@ import {
   CardHeader,
   CardTitle,
   cn,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   Label,
+  ProjectOverwriteDialog,
 } from "@qarows/ui";
 import { classifyDroppedFiles, FileDropZone } from "@/components/FileDropZone";
 import { TestsYamlGuide } from "@/components/TestsYamlGuide";
@@ -233,39 +228,18 @@ export function ProjectImportPanel() {
         </CardContent>
       </Card>
 
-      <Dialog open={overwriteDialogOpen} onOpenChange={setOverwriteDialogOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>既存プロジェクトを上書きしますか？</DialogTitle>
-            <DialogDescription asChild>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  「{pendingImport?.name}」（id: {pendingImport?.projectId}）は既に登録されています。
-                </p>
-                <p>tests.yml を読み込むと、定義・結果・セッションがすべて置き換わります。</p>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setOverwriteDialogOpen(false);
-                setPendingImport(null);
-              }}
-            >
-              キャンセル
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={loading}
-              onClick={() => void handleConfirmOverwrite()}
-            >
-              {loading ? "読み込み中…" : "上書きする"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProjectOverwriteDialog
+        open={overwriteDialogOpen}
+        projectName={pendingImport?.name ?? ""}
+        projectId={pendingImport?.projectId ?? ""}
+        loading={loading}
+        onOpenChange={setOverwriteDialogOpen}
+        onCancel={() => {
+          setOverwriteDialogOpen(false);
+          setPendingImport(null);
+        }}
+        onConfirm={() => void handleConfirmOverwrite()}
+      />
     </>
   );
 }

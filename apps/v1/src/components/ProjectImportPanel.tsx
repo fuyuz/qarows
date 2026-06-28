@@ -10,6 +10,7 @@ import {
 } from "@qarows/shared";
 import { classifyDroppedFiles, FileDropZone } from "@/components/FileDropZone";
 import { TestsYamlGuide } from "@/components/TestsYamlGuide";
+import { ProjectOverwriteDialog } from "@qarows/ui";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,14 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useApp } from "@/context/AppContext";
 import { projectPath } from "@/lib/project-routes";
 import { readFileAsText, appendUniqueFiles, fileKey } from "@/lib/utils";
@@ -229,35 +222,18 @@ export function ProjectImportPanel() {
         </CardContent>
       </Card>
 
-      <Dialog open={overwriteDialogOpen} onOpenChange={setOverwriteDialogOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>既存プロジェクトを上書きしますか？</DialogTitle>
-            <DialogDescription asChild>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  「{pendingImport?.name}」（id: {pendingImport?.projectId}）は既に登録されています。
-                </p>
-                <p>tests.yml を読み込むと、定義・結果・セッションがすべて置き換わります。</p>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setOverwriteDialogOpen(false);
-                setPendingImport(null);
-              }}
-            >
-              キャンセル
-            </Button>
-            <Button variant="destructive" disabled={loading} onClick={() => void handleConfirmOverwrite()}>
-              {loading ? "読み込み中…" : "上書きする"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProjectOverwriteDialog
+        open={overwriteDialogOpen}
+        projectName={pendingImport?.name ?? ""}
+        projectId={pendingImport?.projectId ?? ""}
+        loading={loading}
+        onOpenChange={setOverwriteDialogOpen}
+        onCancel={() => {
+          setOverwriteDialogOpen(false);
+          setPendingImport(null);
+        }}
+        onConfirm={() => void handleConfirmOverwrite()}
+      />
     </>
   );
 }

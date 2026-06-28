@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams } from "react-router-dom";
-import { Badge, Button, cn } from "@qarows/ui";
+import { Button, SyncStatusBadge } from "@qarows/ui";
 import { useProjectSync } from "@/context/ProjectSyncContext";
 import { projectPath, projectsHubPath, type ProjectPage } from "@/lib/project-routes";
 
@@ -43,14 +43,7 @@ export function AppNav() {
           </Button>
         </nav>
 
-        <div className="flex items-center gap-2 text-xs">
-          <Badge variant={connected ? "default" : "secondary"}>
-            {connected ? "同期中" : "切断"}
-          </Badge>
-          <span className={cn("text-muted-foreground", !connected && "text-destructive")}>
-            rev {revision}
-          </span>
-        </div>
+        <SyncStatusBadge connected={connected} revision={revision} />
       </div>
     </header>
   );
