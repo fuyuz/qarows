@@ -32,7 +32,11 @@ describe("projectPath", () => {
 
   it("encodes project id and appends query", () => {
     expect(
-      projectPath("my project", "run", { onlyIncomplete: true }, "TC-001"),
+      projectPath("my project", "run", {
+        onlyIncomplete: true,
+        onlyWithBugs: false,
+        onlyWithNg: false,
+      }, "TC-001"),
     ).toBe("/p/my%20project/run?incomplete=1&test=TC-001");
   });
 });

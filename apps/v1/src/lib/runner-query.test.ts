@@ -25,6 +25,12 @@ const results: ResultsFile = {
   bugs: [{ id: "BUG-001", title: "Crash", severity: "high", status: "open" }],
 };
 
+const defaultScopeFilters = {
+  onlyIncomplete: false,
+  onlyWithBugs: false,
+  onlyWithNg: false,
+};
+
 describe("runner query roundtrip", () => {
   it("parses filter mode from URL", () => {
     const params = new URLSearchParams("major=Auth&medium=Login&incomplete=1&test=TC-001");
@@ -34,6 +40,8 @@ describe("runner query roundtrip", () => {
       majorCategoryFilter: "Auth",
       mediumCategoryFilter: "Login",
       onlyIncomplete: true,
+      onlyWithBugs: false,
+      onlyWithNg: false,
     });
     expect(testId).toBe("TC-001");
   });
@@ -43,7 +51,7 @@ describe("runner query roundtrip", () => {
     expect(queryToRunnerFilters(query)).toEqual({
       targetMode: "scenario",
       scenarioId: "smoke",
-      onlyIncomplete: false,
+      ...defaultScopeFilters,
     });
     expect(isRunnerFiltersSettled(queryToRunnerFilters(query))).toBe(true);
   });
@@ -54,6 +62,8 @@ describe("runner query roundtrip", () => {
         targetMode: "filter",
         majorCategoryFilter: "Auth",
         onlyIncomplete: true,
+        onlyWithBugs: false,
+        onlyWithNg: false,
       },
       "TC-002",
     );
@@ -71,7 +81,7 @@ describe("runner query roundtrip", () => {
       majorCategoryFilter: "Auth",
       mediumCategoryFilter: "Login",
       minorCategoryFilter: "OAuth",
-      onlyIncomplete: false,
+      ...defaultScopeFilters,
     });
     expect(testId).toBe("TC-001");
 
@@ -79,11 +89,22 @@ describe("runner query roundtrip", () => {
     expect(serialized.get("minor")).toBe("OAuth");
   });
 
+  it("roundtrips withBugs and withNg flags", () => {
+    const params = new URLSearchParams("withBugs=1&withNg=1");
+    const { filters } = parseRunnerSearchParams(params);
+    expect(filters.onlyWithBugs).toBe(true);
+    expect(filters.onlyWithNg).toBe(true);
+
+    const serialized = runnerFiltersToSearchParams(filters);
+    expect(serialized.get("withBugs")).toBe("1");
+    expect(serialized.get("withNg")).toBe("1");
+  });
+
   it("clears category filters when switching to scenario mode", () => {
     const query = runnerFiltersToQuery({
       targetMode: "scenario",
       scenarioId: "smoke",
-      onlyIncomplete: false,
+      ...defaultScopeFilters,
     });
     expect(query).toEqual({
       mode: "scenario",
@@ -92,6 +113,8 @@ describe("runner query roundtrip", () => {
       minor: null,
       scenario: "smoke",
       incomplete: false,
+      withBugs: false,
+      withNg: false,
     });
   });
 

@@ -330,6 +330,30 @@ testCases:
     prerequisites: "テスト実行画面 (/run) を表示中、完了済みテストが1件以上あること"
     description: "未実施のみをオンにすると、完了済みテストがランナーから除外される"
 
+  - id: TC-090
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "バグを含む"
+    prerequisites: "テスト実行画面 (/run) を表示中、テストケースに紐づく起票済みバグが1件以上あること"
+    description: "バグを含むをオンにすると、紐づくバグがあるテストのみがランナー・一覧・進捗バーのフィルタ行に残る"
+
+  - id: TC-091
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "NGを含む"
+    prerequisites: "テスト実行画面 (/run) を表示中、セッション対象端末のいずれかに NG 結果があるテストが1件以上あること"
+    description: "NGを含むをオンにすると、対象端末のいずれかが NG のテストのみがランナー・一覧・進捗バーのフィルタ行に残る"
+
+  - id: TC-092
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "バグ絞り込み"
+    prerequisites: "テスト実行画面 (/run) を表示中"
+    description: "バグ画面と同じ絞り込みボタン（重要度・ステータス）が表示され、選択すると紐づくバグ条件に合うテストのみに絞り込まれる"
+
   - id: TC-018
     category:
       major: "テスト実行"

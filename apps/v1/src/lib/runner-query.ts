@@ -9,6 +9,8 @@ import type { ResultsFile, RunnerFilters, RunnerTargetMode, TestDefinition } fro
 export const defaultRunnerFilters: RunnerFilters = {
   targetMode: "filter",
   onlyIncomplete: false,
+  onlyWithBugs: false,
+  onlyWithNg: false,
 };
 
 export const runnerQueryParsers = {
@@ -18,6 +20,8 @@ export const runnerQueryParsers = {
   minor: parseAsString,
   scenario: parseAsString,
   incomplete: parseAsBoolean.withDefault(false),
+  withBugs: parseAsBoolean.withDefault(false),
+  withNg: parseAsBoolean.withDefault(false),
   test: parseAsString,
   bug: parseAsString,
 };
@@ -29,12 +33,16 @@ export type RunnerQueryState = {
   minor: string | null;
   scenario: string | null;
   incomplete: boolean;
+  withBugs: boolean;
+  withNg: boolean;
   test: string | null;
   bug: string | null;
 };
 
 export function searchParamsToRunnerQuery(search: URLSearchParams): RunnerQueryState {
   const incompleteRaw = search.get("incomplete");
+  const withBugsRaw = search.get("withBugs");
+  const withNgRaw = search.get("withNg");
   return {
     mode: search.get("mode") === "scenario" ? "scenario" : "filter",
     major: search.get("major"),
@@ -42,6 +50,8 @@ export function searchParamsToRunnerQuery(search: URLSearchParams): RunnerQueryS
     minor: search.get("minor"),
     scenario: search.get("scenario"),
     incomplete: incompleteRaw === "1" || incompleteRaw === "true",
+    withBugs: withBugsRaw === "1" || withBugsRaw === "true",
+    withNg: withNgRaw === "1" || withNgRaw === "true",
     test: search.get("test"),
     bug: search.get("bug"),
   };
@@ -67,6 +77,8 @@ export function queryToRunnerFilters(query: RunnerQueryState): RunnerFilters {
       targetMode: "scenario",
       scenarioId: query.scenario ?? undefined,
       onlyIncomplete: query.incomplete,
+      onlyWithBugs: query.withBugs,
+      onlyWithNg: query.withNg,
     };
   }
   return {
@@ -75,6 +87,8 @@ export function queryToRunnerFilters(query: RunnerQueryState): RunnerFilters {
     mediumCategoryFilter: query.medium ?? undefined,
     minorCategoryFilter: query.minor ?? undefined,
     onlyIncomplete: query.incomplete,
+    onlyWithBugs: query.withBugs,
+    onlyWithNg: query.withNg,
   };
 }
 
@@ -88,7 +102,7 @@ export function isRunnerFiltersSettled(filters: RunnerFilters): boolean {
 
 export function runnerFiltersToQuery(
   filters: RunnerFilters,
-): Pick<RunnerQueryState, "mode" | "major" | "medium" | "minor" | "scenario" | "incomplete"> {
+): Pick<RunnerQueryState, "mode" | "major" | "medium" | "minor" | "scenario" | "incomplete" | "withBugs" | "withNg"> {
   const mode = filters.targetMode ?? "filter";
   if (mode === "scenario") {
     return {
@@ -98,6 +112,8 @@ export function runnerFiltersToQuery(
       minor: null,
       scenario: filters.scenarioId ?? null,
       incomplete: filters.onlyIncomplete,
+      withBugs: filters.onlyWithBugs,
+      withNg: filters.onlyWithNg,
     };
   }
   return {
@@ -107,6 +123,8 @@ export function runnerFiltersToQuery(
     minor: filters.minorCategoryFilter ?? null,
     scenario: null,
     incomplete: filters.onlyIncomplete,
+    withBugs: filters.onlyWithBugs,
+    withNg: filters.onlyWithNg,
   };
 }
 
@@ -128,6 +146,8 @@ export function runnerFiltersToSearchParams(
   if (query.minor) params.set("minor", query.minor);
   if (query.scenario) params.set("scenario", query.scenario);
   if (query.incomplete) params.set("incomplete", "1");
+  if (query.withBugs) params.set("withBugs", "1");
+  if (query.withNg) params.set("withNg", "1");
   if (testId) params.set("test", testId);
   if (bugId) params.set("bug", bugId);
   return params;
@@ -165,6 +185,8 @@ export const runnerQueryKeys = {
   minor: "minor",
   scenario: "scenario",
   incomplete: "incomplete",
+  withBugs: "withBugs",
+  withNg: "withNg",
   test: "test",
   bug: "bug",
 } satisfies UrlKeys<typeof runnerQueryParsers>;

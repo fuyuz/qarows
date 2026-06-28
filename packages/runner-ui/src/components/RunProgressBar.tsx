@@ -6,11 +6,12 @@ import {
   computeRunProgress,
   computeRunProgressForTestCases,
 } from "../lib/run-progress";
-import { filterTestCases, formatRunnerFilterTitle } from "../lib/runner-utils";
+import { resolveRunnerTargets } from "../lib/runner-targets";
+import { formatRunnerFilterTitle } from "../lib/runner-utils";
 
 export function RunProgressBar() {
   const { definition, results, session } = useRunnerWorkspace();
-  const { runnerFilters } = useRunnerQueryState();
+  const { runnerFilters, bugFilters } = useRunnerQueryState();
 
   const { overall, filtered } = useMemo(() => {
     const empty = {
@@ -25,11 +26,12 @@ export function RunProgressBar() {
     const sessionEnvIds = session.selectedEnvironmentIds;
     const overallStats = computeRunProgress(definition, sessionEnvIds, results.results);
 
-    const filterScopeCases = filterTestCases(
+    const filterScopeCases = resolveRunnerTargets(
       definition,
       session,
       { ...runnerFilters, onlyIncomplete: false },
-      results.results,
+      results,
+      bugFilters,
     );
     const filteredStats = computeRunProgressForTestCases(
       filterScopeCases,
@@ -39,7 +41,7 @@ export function RunProgressBar() {
     );
 
     return { overall: overallStats, filtered: filteredStats };
-  }, [definition, results, session, runnerFilters]);
+  }, [bugFilters, definition, results, runnerFilters, session]);
 
   if (!definition || !session || overall.total === 0) return null;
 

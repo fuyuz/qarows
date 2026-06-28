@@ -3,8 +3,8 @@ import type { ResultsFile, SessionConfig, TestCase, TestDefinition } from "@qaro
 import {
   getRunnerTargetMode,
   getTestCaseAggregateStatus,
-  resolveRunnerTestCases,
 } from "@qarows/shared";
+import { resolveRunnerTargets } from "../lib/runner-targets";
 import { Button } from "@qarows/ui";
 import { ScrollArea } from "@qarows/ui";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@qarows/ui";
@@ -204,7 +204,7 @@ function TaskListPanel({
 
 export function RunnerTaskList() {
   const { definition, results, session, lastUpdatedTestId } = useRunnerWorkspace();
-  const { runnerFilters, testId, setTestId } = useRunnerQueryState();
+  const { runnerFilters, testId, setTestId, bugFilters } = useRunnerQueryState();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
@@ -212,8 +212,8 @@ export function RunnerTaskList() {
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
-    return resolveRunnerTestCases(definition, session, runnerFilters, results.results);
-  }, [definition, results, session, runnerFilters]);
+    return resolveRunnerTargets(definition, session, runnerFilters, results, bugFilters);
+  }, [bugFilters, definition, results, runnerFilters, session]);
 
   const runnerIndex = useMemo(() => {
     if (!testId) return -1;

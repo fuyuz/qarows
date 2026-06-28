@@ -27,10 +27,18 @@ describe("canJumpToRunner", () => {
 describe("findRunnerIndex", () => {
   it("returns index within filtered runner list", () => {
     expect(
-      findRunnerIndex("TC-002", definition, session, results, { onlyIncomplete: false }),
+      findRunnerIndex("TC-002", definition, session, results, {
+        onlyIncomplete: false,
+        onlyWithBugs: false,
+        onlyWithNg: false,
+      }),
     ).toBe(1);
     expect(
-      findRunnerIndex("TC-999", definition, session, results, { onlyIncomplete: false }),
+      findRunnerIndex("TC-999", definition, session, results, {
+        onlyIncomplete: false,
+        onlyWithBugs: false,
+        onlyWithNg: false,
+      }),
     ).toBeNull();
   });
 });

@@ -118,6 +118,8 @@ export interface RunnerFilters {
   minorCategoryFilter?: string;
   scenarioId?: string;
   onlyIncomplete: boolean;
+  onlyWithBugs: boolean;
+  onlyWithNg: boolean;
 }
 
 export interface ResolvedTestTargets {

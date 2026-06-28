@@ -54,6 +54,8 @@ export function DashboardPage() {
           targetMode: "filter",
           majorCategoryFilter: major,
           onlyIncomplete: false,
+          onlyWithBugs: false,
+          onlyWithNg: false,
         }),
       );
     },

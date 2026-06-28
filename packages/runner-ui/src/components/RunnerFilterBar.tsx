@@ -286,6 +286,8 @@ export function RunnerFilterBar({
     void setRunnerFilters({
       targetMode: "filter",
       onlyIncomplete: runnerFilters.onlyIncomplete,
+      onlyWithBugs: runnerFilters.onlyWithBugs,
+      onlyWithNg: runnerFilters.onlyWithNg,
       majorCategoryFilter: undefined,
       mediumCategoryFilter: undefined,
       minorCategoryFilter: undefined,
@@ -299,6 +301,8 @@ export function RunnerFilterBar({
       targetMode: "scenario",
       scenarioId,
       onlyIncomplete: runnerFilters.onlyIncomplete,
+      onlyWithBugs: runnerFilters.onlyWithBugs,
+      onlyWithNg: runnerFilters.onlyWithNg,
       majorCategoryFilter: undefined,
       mediumCategoryFilter: undefined,
       minorCategoryFilter: undefined,
@@ -459,24 +463,68 @@ export function RunnerFilterBar({
           </div>
 
           {variant === "runner" && (
-            <label
-              className={cn(
-                "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
-                "max-md:basis-full max-md:order-last",
-                runnerFilters.onlyIncomplete && "bg-primary/10 text-primary",
-              )}
-            >
-              <Checkbox
-                checked={runnerFilters.onlyIncomplete}
-                onCheckedChange={(checked) =>
-                  void setRunnerFilters({
-                    ...runnerFilters,
-                    onlyIncomplete: checked === true,
-                  })
-                }
+            <>
+              <label
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
+                  "max-md:basis-full max-md:order-last",
+                  runnerFilters.onlyIncomplete && "bg-primary/10 text-primary",
+                )}
+              >
+                <Checkbox
+                  checked={runnerFilters.onlyIncomplete}
+                  onCheckedChange={(checked) =>
+                    void setRunnerFilters({
+                      ...runnerFilters,
+                      onlyIncomplete: checked === true,
+                    })
+                  }
+                />
+                <span>未実施のみ</span>
+              </label>
+              <label
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
+                  "max-md:basis-full max-md:order-last",
+                  runnerFilters.onlyWithBugs && "bg-primary/10 text-primary",
+                )}
+              >
+                <Checkbox
+                  checked={runnerFilters.onlyWithBugs}
+                  onCheckedChange={(checked) =>
+                    void setRunnerFilters({
+                      ...runnerFilters,
+                      onlyWithBugs: checked === true,
+                    })
+                  }
+                />
+                <span>バグを含む</span>
+              </label>
+              <label
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 text-sm font-semibold whitespace-nowrap rounded-md px-1 py-0.5 transition-colors duration-200",
+                  "max-md:basis-full max-md:order-last",
+                  runnerFilters.onlyWithNg && "bg-primary/10 text-primary",
+                )}
+              >
+                <Checkbox
+                  checked={runnerFilters.onlyWithNg}
+                  onCheckedChange={(checked) =>
+                    void setRunnerFilters({
+                      ...runnerFilters,
+                      onlyWithNg: checked === true,
+                    })
+                  }
+                />
+                <span>NGを含む</span>
+              </label>
+              <BugFilterDialog
+                bugFilters={bugFilters}
+                toggleBugPriority={toggleBugPriority}
+                toggleBugStatus={toggleBugStatus}
+                onClear={() => void setQuery({ priority: [], status: [] })}
               />
-              <span>未実施のみ</span>
-            </label>
+            </>
           )}
 
           {variant === "bugs" && (

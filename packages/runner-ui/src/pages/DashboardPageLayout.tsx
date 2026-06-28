@@ -53,6 +53,8 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
           targetMode: "filter",
           majorCategoryFilter: major,
           onlyIncomplete: false,
+          onlyWithBugs: false,
+          onlyWithNg: false,
         }),
       );
     },

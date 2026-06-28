@@ -4,7 +4,9 @@ import {
   isTestInScope,
   resolveSessionTestTargets,
 } from "./resolve-test-targets";
+import { isResultEntryValid } from "./test-case-version";
 import type {
+  Bug,
   RunnerFilters,
   RunnerTargetMode,
   SessionConfig,
@@ -33,17 +35,44 @@ function matchesCategoryFilters(testCase: TestCase, filters: RunnerFilters): boo
   return true;
 }
 
+function testCaseHasNg(
+  testCase: TestCase,
+  definition: TestDefinition,
+  sessionEnvironmentIds: string[],
+  results: TestResults,
+): boolean {
+  const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
+  const byEnv = results[testCase.id] ?? {};
+  for (const envId of targets.environmentIds) {
+    const entry = byEnv[envId];
+    if (isResultEntryValid(entry, testCase) && entry!.status === "NG") {
+      return true;
+    }
+  }
+  return false;
+}
+
 function shouldIncludeTestCase(
   testCase: TestCase,
   definition: TestDefinition,
   sessionEnvironmentIds: string[],
   filters: RunnerFilters,
   results: TestResults,
+  bugs: Bug[],
 ): boolean {
   if (!isTestInScope(testCase, definition, sessionEnvironmentIds)) return false;
   if (
     filters.onlyIncomplete &&
     !isTestIncomplete(testCase, definition, sessionEnvironmentIds, results)
+  ) {
+    return false;
+  }
+  if (filters.onlyWithBugs && !bugs.some((bug) => bug.testCaseId === testCase.id)) {
+    return false;
+  }
+  if (
+    filters.onlyWithNg &&
+    !testCaseHasNg(testCase, definition, sessionEnvironmentIds, results)
   ) {
     return false;
   }
@@ -55,6 +84,7 @@ export function resolveRunnerTestCases(
   session: SessionConfig,
   filters: RunnerFilters,
   results: TestResults,
+  bugs: Bug[] = [],
 ): TestCase[] {
   const sessionEnvironmentIds = session.selectedEnvironmentIds;
   const mode = getRunnerTargetMode(filters);
@@ -69,7 +99,7 @@ export function resolveRunnerTestCases(
     for (const stepId of scenario.steps) {
       const testCase = byId.get(stepId);
       if (!testCase) continue;
-      if (!shouldIncludeTestCase(testCase, definition, sessionEnvironmentIds, filters, results)) {
+      if (!shouldIncludeTestCase(testCase, definition, sessionEnvironmentIds, filters, results, bugs)) {
         continue;
       }
       ordered.push(testCase);
@@ -79,7 +109,7 @@ export function resolveRunnerTestCases(
   }
 
   return definition.testCases.filter((testCase) => {
-    if (!shouldIncludeTestCase(testCase, definition, sessionEnvironmentIds, filters, results)) {
+    if (!shouldIncludeTestCase(testCase, definition, sessionEnvironmentIds, filters, results, bugs)) {
       return false;
     }
     return matchesCategoryFilters(testCase, filters);

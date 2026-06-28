@@ -19,6 +19,8 @@ function nuqsToRunnerFilters(query: {
   minor: string | null;
   scenario: string | null;
   incomplete: boolean;
+  withBugs: boolean;
+  withNg: boolean;
 }): RunnerFilters {
   return queryToRunnerFilters({
     mode: query.mode,
@@ -27,6 +29,8 @@ function nuqsToRunnerFilters(query: {
     minor: query.minor,
     scenario: query.scenario,
     incomplete: query.incomplete,
+    withBugs: query.withBugs,
+    withNg: query.withNg,
     test: null,
     bug: null,
   });

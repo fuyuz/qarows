@@ -8,6 +8,8 @@ const session: SessionConfig = {
   selectedEnvironmentIds: ["chrome"],
 };
 
+const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false };
+
 describe("resolveFilteredBugs", () => {
   const definition = makeDefinition();
   const bugs: Bug[] = [
@@ -31,7 +33,7 @@ describe("resolveFilteredBugs", () => {
   it("filters bugs by test case scope and major category", () => {
     const filtered = resolveFilteredBugs(
       definition,
-      { onlyIncomplete: false, majorCategoryFilter: "Auth" },
+      { ...defaultScopeFilters, majorCategoryFilter: "Auth" },
       bugs,
       {},
       definition.environments.map((env) => env.id),
@@ -43,7 +45,7 @@ describe("resolveFilteredBugs", () => {
   it("includes unlinked bugs when no category filter is active", () => {
     const filtered = resolveFilteredBugs(
       definition,
-      { onlyIncomplete: false },
+      defaultScopeFilters,
       bugs,
       {},
       definition.environments.map((env) => env.id),
@@ -55,7 +57,7 @@ describe("resolveFilteredBugs", () => {
   it("filters by bug severity", () => {
     const filtered = resolveFilteredBugs(
       definition,
-      { onlyIncomplete: false },
+      defaultScopeFilters,
       bugs,
       {},
       definition.environments.map((env) => env.id),
@@ -72,7 +74,7 @@ describe("resolveFilteredBugs", () => {
     ];
     const filtered = resolveFilteredBugs(
       definition,
-      { onlyIncomplete: false },
+      defaultScopeFilters,
       scopedBugs,
       {},
       definition.environments.map((env) => env.id),

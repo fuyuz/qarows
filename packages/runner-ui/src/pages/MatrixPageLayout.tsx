@@ -5,22 +5,25 @@ import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import { getAllEnvironmentIds } from "../lib/run-progress";
 import { resolveMatrixTestCases } from "../lib/matrix-test-cases";
+import { filterTestCasesByBugFilters } from "../lib/runner-targets";
 
 export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
   const { definition, results, session } = useRunnerWorkspace();
-  const { runnerFilters } = useRunnerQueryState();
+  const { runnerFilters, bugFilters } = useRunnerQueryState();
 
   const testCases = useMemo(() => {
     if (!definition || !results) return [];
     const allEnvIds = getAllEnvironmentIds(definition);
-    return resolveMatrixTestCases(
+    const base = resolveMatrixTestCases(
       definition,
       runnerFilters,
       results.results,
       allEnvIds,
       session,
+      results.bugs,
     );
-  }, [definition, results, runnerFilters, session]);
+    return filterTestCasesByBugFilters(base, results.bugs, bugFilters);
+  }, [bugFilters, definition, results, runnerFilters, session]);
 
   if (!definition || !results) return null;
 

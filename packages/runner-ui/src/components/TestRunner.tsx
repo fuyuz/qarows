@@ -25,7 +25,7 @@ import {
   isRunnerTypingTarget,
   matchRunnerStatusKey,
 } from "../lib/runner-keybindings";
-import { resolveRunnerTestCases } from "../lib/runner-utils";
+import { resolveRunnerTargets } from "../lib/runner-targets";
 import { formatTestCaseMarkdown } from "../lib/format-test-case-markdown";
 
 const AUTO_ADVANCE_DELAY_MS = 500;
@@ -48,7 +48,7 @@ export function TestRunner() {
     updateTestCase,
     clearTestResult,
   } = useRunnerWorkspace();
-  const { runnerFilters, filtersSettled, testId, setTestId } = useRunnerQueryState();
+  const { runnerFilters, filtersSettled, testId, setTestId, bugFilters } = useRunnerQueryState();
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
@@ -73,8 +73,8 @@ export function TestRunner() {
 
   const targets = useMemo(() => {
     if (!definition || !results || !session) return [];
-    return resolveRunnerTestCases(definition, session, runnerFilters, results.results);
-  }, [definition, results, session, runnerFilters]);
+    return resolveRunnerTargets(definition, session, runnerFilters, results, bugFilters);
+  }, [bugFilters, definition, results, session, runnerFilters]);
 
   const maxSlide = targets.length + 1;
   const testSlideIndex = slideIndex >= 1 && slideIndex <= targets.length ? slideIndex - 1 : null;

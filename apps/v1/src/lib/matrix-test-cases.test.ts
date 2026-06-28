@@ -8,13 +8,15 @@ const session: SessionConfig = {
   selectedEnvironmentIds: ["chrome"],
 };
 
+const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false };
+
 describe("resolveMatrixTestCases", () => {
   const definition = makeDefinition();
 
   it("uses session scope when session is present", () => {
     const cases = resolveMatrixTestCases(
       definition,
-      { onlyIncomplete: false },
+      defaultScopeFilters,
       {},
       ["chrome", "firefox", "safari"],
       session,
@@ -25,7 +27,7 @@ describe("resolveMatrixTestCases", () => {
   it("falls back to all environments when session is null", () => {
     const cases = resolveMatrixTestCases(
       definition,
-      { onlyIncomplete: false, majorCategoryFilter: "Billing" },
+      { ...defaultScopeFilters, majorCategoryFilter: "Billing" },
       {},
       definition.environments.map((env) => env.id),
       null,
@@ -36,7 +38,7 @@ describe("resolveMatrixTestCases", () => {
   it("applies runner filters without session", () => {
     const cases = resolveMatrixTestCases(
       definition,
-      { onlyIncomplete: true },
+      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false },
       {
         "TC-001": { chrome: { status: "OK" } },
       },

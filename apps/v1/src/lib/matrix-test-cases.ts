@@ -1,5 +1,6 @@
 import {
   resolveRunnerTestCases,
+  type Bug,
   type RunnerFilters,
   type SessionConfig,
   type TestCase,
@@ -13,14 +14,15 @@ export function resolveMatrixTestCases(
   results: TestResults,
   environmentIds: string[],
   session: SessionConfig | null,
+  bugs: Bug[] = [],
 ): TestCase[] {
   if (session) {
-    return resolveRunnerTestCases(definition, session, runnerFilters, results);
+    return resolveRunnerTestCases(definition, session, runnerFilters, results, bugs);
   }
 
   const pseudoSession: SessionConfig = {
     executorName: "",
     selectedEnvironmentIds: environmentIds,
   };
-  return resolveRunnerTestCases(definition, pseudoSession, runnerFilters, results);
+  return resolveRunnerTestCases(definition, pseudoSession, runnerFilters, results, bugs);
 }

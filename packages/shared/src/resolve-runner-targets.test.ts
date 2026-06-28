@@ -13,6 +13,8 @@ const session: SessionConfig = {
   selectedEnvironmentIds: ["chrome", "firefox"],
 };
 
+const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false };
+
 describe("mergeResultsFiles extras", () => {
   const base: ResultsFile = {
     version: 1,
@@ -75,7 +77,7 @@ describe("resolveRunnerTestCases", () => {
     const cases = resolveRunnerTestCases(
       definition,
       session,
-      { onlyIncomplete: false, majorCategoryFilter: "Billing" },
+      { ...defaultScopeFilters, majorCategoryFilter: "Billing" },
       {},
     );
     expect(cases.map((tc) => tc.id)).toEqual(["TC-003"]);
@@ -85,7 +87,7 @@ describe("resolveRunnerTestCases", () => {
     const cases = resolveRunnerTestCases(
       definition,
       session,
-      { targetMode: "scenario", scenarioId: "smoke", onlyIncomplete: false },
+      { targetMode: "scenario", scenarioId: "smoke", ...defaultScopeFilters },
       {},
     );
     expect(cases.map((tc) => tc.id)).toEqual(["TC-002", "TC-001"]);
@@ -116,7 +118,7 @@ describe("resolveRunnerTestCases", () => {
     const cases = resolveRunnerTestCases(
       scopedDefinition,
       safariSession,
-      { targetMode: "scenario", scenarioId: "mixed", onlyIncomplete: false },
+      { targetMode: "scenario", scenarioId: "mixed", ...defaultScopeFilters },
       {},
     );
     expect(cases.map((tc) => tc.id)).toEqual(["TC-002"]);
@@ -129,10 +131,38 @@ describe("resolveRunnerTestCases", () => {
     const cases = resolveRunnerTestCases(
       definition,
       session,
-      { onlyIncomplete: true },
+      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false },
       results,
     );
     expect(cases.some((tc) => tc.id === "TC-001")).toBe(false);
+  });
+
+  it("includes only tests with linked bugs when onlyWithBugs is true", () => {
+    const bugs = [
+      { id: "BUG-001", title: "Issue", severity: "high" as const, status: "open" as const, testCaseId: "TC-002" },
+    ];
+    const cases = resolveRunnerTestCases(
+      definition,
+      session,
+      { ...defaultScopeFilters, onlyWithBugs: true },
+      {},
+      bugs,
+    );
+    expect(cases.map((tc) => tc.id)).toEqual(["TC-002"]);
+  });
+
+  it("includes only tests with NG results when onlyWithNg is true", () => {
+    const results: TestResults = {
+      "TC-001": { chrome: { status: "OK" }, firefox: { status: "OK" } },
+      "TC-002": { chrome: { status: "NG" } },
+    };
+    const cases = resolveRunnerTestCases(
+      definition,
+      session,
+      { ...defaultScopeFilters, onlyWithNg: true },
+      results,
+    );
+    expect(cases.map((tc) => tc.id)).toEqual(["TC-002"]);
   });
 });
 
