@@ -99,8 +99,17 @@ function affectedTestCaseFromCommand(command: ProjectCommand): string | null {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const workspaceRef = useRef(createPhase1WorkspaceController());
-  const repositoryRef = useRef(new IndexedDbProjectRepository());
+  const workspaceRef = useRef<ReturnType<typeof createPhase1WorkspaceController> | null>(null);
+  if (workspaceRef.current === null) {
+    workspaceRef.current = createPhase1WorkspaceController();
+  }
+
+  const repositoryRef = useRef<IndexedDbProjectRepository | null>(null);
+  if (repositoryRef.current === null) {
+    repositoryRef.current = new IndexedDbProjectRepository();
+  }
+  const workspace = workspaceRef.current;
+  const repository = repositoryRef.current;
 
   const [ready, setReady] = useState(false);
   const [definition, setDefinition] = useState<TestDefinition | null>(null);
@@ -155,12 +164,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProjectSummaries = useCallback(async () => {
-    const summaries = await workspaceRef.current.listSummaries();
+    const summaries = await workspace.listSummaries();
     setProjectSummaries(sortProjectSummaries(summaries.map(toV1Summary)));
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     const handleEvent = (event: ProjectEvent) => {
+      if (cancelled) return;
       switch (event.type) {
         case "snapshot":
         case "commandApplied":
@@ -177,20 +189,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const unsubscribe = workspaceRef.current.subscribe(handleEvent);
+    const unsubscribe = workspace.subscribe(handleEvent);
     void (async () => {
       const meta = await getAppMeta();
+      if (cancelled) return;
       setLastOpenedProjectId(meta.lastOpenedProjectId);
       await refreshProjectSummaries();
+      if (cancelled) return;
       setReady(true);
     })();
 
-    return unsubscribe;
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [applySnapshotToState, markTestUpdated, refreshProjectSummaries]);
 
   const dispatch = useCallback(
     async (command: ProjectCommand) => {
-      await workspaceRef.current.dispatch(command);
+      await workspace.dispatch(command);
     },
     [],
   );
@@ -198,9 +215,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const activateProject = useCallback(
     async (projectId: string): Promise<boolean> => {
       setLastUpdatedTestId(null);
-      const activated = await workspaceRef.current.activateProject(projectId);
+      const activated = await workspace.activateProject(projectId);
       if (!activated) return false;
-      const snapshot = workspaceRef.current.getSnapshot();
+      const snapshot = workspace.getSnapshot();
       if (snapshot) applySnapshotToState(snapshot);
       setLastOpenedProjectId(projectId);
       await saveAppMeta({ lastOpenedProjectId: projectId });
@@ -210,7 +227,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const checkHasProject = useCallback(async (projectId: string): Promise<boolean> => {
-    return workspaceRef.current.hasProject(projectId);
+    return workspace.hasProject(projectId);
   }, []);
 
   const loadProject = useCallback(async (yaml: string, resultsJson?: string) => {
@@ -227,7 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       session: null,
       updatedAt: parsedResults.updatedAt,
     });
-    await workspaceRef.current.saveSnapshot(snapshot);
+    await workspace.saveSnapshot(snapshot);
     await refreshProjectSummaries();
 
     setLastUpdatedTestId(null);
@@ -243,7 +260,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const currentDefinition = definitionRef.current;
       if (!currentDefinition) throw new Error("プロジェクト定義が読み込まれていません");
 
-      let snapshot = workspaceRef.current.getSnapshot()!;
+      let snapshot = workspace.getSnapshot()!;
       for (const json of jsons) {
         const incoming = parseResultsJson(json, { definition: currentDefinition });
         snapshot = applyProjectCommand(snapshot, { type: "mergeResults", incoming }).snapshot;
@@ -276,10 +293,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const incoming = parseResultsJson(json, { definition: record.definition });
         snapshot = applyProjectCommand(snapshot, { type: "mergeResults", incoming }).snapshot;
       }
-      await repositoryRef.current.saveSnapshot(snapshot);
+      await repository.saveSnapshot(snapshot);
       await refreshProjectSummaries();
 
-      if (workspaceRef.current.getActiveProjectId() === projectId) {
+      if (workspace.getActiveProjectId() === projectId) {
         await activateProject(projectId);
       }
       return true;
@@ -355,10 +372,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const cleared = applyProjectCommand(toProjectSnapshot(projectId, record), {
         type: "clearResults",
       }).snapshot;
-      await repositoryRef.current.saveSnapshot(cleared);
+      await repository.saveSnapshot(cleared);
       await refreshProjectSummaries();
 
-      if (workspaceRef.current.getActiveProjectId() === projectId) {
+      if (workspace.getActiveProjectId() === projectId) {
         await activateProject(projectId);
       }
       return true;
@@ -368,15 +385,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteProject = useCallback(
     async (projectId: string) => {
-      await workspaceRef.current.deleteProject(projectId);
-      if (workspaceRef.current.getActiveProjectId() === projectId) {
+      await workspace.deleteProject(projectId);
+      if (workspace.getActiveProjectId() === projectId) {
         clearActiveSnapshot();
       }
       await refreshProjectSummaries();
 
       const meta = await getAppMeta();
       if (meta.lastOpenedProjectId === projectId) {
-        const summaries = await workspaceRef.current.listSummaries();
+        const summaries = await workspace.listSummaries();
         const nextLastOpened = summaries[0]?.id ?? null;
         setLastOpenedProjectId(nextLastOpened);
         await saveAppMeta({ lastOpenedProjectId: nextLastOpened });

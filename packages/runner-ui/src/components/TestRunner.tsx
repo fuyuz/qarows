@@ -59,7 +59,7 @@ export function TestRunner() {
   const [bugFormKey, setBugFormKey] = useState(0);
   const [relatedBugsDialogOpen, setRelatedBugsDialogOpen] = useState(false);
   const [testCaseEditDialogOpen, setTestCaseEditDialogOpen] = useState(false);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const advanceDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAdvanceSlideRef = useRef<number | null>(null);
 

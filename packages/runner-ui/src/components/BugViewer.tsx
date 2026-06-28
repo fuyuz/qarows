@@ -165,6 +165,7 @@ export function BugViewer() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (busy || editDialogOpen || fixNoteDialog) return;
       if (isRunnerTypingTarget(e.target)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (isRunnerPrevKey(e.key)) {
@@ -177,7 +178,7 @@ export function BugViewer() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [goNext, goPrev]);
+  }, [busy, editDialogOpen, fixNoteDialog, goNext, goPrev]);
 
   if (!definition || !results) return null;
 
