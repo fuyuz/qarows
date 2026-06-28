@@ -10,6 +10,7 @@ import {
   listProjects,
   type ProjectSnapshot as ApiProjectSnapshot,
 } from "@/lib/api/projects";
+import { ApiError } from "@/lib/api/client";
 
 function apiSnapshotToApplication(snapshot: ApiProjectSnapshot): ProjectSnapshot {
   return projectSnapshotFromRoom(
@@ -38,8 +39,11 @@ export class HttpProjectRepository implements ProjectRepository {
   async getSnapshot(projectId: string): Promise<ProjectSnapshot | null> {
     try {
       return apiSnapshotToApplication(await getProject(projectId));
-    } catch {
-      return null;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        return null;
+      }
+      throw err;
     }
   }
 

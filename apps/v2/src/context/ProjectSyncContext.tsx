@@ -17,13 +17,15 @@ import type {
   TestResultEntry,
   TestStatus,
 } from "@qarows/shared";
-import type { ProjectCommand, ProjectEvent } from "@qarows/application";
+import type { ConnectionStatus, ProjectCommand, ProjectEvent } from "@qarows/application";
 import { createPhase2WorkspaceController } from "@/lib/adapters/create-phase2-workspace";
 import { getSyncUser } from "@/lib/sync/sync-user";
 
 interface ProjectSyncContextValue {
   ready: boolean;
   connected: boolean;
+  connectionStatus: ConnectionStatus;
+  pendingCommands: number;
   syncError: string | null;
   syncNotice: string | null;
   revision: number;
@@ -77,6 +79,8 @@ export function ProjectSyncProvider({
 }) {
   const [ready, setReady] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("idle");
+  const [pendingCommands, setPendingCommands] = useState(0);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
@@ -159,7 +163,9 @@ export function ProjectSyncProvider({
           return;
         case "connectionState":
           setConnected(event.state.status === "connected");
+          setConnectionStatus(event.state.status);
           setRevision(event.state.revision);
+          setPendingCommands(event.state.pendingCommands);
           return;
         case "error":
           setSyncError(event.message);
@@ -170,10 +176,21 @@ export function ProjectSyncProvider({
     const unsubscribe = workspace.controller.subscribe(handleEvent);
 
     void (async () => {
-      userRef.current = await getSyncUser();
-      if (cancelled) return;
-      workspace.channel.setUser(userRef.current);
-      await workspace.controller.activateProject(projectId);
+      try {
+        userRef.current = await getSyncUser();
+        if (cancelled) return;
+        workspace.channel.setUser(userRef.current);
+        const activated = await workspace.controller.activateProject(projectId);
+        if (cancelled) return;
+        if (!activated) {
+          setSyncError("プロジェクトが見つかりません");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setSyncError(
+          err instanceof Error ? err.message : "プロジェクトの読み込みに失敗しました",
+        );
+      }
     })();
 
     return () => {
@@ -255,6 +272,8 @@ export function ProjectSyncProvider({
     () => ({
       ready,
       connected,
+      connectionStatus,
+      pendingCommands,
       syncError,
       syncNotice,
       revision,
@@ -273,6 +292,8 @@ export function ProjectSyncProvider({
     [
       ready,
       connected,
+      connectionStatus,
+      pendingCommands,
       syncError,
       syncNotice,
       revision,

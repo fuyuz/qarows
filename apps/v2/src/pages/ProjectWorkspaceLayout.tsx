@@ -13,18 +13,18 @@ function ProjectWorkspaceShell() {
   const { ready, syncError, connected, syncNotice } = useProjectSync();
 
   if (!ready) {
+    if (syncError) {
+      return (
+        <div className="flex h-svh items-center justify-center px-5 text-sm text-destructive">
+          {syncError}
+        </div>
+      );
+    }
+
     return (
       <LoadingScreen
         message={connected ? "同期データを読み込み中…" : "サーバーに接続中…"}
       />
-    );
-  }
-
-  if (syncError && !ready) {
-    return (
-      <div className="flex h-svh items-center justify-center px-5 text-sm text-destructive">
-        {syncError}
-      </div>
     );
   }
 

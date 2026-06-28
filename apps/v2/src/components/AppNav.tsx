@@ -5,7 +5,8 @@ import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 import { downloadText } from "@/lib/file-utils";
 
 export function AppNav() {
-  const { definition, results, session, connected, revision } = useProjectSync();
+  const { definition, results, session, connected, connectionStatus, pendingCommands, revision } =
+    useProjectSync();
   const { path } = useProjectRoutes();
 
   return (
@@ -14,7 +15,14 @@ export function AppNav() {
       session={session}
       results={results}
       path={path}
-      statusSlot={<SyncStatusBadge connected={connected} revision={revision} />}
+      statusSlot={
+        <SyncStatusBadge
+          connected={connected}
+          connectionStatus={connectionStatus}
+          pendingCommands={pendingCommands}
+          revision={revision}
+        />
+      }
       onExportYaml={
         definition
           ? () => downloadText(serializeTestsYaml(definition), "tests.yml", "text/yaml")
