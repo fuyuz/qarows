@@ -1,9 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import { applyProjectCommand, toProjectSnapshot, type ProjectCommand } from "@qarows/application";
+import type { ResultsFile } from "@qarows/shared";
 import { getProject, replaceProjectDefinition, snapshotToPersisted, updateProjectSnapshot } from "./db";
-import { AccessDeniedError, requireAuthUser } from "./auth";
+import { assertGenerationMatch } from "./merge-results";
+import { AccessDeniedError, assertWebSocketOrigin, requireAuthUser } from "./auth";
 import type { Env } from "./env";
 import {
+  MAX_WS_MESSAGE_BYTES,
   parseClientMessage,
   send,
   SYNC_PING_MESSAGE,
@@ -18,16 +21,32 @@ interface StoredRoomState extends RoomSnapshot {}
 interface ProcessedCommandRecord {
   revision: number;
   user: string;
+  /** false = D1 永続化未完了。省略はレガシー記録（永続化済みとみなす） */
+  persisted?: boolean;
 }
 
 interface ApplyCommandResult {
   revision: number;
   duplicate: boolean;
   user: string;
+  persisted: boolean;
+}
+
+interface SocketAttachment {
+  user: string;
 }
 
 const MAX_PROCESSED_COMMANDS = 256;
 const PROCESSED_COMMANDS_KEY = "processedCommands";
+
+function isCommandPersisted(record: ProcessedCommandRecord): boolean {
+  return record.persisted !== false;
+}
+
+function getSocketUser(ws: WebSocket): string | null {
+  const attachment = ws.deserializeAttachment() as SocketAttachment | null;
+  return attachment?.user ?? null;
+}
 
 export class ProjectRoom extends DurableObject<Env> {
   private projectId: string | null = null;
@@ -55,6 +74,7 @@ export class ProjectRoom extends DurableObject<Env> {
   async replaceProjectFromWorker(body: {
     projectId: string;
     testsYaml: string;
+    mergeIncoming?: ResultsFile;
   }): Promise<RoomSnapshot> {
     this.projectId = body.projectId;
     await this.ensureLoaded();
@@ -62,7 +82,9 @@ export class ProjectRoom extends DurableObject<Env> {
       throw new Error("Project not found");
     }
 
-    const snapshot = await replaceProjectDefinition(this.env.DB, this.projectId, body.testsYaml);
+    const snapshot = await replaceProjectDefinition(this.env.DB, this.projectId, body.testsYaml, {
+      mergeIncoming: body.mergeIncoming,
+    });
     if (!snapshot) {
       throw new Error("Project not found");
     }
@@ -92,8 +114,9 @@ export class ProjectRoom extends DurableObject<Env> {
   }
 
   override async fetch(request: Request): Promise<Response> {
+    let authUser;
     try {
-      await requireAuthUser(request, this.env);
+      authUser = await requireAuthUser(request, this.env);
     } catch (err) {
       const message = err instanceof AccessDeniedError ? err.message : "Unauthorized";
       return new Response(message, { status: 401 });
@@ -115,11 +138,19 @@ export class ProjectRoom extends DurableObject<Env> {
       return new Response("Expected WebSocket", { status: 426 });
     }
 
+    try {
+      assertWebSocketOrigin(request);
+    } catch (err) {
+      const message = err instanceof AccessDeniedError ? err.message : "Forbidden";
+      return new Response(message, { status: 403 });
+    }
+
     await this.ensureLoaded();
     if (!this.state) return new Response("Project not found", { status: 404 });
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
+    server.serializeAttachment({ user: authUser.email } satisfies SocketAttachment);
     this.ctx.acceptWebSocket(server);
     send(server, { type: "snapshot", snapshot: this.publicSnapshot() });
     return new Response(null, { status: 101, webSocket: client });
@@ -127,6 +158,18 @@ export class ProjectRoom extends DurableObject<Env> {
 
   override async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (typeof message !== "string") return;
+    if (message.length > MAX_WS_MESSAGE_BYTES) {
+      send(ws, { type: "error", message: "Message too large" });
+      return;
+    }
+
+    const user = getSocketUser(ws);
+    if (!user) {
+      send(ws, { type: "error", message: "Unauthorized" });
+      ws.close(1008, "Unauthorized");
+      return;
+    }
+
     const parsed = parseClientMessage(message);
     if (!parsed) {
       send(ws, { type: "error", message: "Invalid message" });
@@ -154,10 +197,10 @@ export class ProjectRoom extends DurableObject<Env> {
 
     let applied: ApplyCommandResult;
     try {
-      applied = await this.applyCommandAndSync(parsed.commandId, parsed.command, parsed.user);
+      applied = await this.applyCommandAndSync(parsed.commandId, parsed.command, user);
     } catch (err) {
-      const messageText = err instanceof Error ? err.message : "Command failed";
-      send(ws, { type: "error", message: messageText });
+      console.error("WebSocket command failed", err);
+      send(ws, { type: "error", message: "Command failed" });
       return;
     }
 
@@ -169,6 +212,7 @@ export class ProjectRoom extends DurableObject<Env> {
   /** Worker-internal RPC: apply a command, broadcast to clients, and persist. */
   async applyCommandFromWorker(body: {
     projectId: string;
+    expectedGeneration?: string;
     commandId: string;
     command: ProjectCommand;
     user: string;
@@ -177,6 +221,10 @@ export class ProjectRoom extends DurableObject<Env> {
     await this.ensureLoaded();
     if (!this.state || !this.projectId) {
       throw new Error("Project not found");
+    }
+
+    if (body.expectedGeneration !== undefined) {
+      assertGenerationMatch(body.expectedGeneration, this.state.generation);
     }
 
     const applied = await this.applyCommandAndSync(body.commandId, body.command, body.user);
@@ -212,7 +260,11 @@ export class ProjectRoom extends DurableObject<Env> {
     const applied = await this.applyCommand(commandId, command, user);
     await persistThenBroadcast({
       duplicate: applied.duplicate,
-      persist: () => this.persistToD1(),
+      persisted: applied.persisted,
+      persist: async () => {
+        await this.persistToD1();
+        await this.markCommandPersisted(commandId);
+      },
       broadcast: () => this.broadcastCommandApplied(commandId, command, applied),
     });
     return applied;
@@ -290,6 +342,14 @@ export class ProjectRoom extends DurableObject<Env> {
     await this.ctx.storage.put(PROCESSED_COMMANDS_KEY, Object.fromEntries(map));
   }
 
+  private async markCommandPersisted(commandId: string): Promise<void> {
+    const processed = await this.loadProcessedCommands();
+    const record = processed.get(commandId);
+    if (!record || record.persisted === true) return;
+    processed.set(commandId, { ...record, persisted: true });
+    await this.saveProcessedCommands(processed);
+  }
+
   private async applyCommand(
     commandId: string,
     command: ProjectCommand,
@@ -302,6 +362,7 @@ export class ProjectRoom extends DurableObject<Env> {
         revision: existing.revision,
         duplicate: true,
         user: existing.user,
+        persisted: isCommandPersisted(existing),
       };
     }
 
@@ -325,6 +386,7 @@ export class ProjectRoom extends DurableObject<Env> {
     processed.set(commandId, {
       revision: state.revision,
       user,
+      persisted: false,
     });
     await this.saveProcessedCommands(processed);
 
@@ -332,6 +394,7 @@ export class ProjectRoom extends DurableObject<Env> {
       revision: state.revision,
       duplicate: false,
       user,
+      persisted: false,
     };
   }
 

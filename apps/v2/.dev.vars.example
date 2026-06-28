@@ -3,7 +3,7 @@ AUTH_DEV_BYPASS = "true"
 #
 # Production wrangler.toml must NOT set AUTH_DEV_BYPASS.
 # ACCESS_TEAM_DOMAIN = "your-team-name"
-# ACCESS_AUD = "..."  # recommended
+# ACCESS_AUD = "..."  # required in production — see docs/deploy-v2.md §4.4
 # Method B: ACCESS_ALLOWED_EMAIL_DOMAIN = "example.com"
 # Method A: ACCESS_ALLOWED_EMAILS = "alice@example.com,bob@example.com"
 #

@@ -69,16 +69,39 @@ function assertEmailAllowed(email: string, env: Env): void {
   }
 }
 
-function assertAccessConfig(env: Env): string {
+function assertAccessConfig(env: Env): { teamDomain: string; audience: string } {
   const teamDomain = env.ACCESS_TEAM_DOMAIN?.trim();
   if (!teamDomain) {
     throw new AccessDeniedError("サーバー設定エラー: ACCESS_TEAM_DOMAIN が未設定です");
   }
-  return teamDomain;
+  const audience = env.ACCESS_AUD?.trim();
+  if (!audience) {
+    throw new AccessDeniedError("サーバー設定エラー: ACCESS_AUD が未設定です");
+  }
+  return { teamDomain, audience };
+}
+
+/** Reject cross-origin WebSocket upgrades when Origin is present. */
+export function assertWebSocketOrigin(request: Request): void {
+  const origin = request.headers.get("Origin");
+  if (!origin) return;
+
+  let requestOrigin: string;
+  let clientOrigin: string;
+  try {
+    requestOrigin = new URL(request.url).origin;
+    clientOrigin = new URL(origin).origin;
+  } catch {
+    throw new AccessDeniedError("Invalid Origin");
+  }
+
+  if (clientOrigin !== requestOrigin) {
+    throw new AccessDeniedError("Invalid Origin");
+  }
 }
 
 async function resolveProductionUser(request: Request, env: Env): Promise<AuthUser> {
-  const teamDomain = assertAccessConfig(env);
+  const { teamDomain, audience } = assertAccessConfig(env);
   const token = getAccessJwt(request);
   if (!token) {
     throw new AccessDeniedError(
@@ -88,7 +111,7 @@ async function resolveProductionUser(request: Request, env: Env): Promise<AuthUs
 
   let email: string;
   try {
-    const verified = await verifyAccessJwt(token, teamDomain, env.ACCESS_AUD?.trim() || undefined);
+    const verified = await verifyAccessJwt(token, teamDomain, audience);
     email = verified.email;
   } catch {
     throw new AccessDeniedError("Cloudflare Access JWT の検証に失敗しました");

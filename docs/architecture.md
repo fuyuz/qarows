@@ -178,7 +178,7 @@ Phase 2 のリアルタイム同期は **JSON Patch ではなく `ProjectCommand
 
 | 方向 | メッセージ | 内容 |
 |---|---|---|
-| Client → DO | `{ type: "command", command, commandId, user }` | 意図した操作を送信 |
+| Client → DO | `{ type: "command", command, commandId, generation }` | 意図した操作を送信（`user` は接続時認証からサーバーが付与） |
 | DO → Client | `{ type: "snapshot", snapshot }` | 接続時の全量 |
 | DO → Client | `{ type: "commandApplied", command, revision, snapshot, ... }` | 適用後の全量 + revision |
 

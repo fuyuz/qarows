@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
 import {
+  MAX_WS_MESSAGE_BYTES,
   SYNC_PING_MESSAGE,
   SYNC_PONG_MESSAGE,
   parseClientMessage,
@@ -21,7 +22,6 @@ describe("sync-protocol", () => {
       type: "command",
       generation: "gen-1",
       commandId: "cmd-1",
-      user: "qa@example.com",
       command: {
         type: "updateResult",
         testCaseId: "TC-001",
@@ -39,7 +39,6 @@ describe("sync-protocol", () => {
     expect(parsed?.type).toBe("command");
     if (parsed?.type === "command") {
       expect(parsed.commandId).toBe("cmd-1");
-      expect(parsed.user).toBe("qa@example.com");
       expect(parsed.command.type).toBe("updateResult");
     }
   });
@@ -49,7 +48,6 @@ describe("sync-protocol", () => {
       type: "command",
       generation: "gen-1",
       commandId: "cmd-session",
-      user: "dev@local",
       command: {
         type: "setSession",
         session: { executorName: "Alice", selectedEnvironmentIds: ["chrome"] },
@@ -64,7 +62,6 @@ describe("sync-protocol", () => {
     const raw = JSON.stringify({
       type: "command",
       commandId: "cmd-1",
-      user: "dev@local",
       command: {
         type: "setSession",
         session: { executorName: "Alice", selectedEnvironmentIds: ["chrome"] },
@@ -77,7 +74,6 @@ describe("sync-protocol", () => {
     const raw = JSON.stringify({
       type: "command",
       generation: "gen-1",
-      user: "dev@local",
       command: {
         type: "setSession",
         session: { executorName: "Alice", selectedEnvironmentIds: ["chrome"] },
@@ -91,9 +87,26 @@ describe("sync-protocol", () => {
       type: "command",
       generation: "gen-1",
       commandId: "cmd-bad",
-      user: "dev@local",
       command: { type: "unknown" },
     });
+    expect(parseClientMessage(raw)).toBeNull();
+  });
+
+  it("rejects mergeResults from WebSocket", () => {
+    const raw = JSON.stringify({
+      type: "command",
+      generation: "gen-1",
+      commandId: "cmd-merge",
+      command: {
+        type: "mergeResults",
+        incoming: { version: 1, projectId: "test", updatedAt: "", results: {}, bugs: [] },
+      },
+    });
+    expect(parseClientMessage(raw)).toBeNull();
+  });
+
+  it("rejects oversized messages", () => {
+    const raw = "x".repeat(MAX_WS_MESSAGE_BYTES + 1);
     expect(parseClientMessage(raw)).toBeNull();
   });
 
@@ -111,7 +124,6 @@ describe("sync-protocol", () => {
       type: "command",
       generation: "gen-1",
       commandId: "cmd-batch",
-      user: "qa@example.com",
       command: {
         type: "updateResultsBatch",
         testCaseId: definition.testCases[0]!.id,

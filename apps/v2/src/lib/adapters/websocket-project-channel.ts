@@ -18,11 +18,6 @@ export class WebSocketProjectChannel implements ProjectChannel {
   private revision = 0;
   private pendingCommands = 0;
   private connectionStatus: ConnectionStatus = "idle";
-  private defaultUser = "";
-
-  setUser(user: string): void {
-    this.defaultUser = user;
-  }
 
   connect(projectId: string, handlers: ProjectChannelHandlers): void {
     this.projectId = projectId;
@@ -30,7 +25,7 @@ export class WebSocketProjectChannel implements ProjectChannel {
     this.connectionStatus = "connecting";
     this.emitConnectionState();
 
-    this.client.connect(projectId, this.defaultUser, {
+    this.client.connect(projectId, {
       onOpen: () => {
         this.connectionStatus = "connected";
         this.emitConnectionState();
@@ -112,11 +107,7 @@ export class WebSocketProjectChannel implements ProjectChannel {
     this.pendingCommands += 1;
     this.emitConnectionState();
     try {
-      await this.client.command(
-        envelope.command,
-        envelope.commandId,
-        envelope.user ?? this.defaultUser,
-      );
+      await this.client.command(envelope.command, envelope.commandId);
     } finally {
       this.pendingCommands = Math.max(0, this.pendingCommands - 1);
       this.emitConnectionState();

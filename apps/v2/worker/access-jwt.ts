@@ -20,11 +20,12 @@ export interface VerifiedAccessIdentity {
 export async function verifyAccessJwt(
   token: string,
   teamDomain: string,
-  audience?: string,
+  audience: string,
 ): Promise<VerifiedAccessIdentity> {
   const jwks = getAccessJwks(teamDomain);
   const { payload } = await jwtVerify(token, jwks, {
-    ...(audience ? { audience } : {}),
+    audience,
+    issuer: `https://${teamDomain}.cloudflareaccess.com`,
   });
 
   const email =

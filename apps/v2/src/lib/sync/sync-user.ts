@@ -8,12 +8,7 @@ let cachedUser: string | null = null;
 
 export async function getSyncUser(): Promise<string> {
   if (cachedUser) return cachedUser;
-  try {
-    const data = await apiJson<MeResponse>("/api/me");
-    cachedUser = data.user.email;
-    return cachedUser;
-  } catch {
-    cachedUser = "dev@local";
-    return cachedUser;
-  }
+  const data = await apiJson<MeResponse>("/api/me");
+  cachedUser = data.user.email;
+  return cachedUser;
 }

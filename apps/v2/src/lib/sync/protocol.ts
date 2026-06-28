@@ -16,7 +16,6 @@ export type ClientMessage =
       generation: string;
       command: ProjectCommand;
       commandId: string;
-      user: string;
     };
 
 export type ServerMessage =

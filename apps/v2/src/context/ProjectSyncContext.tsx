@@ -90,7 +90,6 @@ export function ProjectSyncProvider({
   const [lastUpdatedTestId, setLastUpdatedTestId] = useState<string | null>(null);
 
   const workspaceRef = useRef<ReturnType<typeof createPhase2WorkspaceController> | null>(null);
-  const userRef = useRef("dev@local");
   const definitionRef = useRef<TestDefinition | null>(null);
   const resultsRef = useRef<ResultsFile | null>(null);
   const sessionRef = useRef<SessionConfig | null>(null);
@@ -177,9 +176,8 @@ export function ProjectSyncProvider({
 
     void (async () => {
       try {
-        userRef.current = await getSyncUser();
+        await getSyncUser();
         if (cancelled) return;
-        workspace.channel.setUser(userRef.current);
         const activated = await workspace.controller.activateProject(projectId);
         if (cancelled) return;
         if (!activated) {

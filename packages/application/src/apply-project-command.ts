@@ -11,6 +11,7 @@ import type {
   ProjectCommand,
 } from "./project-command";
 import type { ProjectSnapshot } from "./types";
+import { validateProjectCommand } from "./validate-project-command";
 
 function stampResultVersion(
   snapshot: ProjectSnapshot,
@@ -42,6 +43,7 @@ export function applyProjectCommand(
   options: ApplyProjectCommandOptions = {},
 ): ApplyProjectCommandResult {
   const now = options.now ?? new Date().toISOString();
+  validateProjectCommand(snapshot, command);
 
   switch (command.type) {
     case "setSession": {

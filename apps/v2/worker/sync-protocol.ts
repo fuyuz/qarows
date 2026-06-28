@@ -1,6 +1,6 @@
 import type { ResultsFile, SessionConfig, TestDefinition } from "@qarows/shared";
 import type { ProjectCommand } from "@qarows/application";
-import { parseProjectCommand } from "@qarows/application";
+import { parseClientProjectCommand } from "@qarows/application";
 
 export type { ProjectCommand };
 
@@ -19,7 +19,6 @@ export type ClientMessage =
       generation: string;
       command: ProjectCommand;
       commandId: string;
-      user: string;
     };
 
 export type ServerMessage =
@@ -52,7 +51,11 @@ export type ServerMessage =
 export const SYNC_PING_MESSAGE = JSON.stringify({ type: "ping" } satisfies ClientMessage);
 export const SYNC_PONG_MESSAGE = JSON.stringify({ type: "pong" } satisfies ServerMessage);
 
+export const MAX_WS_MESSAGE_BYTES = 64 * 1024;
+
 export function parseClientMessage(raw: string): ClientMessage | null {
+  if (raw.length > MAX_WS_MESSAGE_BYTES) return null;
+
   try {
     const data = JSON.parse(raw) as ClientMessage;
     if (data.type === "ping") return data;
@@ -62,8 +65,7 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       data.generation.length > 0 &&
       typeof data.commandId === "string" &&
       data.commandId.length > 0 &&
-      typeof data.user === "string" &&
-      parseProjectCommand(data.command)
+      parseClientProjectCommand(data.command)
     ) {
       return data;
     }

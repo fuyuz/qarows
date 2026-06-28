@@ -21,8 +21,9 @@ head_sampling_rate = 0.01
 # Access JWT is always enforced (cannot be disabled in production).
 # Zero Trust team name (https://<ACCESS_TEAM_DOMAIN>.cloudflareaccess.com)
 ACCESS_TEAM_DOMAIN = "your-team-name"
-# Access Application AUD tag (Zero Trust → Application → Overview)
-# ACCESS_AUD = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# Access Application AUD tag — copy from Zero Trust → Access → Application → Overview
+# See docs/deploy-v2.md §4.4 (not auto-injected by Cloudflare)
+ACCESS_AUD = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 #
 # Worker-side allow guard (choose Method A or B in Access policy + mirror here):
 # Method B — organization domain:

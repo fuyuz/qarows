@@ -46,7 +46,6 @@ interface PendingCommand {
 interface QueuedCommand {
   command: ProjectCommand;
   commandId: string;
-  user: string;
   inFlight: boolean;
 }
 
@@ -64,7 +63,7 @@ export class ProjectSyncClient {
   private readonly outboundQueue: QueuedCommand[] = [];
   private readonly abandonedCommandIds = new Set<string>();
 
-  connect(projectId: string, _user: string, handlers: ProjectSyncHandlers): void {
+  connect(projectId: string, handlers: ProjectSyncHandlers): void {
     this.disconnect(false);
     this.intentionalClose = false;
     this.projectId = projectId;
@@ -91,7 +90,7 @@ export class ProjectSyncClient {
     }
   }
 
-  command(command: ProjectCommand, commandId: string, user: string): Promise<void> {
+  command(command: ProjectCommand, commandId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         this.abandonCommand(commandId, new SyncSendError("Command acknowledgement timed out"));
@@ -109,7 +108,7 @@ export class ProjectSyncClient {
         timeoutId,
       });
 
-      this.outboundQueue.push({ command, commandId, user, inFlight: false });
+      this.outboundQueue.push({ command, commandId, inFlight: false });
       this.flushOutboundQueue();
     });
   }
@@ -228,7 +227,6 @@ export class ProjectSyncClient {
         generation: this.generation,
         command: queued.command,
         commandId: queued.commandId,
-        user: queued.user,
       });
       if (!sent) break;
       queued.inFlight = true;

@@ -5,5 +5,6 @@ export type AppEnv = {
   Bindings: Env;
   Variables: {
     user: AuthUser;
+    requestId: string;
   };
 };

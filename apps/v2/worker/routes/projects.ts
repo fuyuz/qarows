@@ -1,7 +1,16 @@
-import { parseTestsYaml, getProjectIdFromDefinition, parseResultsJson } from "@qarows/shared";
+import { parseTestsYaml, getProjectIdFromDefinition, serializeResultsJson, type ResultsFile } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { deleteProject, getProject, insertProject, listProjects, ProjectIdMismatchError } from "../db";
+import {
+  GenerationMismatchError,
+  MergeResultsValidationError,
+  assertGenerationMatch,
+  mergeIncomingForNewProject,
+  parseAndMergeResultsJsonList,
+  parseMergeResultsBody,
+  parseOptionalResultsJsonList,
+} from "../merge-results";
 import {
   BodyTooLargeError,
   MAX_RESULTS_JSON_BYTES,
@@ -13,10 +22,33 @@ import type { AppEnv } from "../types";
 interface CreateProjectBody {
   name?: string;
   testsYaml?: string;
+  resultsJsonList?: unknown;
 }
 
-interface MergeResultsBody {
-  resultsJsonList?: string[];
+interface ReplaceDefinitionBody {
+  testsYaml?: string;
+  resultsJsonList?: unknown;
+}
+
+const MAX_DEFINITION_REPLACE_BYTES = MAX_TESTS_YAML_BYTES + MAX_RESULTS_JSON_BYTES;
+
+function internalError(c: { get: (key: "requestId") => string }, context: string, err: unknown): never {
+  console.error(`[${c.get("requestId")}] ${context}`, err);
+  throw new HTTPException(500, { message: "Internal server error" });
+}
+
+function mergeValidationError(err: unknown): never {
+  if (err instanceof MergeResultsValidationError) {
+    throw new HTTPException(400, { message: err.message });
+  }
+  throw err;
+}
+
+function generationConflictError(err: unknown): never {
+  if (err instanceof GenerationMismatchError) {
+    throw new HTTPException(409, { message: err.message });
+  }
+  throw err;
 }
 
 function serializeSummaryList(projects: Awaited<ReturnType<typeof listProjects>>) {
@@ -75,13 +107,14 @@ projectsRoutes.get("/", async (c) => {
 projectsRoutes.post("/", async (c) => {
   const contentType = c.req.header("Content-Type") ?? "";
   let testsYaml: string | null = null;
+  let resultsJsonList: string[] | undefined;
 
   try {
     if (contentType.includes("text/yaml") || contentType.includes("application/x-yaml")) {
       const text = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES);
       testsYaml = text.trim() ? text : null;
     } else {
-      const raw = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES);
+      const raw = await readRequestTextWithLimit(c.req.raw, MAX_DEFINITION_REPLACE_BYTES);
       if (!raw.trim()) {
         throw new HTTPException(400, { message: "Request body is required" });
       }
@@ -95,11 +128,16 @@ projectsRoutes.post("/", async (c) => {
       if (!testsYaml && body.name) {
         testsYaml = buildEmptyTestsYaml(body.name);
       }
+      try {
+        resultsJsonList = parseOptionalResultsJsonList(body.resultsJsonList);
+      } catch (err) {
+        mergeValidationError(err);
+      }
     }
   } catch (err) {
     if (err instanceof BodyTooLargeError) {
       throw new HTTPException(413, {
-        message: `tests.yml exceeds maximum size (${MAX_TESTS_YAML_BYTES} bytes)`,
+        message: `Request body exceeds maximum size (${MAX_DEFINITION_REPLACE_BYTES} bytes)`,
       });
     }
     throw err;
@@ -109,16 +147,27 @@ projectsRoutes.post("/", async (c) => {
     throw new HTTPException(400, { message: "testsYaml is required (JSON body or text/yaml upload)" });
   }
 
+  let definition;
   try {
-    parseTestsYaml(testsYaml);
+    definition = parseTestsYaml(testsYaml);
   } catch (err) {
     throw new HTTPException(400, {
       message: err instanceof Error ? err.message : "Invalid tests.yml",
     });
   }
 
+  let resultsJson: string | undefined;
+  if (resultsJsonList?.length) {
+    try {
+      const merged = mergeIncomingForNewProject(resultsJsonList, definition);
+      if (merged) resultsJson = serializeResultsJson(merged);
+    } catch (err) {
+      mergeValidationError(err);
+    }
+  }
+
   try {
-    const snapshot = await insertProject(c.env.DB, { testsYaml });
+    const snapshot = await insertProject(c.env.DB, { testsYaml, resultsJson });
     const stub = c.env.PROJECT.getByName(snapshot.id);
     await stub.initFromD1(snapshot.id);
     return c.json({ project: serializeSnapshot(snapshot) }, 201);
@@ -127,7 +176,7 @@ projectsRoutes.post("/", async (c) => {
     if (message.includes("UNIQUE") || message.includes("unique")) {
       throw new HTTPException(409, { message: "Project id already exists" });
     }
-    throw new HTTPException(500, { message });
+    internalError(c, "Failed to create project", err);
   }
 });
 
@@ -139,21 +188,42 @@ projectsRoutes.get("/:projectId", async (c) => {
 
 projectsRoutes.put("/:projectId/definition", async (c) => {
   const projectId = c.req.param("projectId");
+  const contentType = c.req.header("Content-Type") ?? "";
   let testsYaml: string;
+  let resultsJsonList: string[] | undefined;
 
   try {
-    testsYaml = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES);
+    const raw = await readRequestTextWithLimit(c.req.raw, MAX_DEFINITION_REPLACE_BYTES);
+    if (!raw.trim()) {
+      throw new HTTPException(400, { message: "Request body is required" });
+    }
+
+    if (contentType.includes("application/json")) {
+      let body: ReplaceDefinitionBody;
+      try {
+        body = JSON.parse(raw) as ReplaceDefinitionBody;
+      } catch {
+        throw new HTTPException(400, { message: "Invalid JSON body" });
+      }
+      testsYaml = body.testsYaml?.trim() ?? "";
+      if (!testsYaml) {
+        throw new HTTPException(400, { message: "testsYaml is required" });
+      }
+      try {
+        resultsJsonList = parseOptionalResultsJsonList(body.resultsJsonList);
+      } catch (err) {
+        mergeValidationError(err);
+      }
+    } else {
+      testsYaml = raw;
+    }
   } catch (err) {
     if (err instanceof BodyTooLargeError) {
       throw new HTTPException(413, {
-        message: `tests.yml exceeds maximum size (${MAX_TESTS_YAML_BYTES} bytes)`,
+        message: `Request body exceeds maximum size (${MAX_DEFINITION_REPLACE_BYTES} bytes)`,
       });
     }
     throw err;
-  }
-
-  if (!testsYaml.trim()) {
-    throw new HTTPException(400, { message: "Request body is required" });
   }
 
   let definition;
@@ -174,17 +244,23 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
   const existing = await getProject(c.env.DB, projectId);
   if (!existing) throw new HTTPException(404, { message: "Project not found" });
 
+  let mergeIncoming: ResultsFile | undefined;
+  if (resultsJsonList?.length) {
+    try {
+      mergeIncoming = parseAndMergeResultsJsonList(resultsJsonList, definition);
+    } catch (err) {
+      mergeValidationError(err);
+    }
+  }
+
   const stub = c.env.PROJECT.getByName(projectId);
   try {
-    await stub.replaceProjectFromWorker({ projectId, testsYaml });
+    await stub.replaceProjectFromWorker({ projectId, testsYaml, mergeIncoming });
   } catch (err) {
     if (err instanceof ProjectIdMismatchError) {
       throw new HTTPException(400, { message: err.message });
     }
-    console.error("Failed to replace project definition", err);
-    throw new HTTPException(500, {
-      message: err instanceof Error ? err.message : "Failed to replace tests.yml",
-    });
+    internalError(c, "Failed to replace project definition", err);
   }
 
   const snapshot = await getProject(c.env.DB, projectId);
@@ -221,10 +297,7 @@ projectsRoutes.post("/:projectId/clear-results", async (c) => {
       user: c.get("user").email,
     });
   } catch (err) {
-    console.error("Failed to clear project results", err);
-    throw new HTTPException(500, {
-      message: err instanceof Error ? err.message : "Failed to clear results",
-    });
+    internalError(c, "Failed to clear project results", err);
   }
 
   return c.json({ ok: true });
@@ -235,13 +308,13 @@ projectsRoutes.post("/:projectId/merge-results", async (c) => {
   const snapshot = await getProject(c.env.DB, projectId);
   if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
 
-  let body: MergeResultsBody;
+  let body;
   try {
     const raw = await readRequestTextWithLimit(c.req.raw, MAX_RESULTS_JSON_BYTES);
     if (!raw.trim()) {
       throw new HTTPException(400, { message: "Request body is required" });
     }
-    body = JSON.parse(raw) as MergeResultsBody;
+    body = parseMergeResultsBody(JSON.parse(raw));
   } catch (err) {
     if (err instanceof BodyTooLargeError) {
       throw new HTTPException(413, {
@@ -249,43 +322,41 @@ projectsRoutes.post("/:projectId/merge-results", async (c) => {
       });
     }
     if (err instanceof HTTPException) throw err;
+    if (err instanceof MergeResultsValidationError) {
+      throw new HTTPException(400, { message: err.message });
+    }
     throw new HTTPException(400, { message: "Invalid JSON body" });
   }
 
-  const resultsJsonList = body.resultsJsonList;
-  if (!Array.isArray(resultsJsonList) || resultsJsonList.length === 0) {
-    throw new HTTPException(400, { message: "resultsJsonList is required" });
+  try {
+    assertGenerationMatch(body.expectedGeneration, snapshot.generation);
+  } catch (err) {
+    generationConflictError(err);
   }
-  if (!resultsJsonList.every((item) => typeof item === "string")) {
-    throw new HTTPException(400, { message: "resultsJsonList must contain strings" });
+
+  let incoming: ResultsFile;
+  try {
+    incoming = parseAndMergeResultsJsonList(body.resultsJsonList, snapshot.definition);
+  } catch (err) {
+    mergeValidationError(err);
   }
 
   const stub = c.env.PROJECT.getByName(projectId);
   const user = c.get("user").email;
 
-  for (const resultsJson of resultsJsonList) {
-    let incoming;
-    try {
-      incoming = parseResultsJson(resultsJson, { definition: snapshot.definition });
-    } catch (err) {
-      throw new HTTPException(400, {
-        message: err instanceof Error ? err.message : "Invalid results.json",
-      });
+  try {
+    await stub.applyCommandFromWorker({
+      projectId,
+      expectedGeneration: snapshot.generation,
+      commandId: crypto.randomUUID(),
+      command: { type: "mergeResults", incoming },
+      user,
+    });
+  } catch (err) {
+    if (err instanceof GenerationMismatchError) {
+      generationConflictError(err);
     }
-
-    try {
-      await stub.applyCommandFromWorker({
-        projectId,
-        commandId: crypto.randomUUID(),
-        command: { type: "mergeResults", incoming },
-        user,
-      });
-    } catch (err) {
-      console.error("Failed to merge project results", err);
-      throw new HTTPException(500, {
-        message: err instanceof Error ? err.message : "Failed to merge results",
-      });
-    }
+    internalError(c, "Failed to merge project results", err);
   }
 
   return c.json({ ok: true });

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { isAccessRequired } from "./auth";
 import { accessMiddleware } from "./middleware/access";
+import { requestIdMiddleware, securityHeadersMiddleware } from "./middleware/security-headers";
 import { projectsRoutes } from "./routes/projects";
 import type { AppEnv } from "./types";
 
@@ -10,12 +11,22 @@ export function createApp() {
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.json({ error: err.message }, err.status);
+      const requestId = c.get("requestId");
+      return c.json(
+        { error: err.message, ...(requestId ? { requestId } : {}) },
+        err.status,
+      );
     }
-    console.error(err);
-    return c.json({ error: "Internal Server Error" }, 500);
+    const requestId = c.get("requestId");
+    console.error(`[${requestId}] Unhandled error`, err);
+    return c.json(
+      { error: "Internal Server Error", ...(requestId ? { requestId } : {}) },
+      500,
+    );
   });
 
+  app.use("*", requestIdMiddleware);
+  app.use("*", securityHeadersMiddleware);
   app.use("*", accessMiddleware);
 
   app.get("/api/health", (c) =>
