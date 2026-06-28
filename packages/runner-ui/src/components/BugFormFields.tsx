@@ -51,8 +51,8 @@ export function BugFormFields({
   };
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-2">
+    <div className="grid min-w-0 gap-4">
+      <div className="grid min-w-0 gap-2">
         <Label htmlFor={`${idPrefix}-test-case`}>関連テストケース</Label>
         <Select
           value={draft.testCaseId ?? NONE_TEST_CASE}
@@ -63,7 +63,7 @@ export function BugFormFields({
             }))
           }
         >
-          <SelectTrigger id={`${idPrefix}-test-case`} className="w-full">
+          <SelectTrigger id={`${idPrefix}-test-case`} className="w-full min-w-0">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -77,7 +77,7 @@ export function BugFormFields({
         </Select>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <Label>対象端末 / 環境</Label>
         <ul className="flex flex-col gap-2 rounded-lg border p-3">
           {availableEnvironmentIds.map((envId) => {
@@ -97,7 +97,7 @@ export function BugFormFields({
         </ul>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <Label htmlFor={`${idPrefix}-title`}>タイトル</Label>
         <Input
           id={`${idPrefix}-title`}
@@ -112,8 +112,8 @@ export function BugFormFields({
         {titleError && <p className="text-sm text-destructive">タイトルは必須です</p>}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <div className="grid min-w-0 gap-2">
           <Label htmlFor={`${idPrefix}-severity`}>重要度</Label>
           <Select
             value={draft.severity}
@@ -121,7 +121,7 @@ export function BugFormFields({
               setDraft((prev) => ({ ...prev, severity: value as BugSeverity }))
             }
           >
-            <SelectTrigger id={`${idPrefix}-severity`} className="w-full">
+            <SelectTrigger id={`${idPrefix}-severity`} className="w-full min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -134,7 +134,7 @@ export function BugFormFields({
           </Select>
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid min-w-0 gap-2">
           <Label htmlFor={`${idPrefix}-status`}>ステータス</Label>
           <Select
             value={draft.status}
@@ -142,7 +142,7 @@ export function BugFormFields({
               setDraft((prev) => ({ ...prev, status: value as BugStatus }))
             }
           >
-            <SelectTrigger id={`${idPrefix}-status`} className="w-full">
+            <SelectTrigger id={`${idPrefix}-status`} className="w-full min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -156,7 +156,7 @@ export function BugFormFields({
         </div>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <Label htmlFor={`${idPrefix}-assignee`}>担当者</Label>
         <Input
           id={`${idPrefix}-assignee`}
@@ -166,7 +166,7 @@ export function BugFormFields({
         />
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <Label htmlFor={`${idPrefix}-memo`}>メモ</Label>
         <Textarea
           id={`${idPrefix}-memo`}
@@ -177,7 +177,7 @@ export function BugFormFields({
         />
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <Label htmlFor={`${idPrefix}-steps`}>再現手順</Label>
         <Textarea
           id={`${idPrefix}-steps`}
@@ -187,7 +187,7 @@ export function BugFormFields({
         />
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <Label htmlFor={`${idPrefix}-expected`}>期待</Label>
         <Textarea
           id={`${idPrefix}-expected`}
@@ -197,7 +197,7 @@ export function BugFormFields({
         />
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <Label htmlFor={`${idPrefix}-actual`}>実際</Label>
         <Textarea
           id={`${idPrefix}-actual`}
@@ -209,7 +209,7 @@ export function BugFormFields({
       </div>
 
       {showFixNote && (
-        <div className="grid gap-2">
+        <div className="grid min-w-0 gap-2">
           <Label htmlFor={`${idPrefix}-fix-note`}>修正内容</Label>
           <Textarea
             id={`${idPrefix}-fix-note`}

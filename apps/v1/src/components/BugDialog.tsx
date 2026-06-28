@@ -186,7 +186,7 @@ export function BugDialog({
         if (!nextOpen) onCancel();
       }}
     >
-      <DialogContent className="flex max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
+      <DialogContent className="flex min-w-0 max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
         <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle>バグを起票</DialogTitle>
           <DialogDescription>
@@ -194,7 +194,7 @@ export function BugDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-4">
           <BugFormFields
             idPrefix="bug-create"
             testCase={testCase}
