@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { importPanel } from "./multi-project-helpers";
 
 export async function openLanding(page: Page) {
   await page.goto("/");
@@ -7,15 +8,15 @@ export async function openLanding(page: Page) {
 export async function startFromLanding(page: Page) {
   await openLanding(page);
   await page.getByRole("button", { name: "はじめる" }).click();
-  await expect(page).toHaveURL(/\/projects$/);
-  await page.getByRole("button", { name: "新しいプロジェクトを追加" }).click();
-  await expect(page).toHaveURL(/\/load$/);
+  await expect(page).toHaveURL(/\/projects/);
+  await expect(page.getByRole("button", { name: "サンプルを試す" })).toBeVisible();
 }
 
 export async function loadSampleProject(page: Page) {
-  await page.getByRole("button", { name: "サンプルを試す" }).click();
-  await expect(page.getByText("tests.yml", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "読み込む" }).click();
+  const panel = importPanel(page);
+  await panel.getByRole("button", { name: "サンプルを試す" }).click();
+  await expect(panel.getByText("tests.yml", { exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "読み込む", exact: true }).click();
   await expect(page).toHaveURL(/\/p\/qarows\/session$/);
 }
 

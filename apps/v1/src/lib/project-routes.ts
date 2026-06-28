@@ -3,6 +3,14 @@ import { runnerFiltersToSearchParams } from "@/lib/runner-query";
 
 export type ProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs";
 
+/** Query value for the new-project import panel on /projects. */
+export const NEW_PROJECT_SELECTION = "_new";
+
+export function projectsHubPath(projectSelection?: string | null): string {
+  if (!projectSelection) return "/projects";
+  return `/projects?project=${encodeURIComponent(projectSelection)}`;
+}
+
 export function resolveProjectId(
   definition: TestDefinition | null | undefined,
   routeProjectId?: string,

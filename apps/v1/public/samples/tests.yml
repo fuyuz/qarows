@@ -128,20 +128,21 @@ scenarios:
       - TC-057
       - TC-058
       - TC-059
+      - TC-082
 
 testCases:
   - id: TC-001
     category:
       major: "ファイル読み込み"
       minor: "ドロップ"
-    prerequisites: "プロジェクト一覧（/projects）または /load を表示中"
+    prerequisites: "プロジェクト一覧（/projects）で新規作成または対象プロジェクトを選択中"
     description: "tests.yml をドロップゾーンにドロップしてファイル名が表示される"
 
   - id: TC-002
     category:
       major: "ファイル読み込み"
       minor: "サンプル"
-    prerequisites: "/load を表示中"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
     description: "「サンプルを試す」で tests.yml が読み込まれ、セッション設定へ進める"
 
   - id: TC-003
@@ -156,7 +157,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "results.json"
       minor: "追加"
-    prerequisites: "プロジェクト一覧（/projects）で対象プロジェクトのカードを表示中"
+    prerequisites: "プロジェクト一覧（/projects）で左一覧から対象プロジェクトを選択し、右パネルを表示中"
     description: "「results.json をマージ」で複数ファイルを選び「取り込む」すると、現在の結果にマージされる"
 
   - id: TC-058
@@ -164,7 +165,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "状態"
       minor: "結果クリア"
-    prerequisites: "プロジェクト一覧（/projects）で対象プロジェクトのカードを表示中"
+    prerequisites: "プロジェクト一覧（/projects）で左一覧から対象プロジェクトを選択し、右パネルを表示中"
     description: "「結果をクリア」で実行結果・バグ・セッション設定のみ削除でき、tests.yml の定義は残る"
 
   - id: TC-059
@@ -172,7 +173,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "状態"
       minor: "読み込み解除"
-    prerequisites: "プロジェクト一覧（/projects）で対象プロジェクトのカードを表示中"
+    prerequisites: "プロジェクト一覧（/projects）で左一覧から対象プロジェクトを選択し、右パネルを表示中"
     description: "「削除」で tests.yml・実行結果・セッション設定をすべて削除し、一覧から消える"
 
   - id: TC-004
@@ -398,7 +399,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "フィードバック"
       minor: "ファイル追加"
-    prerequisites: "/load を表示中"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
     description: "tests.yml を追加するとファイル行がフェードインで表示される"
 
   - id: TC-028
@@ -430,7 +431,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "ガイド"
       minor: "AI プロンプト"
-    prerequisites: "/load を表示中"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
     description: "tests.yml の書き方ガイドが表示され、「仕様をコピー」で AI 向け仕様テキストをクリップボードにコピーできる"
 
   - id: TC-032
@@ -438,7 +439,7 @@ testCases:
       major: "ファイル読み込み"
       medium: "置き換え"
       minor: "確認ダイアログ"
-    prerequisites: "同一 project.id のプロジェクトが既に登録済み、/load で新しい tests.yml を選択済み"
+    prerequisites: "同一 project.id のプロジェクトが既に登録済み、/projects?project=_new で新しい tests.yml を選択済み"
     description: "「読み込む」で上書き警告が表示され、確認後のみ定義・結果・セッションが置き換わる"
 
   - id: TC-037
@@ -619,21 +620,21 @@ testCases:
       major: "プロジェクト"
       medium: "一覧"
     prerequisites: "IndexedDB 空、または /projects を表示中"
-    description: "プロジェクト一覧に登録済みプロジェクトが名前・ID・最終更新付きで表示され、「新しいプロジェクトを追加」で /load へ進める"
+    description: "左一覧に登録済みプロジェクトが名前・ID・最終更新付きで表示され、先頭の「新規作成」で右パネルに import UI が表示される"
 
   - id: TC-063
     category:
       major: "プロジェクト"
       medium: "切替"
     prerequisites: "2件以上のプロジェクトが IndexedDB に登録済み"
-    description: "プロジェクト一覧の「続ける」で各プロジェクトに切り替わり、セッション・結果がプロジェクトごとに復元される（URL クエリは引き継がない）"
+    description: "左一覧でプロジェクトを選び、右パネルの「続ける」で各プロジェクトに切り替わり、セッション・結果がプロジェクトごとに復元される（URL クエリは引き継がない）"
 
   - id: TC-064
     category:
       major: "プロジェクト"
       medium: "インポート"
       minor: "共存"
-    prerequisites: "1件以上のプロジェクトが登録済み、/load を表示中"
+    prerequisites: "1件以上のプロジェクトが登録済み、/projects?project=_new を表示中"
     description: "別 project.id の tests.yml を読み込んでも既存プロジェクトは消えず、一覧に追加される"
 
   - id: TC-065
@@ -650,7 +651,7 @@ testCases:
       medium: "一覧"
       minor: "空状態"
     prerequisites: "IndexedDB 空（/projects を表示）"
-    description: "プロジェクトが0件のとき「プロジェクトがありません」と tests.yml 読み込み CTA が表示される"
+    description: "プロジェクト0件のとき左一覧に「新規作成」のみ表示され、右パネルに tests.yml 読み込み UI が表示される"
 
   - id: TC-067
     category:
@@ -658,7 +659,7 @@ testCases:
       medium: "一覧"
       minor: "前回"
     prerequisites: "2件以上のプロジェクトがあり、直前に一方を開いた状態"
-    description: "最後に開いたプロジェクトのカードに「前回」バッジが表示される"
+    description: "最後に開いたプロジェクトの左一覧行と右パネルに「前回」バッジが表示される"
 
   - id: TC-068
     category:
@@ -666,39 +667,39 @@ testCases:
       medium: "一覧"
       minor: "セッション"
     prerequisites: "有効なセッションを保存済みのプロジェクトが一覧にある"
-    description: "セッション設定済みプロジェクトのカードに「セッションあり」バッジが表示される"
+    description: "セッション設定済みプロジェクトの左一覧行に「セッション」、右パネルに「セッションあり」バッジが表示される"
 
   - id: TC-069
     category:
       major: "プロジェクト"
       medium: "インポート"
       minor: "戻る"
-    prerequisites: "/load を表示中"
-    description: "「← プロジェクト一覧」で /projects に戻れる"
+    prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
+    description: "左一覧で別プロジェクトを選ぶと右パネルが切り替わり、/projects?project={id} が URL に反映される"
 
   - id: TC-070
     category:
       major: "プロジェクト"
       medium: "インポート"
       minor: "上書き"
-    prerequisites: "同一 project.id が既に登録済み、/load で tests.yml 選択済み"
-    description: "上書き確認ダイアログでキャンセルすると読み込まれず /load に留まる"
+    prerequisites: "同一 project.id が既に登録済み、/projects?project=_new で tests.yml 選択済み"
+    description: "上書き確認ダイアログでキャンセルすると読み込まれず /projects?project=_new に留まる"
 
   - id: TC-071
     category:
       major: "プロジェクト"
       medium: "エクスポート"
       minor: "tests.yml"
-    prerequisites: "プロジェクト一覧で対象カードを表示中"
-    description: "カードの tests.yml ボタンで定義ファイルをダウンロードできる"
+    prerequisites: "プロジェクト一覧で対象プロジェクトを選択し、右パネルを表示中"
+    description: "右パネルの tests.yml ボタンで定義ファイルをダウンロードできる"
 
   - id: TC-072
     category:
       major: "プロジェクト"
       medium: "エクスポート"
       minor: "results.json"
-    prerequisites: "プロジェクト一覧で対象カードを表示中、結果が1件以上ある"
-    description: "カードの results.json ボタンで結果ファイルをダウンロードできる"
+    prerequisites: "プロジェクト一覧で対象プロジェクトを選択し、右パネルを表示中、結果が1件以上ある"
+    description: "右パネルの results.json ボタンで結果ファイルをダウンロードできる"
 
   - id: TC-073
     category:
@@ -770,3 +771,11 @@ testCases:
       minor: "ローディング"
     prerequisites: "初回起動または /p/{projectId}/run 等へ直接アクセス"
     description: "画面切り替え中に qarows ロゴと進捗バー付きのローディング画面が表示される"
+
+  - id: TC-082
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "HUD"
+    prerequisites: "1件以上のプロジェクトが登録済み、/projects を表示中"
+    description: "左にプロジェクト一覧（先頭は新規作成）、右に選択中プロジェクトの管理パネルが表示される（run 画面と同型の左右分割）"
