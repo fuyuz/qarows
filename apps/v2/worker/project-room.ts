@@ -3,7 +3,14 @@ import type { ResultsFile, SessionConfig } from "@qarows/shared";
 import { getProject, snapshotToPersisted, updateProjectSnapshot } from "./db";
 import { AccessDeniedError, requireAuthUser } from "./auth";
 import type { Env } from "./env";
-import { parseClientMessage, send, type RoomSnapshot, type SyncDocument } from "./sync-protocol";
+import {
+  parseClientMessage,
+  send,
+  SYNC_PING_MESSAGE,
+  SYNC_PONG_MESSAGE,
+  type RoomSnapshot,
+  type SyncDocument,
+} from "./sync-protocol";
 
 interface StoredRoomState extends RoomSnapshot {}
 
@@ -27,6 +34,13 @@ const PROCESSED_PATCHES_KEY = "processedPatches";
 export class ProjectRoom extends DurableObject<Env> {
   private projectId: string | null = null;
   private state: StoredRoomState | null = null;
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.ctx.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair(SYNC_PING_MESSAGE, SYNC_PONG_MESSAGE),
+    );
+  }
 
   async initFromD1(): Promise<void> {
     this.state = null;
@@ -79,9 +93,7 @@ export class ProjectRoom extends DurableObject<Env> {
       send(ws, { type: "error", message: "Invalid message" });
       return;
     }
-
     if (parsed.type === "ping") {
-      send(ws, { type: "pong" });
       return;
     }
 
@@ -114,8 +126,31 @@ export class ProjectRoom extends DurableObject<Env> {
     }
 
     if (!applied.duplicate) {
-      await this.persistToD1();
+      try {
+        await this.persistToD1();
+      } catch (err) {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "D1 persist failed after patch broadcast",
+            projectId: this.projectId,
+            revision: applied.revision,
+            patchId: parsed.patchId,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
+        send(ws, { type: "error", message: "変更の永続化に失敗しました" });
+      }
     }
+  }
+
+  override async webSocketClose(
+    ws: WebSocket,
+    code: number,
+    reason: string,
+    _wasClean: boolean,
+  ): Promise<void> {
+    ws.close(code, reason);
   }
 
   private publicSnapshot(): RoomSnapshot {

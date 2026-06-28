@@ -21,6 +21,8 @@
 | データの所在 | そのデプロイの D1 / DO のみ（他環境と非共有） |
 | ローカル開発 | Vite `:5177` + Wrangler `:8787`（Vite が `/api` を proxy） |
 
+構成図: [architecture.md](./architecture.md#phase-2--closed-環境--リアルタイム同期)
+
 ---
 
 ## 1. 前提
@@ -146,7 +148,7 @@ bunx wrangler deploy --config wrangler.toml
 
 ## 4. Cloudflare Access（本番認証・アクセス制限）
 
-Phase 2 Worker は **Cloudflare Access 必須** で動作する（`wrangler.toml` の `ACCESS_REQUIRED = "true"`）。
+Phase 2 Worker は **Cloudflare Access 必須** で動作する（`AUTH_DEV_BYPASS` を設定しない限り常に有効）。
 
 | レイヤ | 役割 |
 |---|---|
@@ -158,7 +160,6 @@ Phase 2 Worker は **Cloudflare Access 必須** で動作する（`wrangler.toml
 
 ```toml
 [vars]
-ACCESS_REQUIRED = "true"
 ACCESS_TEAM_DOMAIN = "your-team-name"   # *.cloudflareaccess.com のサブドメイン
 # ACCESS_AUD = "..."                    # Access Application の AUD（推奨）
 ```
@@ -215,7 +216,9 @@ cp apps/v2/.dev.vars.example apps/v2/.dev.vars
 
 ---
 
-## アーキテクチャ（参考）
+## アーキテクチャ
+
+詳細な構成図・シーケンス図は [architecture.md](./architecture.md#phase-2--closed-環境--リアルタイム同期) を参照。
 
 ```
 Browser

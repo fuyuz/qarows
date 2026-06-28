@@ -33,6 +33,10 @@ export type ServerMessage =
     }
   | { type: "error"; message: string };
 
+/** Wire format for DO hibernation auto ping/pong (must match client JSON.stringify). */
+export const SYNC_PING_MESSAGE = JSON.stringify({ type: "ping" } satisfies ClientMessage);
+export const SYNC_PONG_MESSAGE = JSON.stringify({ type: "pong" } satisfies ServerMessage);
+
 export function parseClientMessage(raw: string): ClientMessage | null {
   try {
     const data = JSON.parse(raw) as ClientMessage;

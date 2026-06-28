@@ -1,10 +1,21 @@
-/*    https://developers.cloudflare.com/workers/wrangler/configuration/    */
+# https://developers.cloudflare.com/workers/wrangler/configuration/
 name = "qarows-v2"
 main = "worker/index.ts"
-compatibility_date = "2025-04-01"
+compatibility_date = "2026-06-28"
+compatibility_flags = ["nodejs_compat"]
 
 # Copy to wrangler.toml and fill in before deploy:
 # account_id = "YOUR_ACCOUNT_ID"
+
+[observability]
+enabled = true
+
+[observability.logs]
+head_sampling_rate = 1
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 0.01
 
 [vars]
 # Access JWT is always enforced (cannot be disabled in production).

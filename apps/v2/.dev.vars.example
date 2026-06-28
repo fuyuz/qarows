@@ -1,8 +1,7 @@
 # Copy to .dev.vars for local `wrangler dev`.
-ACCESS_REQUIRED = "false"
+AUTH_DEV_BYPASS = "true"
 #
-# Production wrangler.toml [vars] example:
-# ACCESS_REQUIRED = "true"
+# Production wrangler.toml must NOT set AUTH_DEV_BYPASS.
 # ACCESS_TEAM_DOMAIN = "your-team-name"
 # ACCESS_AUD = "..."  # recommended
 # Method B: ACCESS_ALLOWED_EMAIL_DOMAIN = "example.com"

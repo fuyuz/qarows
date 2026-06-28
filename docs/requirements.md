@@ -34,7 +34,7 @@ Phase 1 と Phase 2 は **別アプリとして独立デプロイ・独立利用
 | データ保存 | IndexedDB（ローカル） | サーバー側に永続化 |
 | 協調 | `results.json` のファイルマージ | リアルタイム同期 |
 
-詳細なデプロイ方針は [deployment.md](./deployment.md) を参照。
+詳細なデプロイ方針は [deployment.md](./deployment.md) を参照。構成図は [architecture.md](./architecture.md) を参照。
 
 ---
 

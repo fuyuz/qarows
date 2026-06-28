@@ -18,7 +18,7 @@
 | 本番ブランチ | `main` |
 | ルーティング | `apps/v1/public/_redirects` → SPA フォールバック |
 
----
+構成図: [architecture.md](./architecture.md#phase-1--ブラウザ完結公式公開)
 
 ## 1. ローカル確認（初回のみ）
 

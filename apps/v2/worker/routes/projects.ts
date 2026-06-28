@@ -2,6 +2,7 @@ import { parseTestsYaml } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { deleteProject, getProject, insertProject, listProjects } from "../db";
+import { BodyTooLargeError, MAX_TESTS_YAML_BYTES, readRequestTextWithLimit } from "../request-body";
 import type { AppEnv } from "../types";
 
 interface CreateProjectBody {
@@ -65,19 +66,33 @@ projectsRoutes.post("/", async (c) => {
   const contentType = c.req.header("Content-Type") ?? "";
   let testsYaml: string | null = null;
 
-  if (contentType.includes("application/json")) {
-    const body = await c.req.json<CreateProjectBody>().catch(() => null);
-    if (!body) throw new HTTPException(400, { message: "Invalid JSON body" });
-    testsYaml = body.testsYaml?.trim() ?? null;
-    if (!testsYaml && body.name) {
-      testsYaml = buildEmptyTestsYaml(body.name);
+  try {
+    if (contentType.includes("text/yaml") || contentType.includes("application/x-yaml")) {
+      const text = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES);
+      testsYaml = text.trim() ? text : null;
+    } else {
+      const raw = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES);
+      if (!raw.trim()) {
+        throw new HTTPException(400, { message: "Request body is required" });
+      }
+      let body: CreateProjectBody;
+      try {
+        body = JSON.parse(raw) as CreateProjectBody;
+      } catch {
+        throw new HTTPException(400, { message: "Invalid JSON body" });
+      }
+      testsYaml = body.testsYaml?.trim() ?? null;
+      if (!testsYaml && body.name) {
+        testsYaml = buildEmptyTestsYaml(body.name);
+      }
     }
-  } else if (contentType.includes("text/yaml") || contentType.includes("application/x-yaml")) {
-    const text = await c.req.text();
-    testsYaml = text.trim() ? text : null;
-  } else {
-    const body = await c.req.json<CreateProjectBody>().catch(() => null);
-    testsYaml = body?.testsYaml?.trim() ?? null;
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) {
+      throw new HTTPException(413, {
+        message: `tests.yml exceeds maximum size (${MAX_TESTS_YAML_BYTES} bytes)`,
+      });
+    }
+    throw err;
   }
 
   if (!testsYaml) {
