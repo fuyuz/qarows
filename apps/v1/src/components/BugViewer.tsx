@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Bug, BugStatus } from "@qarows/shared";
 import { getNextBugStatus, isValidSession } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
+import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 import { BugCard } from "@/components/BugCard";
 import { BugEditDialog } from "@/components/BugEditDialog";
 import { BugFixNoteDialog } from "@/components/BugFixNoteDialog";
 import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { useRunnerQueryState } from "@/hooks/useRunnerQueryState";
 import { resolveFilteredBugs } from "@/lib/bug-filter";
+import { canJumpToRunner } from "@/lib/jump-to-runner";
 import { getAllEnvironmentIds } from "@/lib/run-progress";
 import { isRunnerNextKey, isRunnerPrevKey, isRunnerTypingTarget } from "@/lib/runner-keybindings";
 import { testCardShellClass } from "@/components/RunnerCardFooter";
@@ -26,6 +29,8 @@ function BugEmptyCard() {
 }
 
 export function BugViewer() {
+  const navigate = useNavigate();
+  const { path } = useProjectRoutes();
   const { definition, results, session, updateBug } = useApp();
   const { runnerFilters, filtersSettled, bugId, setBugId, bugFilters } = useRunnerQueryState();
   const [busy, setBusy] = useState(false);
@@ -69,6 +74,17 @@ export function BugViewer() {
     if (!current?.testCaseId || !definition) return undefined;
     return definition.testCases.find((testCase) => testCase.id === current.testCaseId);
   }, [current?.testCaseId, definition]);
+
+  const canNavigateToTestCase =
+    relatedTestCase != null &&
+    definition != null &&
+    canJumpToRunner(relatedTestCase.id, definition, session);
+
+  const handleNavigateToTestCase = useCallback(() => {
+    if (!relatedTestCase || !definition) return;
+    if (!canJumpToRunner(relatedTestCase.id, definition, session)) return;
+    navigate(path("run", runnerFilters, relatedTestCase.id));
+  }, [definition, navigate, path, relatedTestCase, runnerFilters, session]);
 
   useEffect(() => {
     setEditDialogOpen(false);
@@ -199,6 +215,9 @@ export function BugViewer() {
               onStatusChange={handleStatusChange}
               onAdvanceStatus={nextStatus ? handleAdvanceStatus : undefined}
               onEdit={() => setEditDialogOpen(true)}
+              onNavigateToTestCase={
+                canNavigateToTestCase ? handleNavigateToTestCase : undefined
+              }
             />
           ) : (
             <BugEmptyCard />

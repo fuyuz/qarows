@@ -63,6 +63,7 @@ export function BugCard({
   onStatusChange,
   onAdvanceStatus,
   onEdit,
+  onNavigateToTestCase,
 }: {
   bug: Bug;
   definition: TestDefinition;
@@ -70,6 +71,7 @@ export function BugCard({
   onStatusChange: (status: BugStatus) => void;
   onAdvanceStatus?: () => void;
   onEdit: () => void;
+  onNavigateToTestCase?: () => void;
   busy?: boolean;
 } & RunnerCardNavProps) {
   const [copied, setCopied] = useState(false);
@@ -160,12 +162,28 @@ export function BugCard({
           </h2>
           {relatedTestCase ? (
             <TestCaseHoverPreview testCase={relatedTestCase}>
-              <Badge
-                variant="outline"
-                className="cursor-default font-bold text-primary hover:bg-primary/5"
-              >
-                {relatedTestCase.id}
-              </Badge>
+              {onNavigateToTestCase ? (
+                <button
+                  type="button"
+                  className="inline-flex rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  title="クリックでテスト実行へ"
+                  onClick={onNavigateToTestCase}
+                >
+                  <Badge
+                    variant="outline"
+                    className="cursor-pointer font-bold text-primary hover:bg-primary/5"
+                  >
+                    {relatedTestCase.id}
+                  </Badge>
+                </button>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="cursor-default font-bold text-primary hover:bg-primary/5"
+                >
+                  {relatedTestCase.id}
+                </Badge>
+              )}
             </TestCaseHoverPreview>
           ) : bug.testCaseId ? (
             <Badge variant="outline" className="font-bold text-muted-foreground">

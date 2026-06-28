@@ -568,6 +568,14 @@ testCases:
     prerequisites: "バグ画面を表示中、関連テストケース付きのバグを選択していること"
     description: "カード上の関連テスト ID に hover すると、テストケースの分類・前提・確認内容がツールチップ表示される"
 
+  - id: TC-089
+    category:
+      major: "閲覧"
+      medium: "バグ"
+      minor: "テスト遷移"
+    prerequisites: "バグ画面を表示中、セッション対象内の関連テストケース付きバグを選択していること"
+    description: "カード上の関連テスト ID をクリックするとテスト実行画面へ遷移し、該当テストケースが表示される（hover ツールチップは従来どおり表示される）"
+
   - id: TC-053
     category:
       major: "閲覧"
