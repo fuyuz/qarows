@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import type { ResultsFile, SessionConfig } from "@qarows/shared";
+import { applyProjectCommand, toProjectSnapshot, type ProjectCommand } from "@qarows/application";
 import { getProject, snapshotToPersisted, updateProjectSnapshot } from "./db";
 import { AccessDeniedError, requireAuthUser } from "./auth";
 import type { Env } from "./env";
@@ -9,27 +9,23 @@ import {
   SYNC_PING_MESSAGE,
   SYNC_PONG_MESSAGE,
   type RoomSnapshot,
-  type SyncDocument,
 } from "./sync-protocol";
 
 interface StoredRoomState extends RoomSnapshot {}
 
-interface ProcessedPatchRecord {
+interface ProcessedCommandRecord {
   revision: number;
-  document: SyncDocument;
   user: string;
 }
 
-interface ApplyPatchResult {
+interface ApplyCommandResult {
   revision: number;
   duplicate: boolean;
-  document: SyncDocument;
-  payload: ResultsFile | SessionConfig | null;
   user: string;
 }
 
-const MAX_PROCESSED_PATCHES = 256;
-const PROCESSED_PATCHES_KEY = "processedPatches";
+const MAX_PROCESSED_COMMANDS = 256;
+const PROCESSED_COMMANDS_KEY = "processedCommands";
 
 export class ProjectRoom extends DurableObject<Env> {
   private projectId: string | null = null;
@@ -103,22 +99,24 @@ export class ProjectRoom extends DurableObject<Env> {
       return;
     }
 
-    const applied = await this.applyPatch(
-      parsed.patchId,
-      parsed.document,
-      parsed.payload,
-      parsed.user,
-    );
-    const appliedAt = new Date().toISOString();
+    let applied: ApplyCommandResult;
+    try {
+      applied = await this.applyCommand(parsed.commandId, parsed.command, parsed.user);
+    } catch (err) {
+      const messageText = err instanceof Error ? err.message : "Command failed";
+      send(ws, { type: "error", message: messageText });
+      return;
+    }
 
+    const appliedAt = new Date().toISOString();
     const broadcast: Parameters<typeof send>[1] = {
-      type: "patch",
-      document: applied.document,
-      payload: applied.payload,
-      patchId: parsed.patchId,
+      type: "commandApplied",
+      command: parsed.command,
+      commandId: parsed.commandId,
       user: applied.user,
       revision: applied.revision,
       appliedAt,
+      snapshot: this.publicSnapshot(),
     };
 
     for (const socket of this.ctx.getWebSockets()) {
@@ -132,10 +130,10 @@ export class ProjectRoom extends DurableObject<Env> {
         console.error(
           JSON.stringify({
             level: "error",
-            message: "D1 persist failed after patch broadcast",
+            message: "D1 persist failed after command broadcast",
             projectId: this.projectId,
             revision: applied.revision,
-            patchId: parsed.patchId,
+            commandId: parsed.commandId,
             error: err instanceof Error ? err.message : String(err),
           }),
         );
@@ -192,66 +190,63 @@ export class ProjectRoom extends DurableObject<Env> {
     await this.ctx.storage.put("state", this.state);
   }
 
-  private async loadProcessedPatches(): Promise<Map<string, ProcessedPatchRecord>> {
-    const raw = await this.ctx.storage.get<Record<string, ProcessedPatchRecord>>(PROCESSED_PATCHES_KEY);
+  private async loadProcessedCommands(): Promise<Map<string, ProcessedCommandRecord>> {
+    const raw = await this.ctx.storage.get<Record<string, ProcessedCommandRecord>>(
+      PROCESSED_COMMANDS_KEY,
+    );
     return new Map(Object.entries(raw ?? {}));
   }
 
-  private async saveProcessedPatches(map: Map<string, ProcessedPatchRecord>): Promise<void> {
-    while (map.size > MAX_PROCESSED_PATCHES) {
+  private async saveProcessedCommands(map: Map<string, ProcessedCommandRecord>): Promise<void> {
+    while (map.size > MAX_PROCESSED_COMMANDS) {
       const oldest = map.keys().next().value;
       if (!oldest) break;
       map.delete(oldest);
     }
-    await this.ctx.storage.put(PROCESSED_PATCHES_KEY, Object.fromEntries(map));
+    await this.ctx.storage.put(PROCESSED_COMMANDS_KEY, Object.fromEntries(map));
   }
 
-  private payloadForDocument(document: SyncDocument): ResultsFile | SessionConfig | null {
-    const state = this.state!;
-    return document === "results" ? state.results : state.session;
-  }
-
-  private async applyPatch(
-    patchId: string,
-    document: SyncDocument,
-    payload: ResultsFile | SessionConfig | null,
+  private async applyCommand(
+    commandId: string,
+    command: ProjectCommand,
     user: string,
-  ): Promise<ApplyPatchResult> {
-    const processed = await this.loadProcessedPatches();
-    const existing = processed.get(patchId);
+  ): Promise<ApplyCommandResult> {
+    const processed = await this.loadProcessedCommands();
+    const existing = processed.get(commandId);
     if (existing) {
       return {
         revision: existing.revision,
         duplicate: true,
-        document: existing.document,
-        payload: this.payloadForDocument(existing.document),
         user: existing.user,
       };
     }
 
     const state = this.state!;
-    state.revision += 1;
+    const projectId = this.projectId!;
+    const snapshot = toProjectSnapshot(projectId, {
+      definition: state.definition,
+      results: state.results,
+      session: state.session,
+      updatedAt: state.results.updatedAt,
+    });
 
-    if (document === "results") {
-      state.results = payload as ResultsFile;
-    } else {
-      state.session = payload as SessionConfig | null;
-    }
+    const { snapshot: next } = applyProjectCommand(snapshot, command);
+    state.revision += 1;
+    state.definition = next.definition;
+    state.results = next.results;
+    state.session = next.session;
 
     await this.ctx.storage.put("state", state);
 
-    processed.set(patchId, {
+    processed.set(commandId, {
       revision: state.revision,
-      document,
       user,
     });
-    await this.saveProcessedPatches(processed);
+    await this.saveProcessedCommands(processed);
 
     return {
       revision: state.revision,
       duplicate: false,
-      document,
-      payload: this.payloadForDocument(document),
       user,
     };
   }

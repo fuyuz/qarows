@@ -13,6 +13,7 @@
     "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
+    "@qarows/application": "*",
     "@qarows/shared": "*",
     "@qarows/ui": "*",
     "@radix-ui/react-checkbox": "^1.3.5",

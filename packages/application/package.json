@@ -1,0 +1,20 @@
+{
+  "name": "@qarows/application",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@qarows/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

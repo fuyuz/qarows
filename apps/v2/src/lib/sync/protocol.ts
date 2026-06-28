@@ -1,6 +1,5 @@
 import type { ResultsFile, SessionConfig, TestDefinition } from "@qarows/shared";
-
-export type SyncDocument = "results" | "session";
+import type { ProjectCommand } from "@qarows/application";
 
 export interface RoomSnapshot {
   revision: number;
@@ -12,10 +11,9 @@ export interface RoomSnapshot {
 export type ClientMessage =
   | { type: "ping" }
   | {
-      type: "patch";
-      document: SyncDocument;
-      payload: ResultsFile | SessionConfig | null;
-      patchId: string;
+      type: "command";
+      command: ProjectCommand;
+      commandId: string;
       user: string;
     };
 
@@ -23,13 +21,13 @@ export type ServerMessage =
   | { type: "pong" }
   | { type: "snapshot"; snapshot: RoomSnapshot }
   | {
-      type: "patch";
-      document: SyncDocument;
-      payload: ResultsFile | SessionConfig | null;
-      patchId: string;
+      type: "commandApplied";
+      command: ProjectCommand;
+      commandId: string;
       user: string;
       revision: number;
       appliedAt: string;
+      snapshot: RoomSnapshot;
     }
   | { type: "error"; message: string };
 

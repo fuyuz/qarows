@@ -8,17 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  getTestCaseVersion,
-  validateSession,
-  type ResultsFile,
-  type SessionConfig,
-  type TestDefinition,
-  type TestResultEntry,
-  type TestStatus,
-} from "@qarows/shared";
-import { ProjectSyncClient } from "@/lib/sync/project-sync-client";
-import type { RoomSnapshot } from "@/lib/sync/protocol";
+import type { ResultsFile, SessionConfig, TestDefinition, TestResultEntry, TestStatus } from "@qarows/shared";
+import type { ProjectEvent, ProjectCommand } from "@qarows/application";
+import { createPhase2WorkspaceController } from "@/lib/adapters/create-phase2-workspace";
 import { getSyncUser } from "@/lib/sync/sync-user";
 
 interface ProjectSyncContextValue {
@@ -39,15 +31,6 @@ interface ProjectSyncContextValue {
 
 const ProjectSyncContext = createContext<ProjectSyncContextValue | null>(null);
 
-function applySnapshot(snapshot: RoomSnapshot) {
-  return {
-    revision: snapshot.revision,
-    definition: snapshot.definition,
-    results: snapshot.results,
-    session: snapshot.session,
-  };
-}
-
 export function ProjectSyncProvider({
   projectId,
   children,
@@ -63,85 +46,72 @@ export function ProjectSyncProvider({
   const [results, setResults] = useState<ResultsFile | null>(null);
   const [session, setSessionState] = useState<SessionConfig | null>(null);
 
-  const clientRef = useRef<ProjectSyncClient | null>(null);
+  const workspaceRef = useRef<ReturnType<typeof createPhase2WorkspaceController> | null>(null);
   const userRef = useRef("dev@local");
-  const definitionRef = useRef<TestDefinition | null>(null);
-  const resultsRef = useRef<ResultsFile | null>(null);
-  const sessionRef = useRef<SessionConfig | null>(null);
 
-  useEffect(() => {
-    definitionRef.current = definition;
-  }, [definition]);
-  useEffect(() => {
-    resultsRef.current = results;
-  }, [results]);
-  useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
+  const applySnapshotState = useCallback((snapshot: {
+    definition: TestDefinition;
+    results: ResultsFile;
+    session: SessionConfig | null;
+  }) => {
+    setDefinition(snapshot.definition);
+    setResults(snapshot.results);
+    setSessionState(snapshot.session);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    const client = new ProjectSyncClient();
-    clientRef.current = client;
+    const workspace = createPhase2WorkspaceController();
+    workspaceRef.current = workspace;
+
+    const handleEvent = (event: ProjectEvent) => {
+      if (cancelled) return;
+      switch (event.type) {
+        case "snapshot":
+        case "commandApplied":
+          setRevision(event.revision);
+          applySnapshotState(event.snapshot);
+          setReady(true);
+          setSyncError(null);
+          return;
+        case "connectionState":
+          setConnected(event.state.status === "connected");
+          setRevision(event.state.revision);
+          return;
+        case "error":
+          setSyncError(event.message);
+          return;
+      }
+    };
+
+    const unsubscribe = workspace.controller.subscribe(handleEvent);
 
     void (async () => {
       userRef.current = await getSyncUser();
       if (cancelled) return;
-
-      client.connect(projectId, userRef.current, {
-        onOpen: () => {
-          if (!cancelled) setConnected(true);
-        },
-        onClose: () => {
-          if (!cancelled) setConnected(false);
-        },
-        onSnapshot: (snapshot) => {
-          if (cancelled) return;
-          const next = applySnapshot(snapshot);
-          setRevision(next.revision);
-          setDefinition(next.definition);
-          setResults(next.results);
-          setSessionState(next.session);
-          setReady(true);
-          setSyncError(null);
-        },
-        onPatch: (document, payload, nextRevision) => {
-          if (cancelled) return;
-          setRevision(nextRevision);
-          if (document === "results") {
-            setResults(payload as ResultsFile);
-          } else {
-            setSessionState(payload as SessionConfig | null);
-          }
-        },
-        onError: (message) => {
-          if (!cancelled) setSyncError(message);
-        },
-      });
+      workspace.channel.setUser(userRef.current);
+      await workspace.controller.activateProject(projectId);
     })();
 
     return () => {
       cancelled = true;
-      client.disconnect();
-      clientRef.current = null;
+      unsubscribe();
+      workspace.controller.deactivateProject();
+      workspaceRef.current = null;
     };
-  }, [projectId]);
+  }, [applySnapshotState, projectId]);
 
-  const patchDocument = useCallback(
-    async (document: "results" | "session", payload: ResultsFile | SessionConfig | null) => {
-      const client = clientRef.current;
-      if (!client) throw new Error("Sync client not ready");
-      await client.patch(document, payload, userRef.current);
-    },
-    [],
-  );
+  const dispatch = useCallback(async (command: ProjectCommand) => {
+    const workspace = workspaceRef.current;
+    if (!workspace) throw new Error("Sync workspace not ready");
+    await workspace.controller.dispatch(command);
+  }, []);
 
   const setSession = useCallback(
     async (nextSession: SessionConfig) => {
-      validateSession(nextSession);
-      await patchDocument("session", nextSession);
+      await dispatch({ type: "setSession", session: nextSession });
     },
-    [patchDocument],
+    [dispatch],
   );
 
   const updateResultsBatch = useCallback(
@@ -150,40 +120,14 @@ export function ProjectSyncProvider({
       envIds: string[],
       partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
     ) => {
-      const currentResults = resultsRef.current;
-      const currentSession = sessionRef.current;
-      const currentDefinition = definitionRef.current;
-      if (!currentResults || !currentSession) {
-        throw new Error("セッションが開始されていません");
-      }
-
-      const testCase = currentDefinition?.testCases.find((tc) => tc.id === testCaseId);
-      const version = testCase ? getTestCaseVersion(testCase) : 1;
-      const now = new Date().toISOString();
-      const caseResults = { ...(currentResults.results[testCaseId] ?? {}) };
-
-      for (const envId of envIds) {
-        caseResults[envId] = {
-          status: partial.status,
-          memo: partial.memo ?? caseResults[envId]?.memo,
-          executedAt: now,
-          executedBy: currentSession.executorName,
-          ...(version > 1 ? { version } : {}),
-        };
-      }
-
-      const next: ResultsFile = {
-        ...currentResults,
-        updatedAt: now,
-        results: {
-          ...currentResults.results,
-          [testCaseId]: caseResults,
-        },
-      };
-
-      await patchDocument("results", next);
+      await dispatch({
+        type: "updateResultsBatch",
+        testCaseId,
+        envIds,
+        partial,
+      });
     },
-    [patchDocument],
+    [dispatch],
   );
 
   const value = useMemo<ProjectSyncContextValue>(

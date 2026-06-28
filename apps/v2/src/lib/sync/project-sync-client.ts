@@ -1,45 +1,37 @@
-import type { ResultsFile, SessionConfig } from "@qarows/shared";
-import {
-  parseServerMessage,
-  SyncSendError,
-  type ClientMessage,
-  type RoomSnapshot,
-  type SyncDocument,
-} from "./protocol";
+import type { ProjectCommand } from "@qarows/application";
+import { parseServerMessage, SyncSendError, type ClientMessage, type RoomSnapshot } from "./protocol";
 
 export interface ProjectSyncHandlers {
   onOpen?: () => void;
   onClose?: () => void;
   onSnapshot: (snapshot: RoomSnapshot) => void;
-  onPatch: (
-    document: SyncDocument,
-    payload: ResultsFile | SessionConfig | null,
-    revision: number,
-  ) => void;
+  onCommandApplied: (message: {
+    command: ProjectCommand;
+    commandId: string;
+    user: string;
+    revision: number;
+    appliedAt: string;
+    snapshot: RoomSnapshot;
+  }) => void;
   onError: (message: string) => void;
 }
 
-const PATCH_ACK_TIMEOUT_MS = 15_000;
+const COMMAND_ACK_TIMEOUT_MS = 15_000;
 const RECONNECT_BASE_MS = 500;
 const RECONNECT_MAX_MS = 10_000;
 const PING_INTERVAL_MS = 30_000;
 
-interface PendingPatch {
+interface PendingCommand {
   resolve: () => void;
   reject: (error: Error) => void;
   timeoutId: ReturnType<typeof setTimeout>;
 }
 
-interface QueuedPatch {
-  document: SyncDocument;
-  payload: ResultsFile | SessionConfig | null;
-  patchId: string;
+interface QueuedCommand {
+  command: ProjectCommand;
+  commandId: string;
   user: string;
   inFlight: boolean;
-}
-
-function createPatchId(): string {
-  return crypto.randomUUID();
 }
 
 export class ProjectSyncClient {
@@ -51,9 +43,9 @@ export class ProjectSyncClient {
   private intentionalClose = false;
   private reconnectAttempt = 0;
   private snapshotReceived = false;
-  private readonly pendingPatches = new Map<string, PendingPatch>();
-  private readonly outboundQueue: QueuedPatch[] = [];
-  private readonly abandonedPatchIds = new Set<string>();
+  private readonly pendingCommands = new Map<string, PendingCommand>();
+  private readonly outboundQueue: QueuedCommand[] = [];
+  private readonly abandonedCommandIds = new Set<string>();
 
   connect(projectId: string, _user: string, handlers: ProjectSyncHandlers): void {
     this.disconnect(false);
@@ -74,25 +66,19 @@ export class ProjectSyncClient {
     this.ws = null;
     this.snapshotReceived = false;
     this.outboundQueue.length = 0;
-    this.abandonedPatchIds.clear();
+    this.abandonedCommandIds.clear();
     if (rejectPending) {
       this.rejectAllPending(new SyncSendError("Sync client disconnected"));
     }
   }
 
-  patch(
-    document: SyncDocument,
-    payload: ResultsFile | SessionConfig | null,
-    user: string,
-  ): Promise<void> {
-    const patchId = createPatchId();
-
+  command(command: ProjectCommand, commandId: string, user: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        this.abandonPatch(patchId, new SyncSendError("Patch acknowledgement timed out"));
-      }, PATCH_ACK_TIMEOUT_MS);
+        this.abandonCommand(commandId, new SyncSendError("Command acknowledgement timed out"));
+      }, COMMAND_ACK_TIMEOUT_MS);
 
-      this.pendingPatches.set(patchId, {
+      this.pendingCommands.set(commandId, {
         resolve: () => {
           clearTimeout(timeoutId);
           resolve();
@@ -104,7 +90,7 @@ export class ProjectSyncClient {
         timeoutId,
       });
 
-      this.outboundQueue.push({ document, payload, patchId, user, inFlight: false });
+      this.outboundQueue.push({ command, commandId, user, inFlight: false });
       this.flushOutboundQueue();
     });
   }
@@ -154,15 +140,15 @@ export class ProjectSyncClient {
           this.handlers?.onSnapshot(message.snapshot);
           this.flushOutboundQueue();
           return;
-        case "patch": {
-          const abandoned = this.abandonedPatchIds.has(message.patchId);
+        case "commandApplied": {
+          const abandoned = this.abandonedCommandIds.has(message.commandId);
           if (abandoned) {
-            this.abandonedPatchIds.delete(message.patchId);
-            this.removeQueuedPatch(message.patchId);
+            this.abandonedCommandIds.delete(message.commandId);
+            this.removeQueuedCommand(message.commandId);
           }
-          this.handlers?.onPatch(message.document, message.payload, message.revision);
+          this.handlers?.onCommandApplied(message);
           if (!abandoned) {
-            this.resolvePendingPatch(message.patchId);
+            this.resolvePendingCommand(message.commandId);
           }
           return;
         }
@@ -191,12 +177,11 @@ export class ProjectSyncClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.snapshotReceived) return;
 
     for (const queued of this.outboundQueue) {
-      if (queued.inFlight || this.abandonedPatchIds.has(queued.patchId)) continue;
+      if (queued.inFlight || this.abandonedCommandIds.has(queued.commandId)) continue;
       const sent = this.sendRaw({
-        type: "patch",
-        document: queued.document,
-        payload: queued.payload,
-        patchId: queued.patchId,
+        type: "command",
+        command: queued.command,
+        commandId: queued.commandId,
         user: queued.user,
       });
       if (!sent) break;
@@ -212,37 +197,37 @@ export class ProjectSyncClient {
     return true;
   }
 
-  private resolvePendingPatch(patchId: string): void {
-    this.removeQueuedPatch(patchId);
+  private resolvePendingCommand(commandId: string): void {
+    this.removeQueuedCommand(commandId);
 
-    const pending = this.pendingPatches.get(patchId);
+    const pending = this.pendingCommands.get(commandId);
     if (!pending) return;
 
-    this.pendingPatches.delete(patchId);
+    this.pendingCommands.delete(commandId);
     pending.resolve();
     this.flushOutboundQueue();
   }
 
-  private abandonPatch(patchId: string, error: Error): void {
-    this.abandonedPatchIds.add(patchId);
-    this.removeQueuedPatch(patchId);
-    const pending = this.pendingPatches.get(patchId);
+  private abandonCommand(commandId: string, error: Error): void {
+    this.abandonedCommandIds.add(commandId);
+    this.removeQueuedCommand(commandId);
+    const pending = this.pendingCommands.get(commandId);
     if (!pending) return;
-    this.pendingPatches.delete(patchId);
+    this.pendingCommands.delete(commandId);
     pending.reject(error);
   }
 
-  private removeQueuedPatch(patchId: string): void {
-    const index = this.outboundQueue.findIndex((queued) => queued.patchId === patchId);
+  private removeQueuedCommand(commandId: string): void {
+    const index = this.outboundQueue.findIndex((queued) => queued.commandId === commandId);
     if (index >= 0) {
       this.outboundQueue.splice(index, 1);
     }
   }
 
   private rejectAllPending(error: Error): void {
-    for (const pending of this.pendingPatches.values()) {
+    for (const pending of this.pendingCommands.values()) {
       pending.reject(error);
     }
-    this.pendingPatches.clear();
+    this.pendingCommands.clear();
   }
 }
