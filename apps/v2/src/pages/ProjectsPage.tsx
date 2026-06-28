@@ -30,6 +30,7 @@ export function ProjectsPage() {
     projectSummaries,
     lastOpenedProjectId,
     removeProject,
+    clearProjectResults,
     markProjectOpened,
   } = useProjects();
   const { projectId, setProjectId } = useProjectsQueryState();
@@ -65,6 +66,13 @@ export function ProjectsPage() {
       navigate(projectPath(targetProjectId, hasValidSession ? "run" : "session"));
     },
     [markProjectOpened, navigate],
+  );
+
+  const handleClearResults = useCallback(
+    async (targetProjectId: string) => {
+      await clearProjectResults(targetProjectId);
+    },
+    [clearProjectResults],
   );
 
   const handleDelete = useCallback(
@@ -122,6 +130,7 @@ export function ProjectsPage() {
                         onContinue={(hasValidSession) =>
                           handleContinue(selectedSummary.id, hasValidSession)
                         }
+                        onClearResults={() => handleClearResults(selectedSummary.id)}
                         onDelete={() => handleDelete(selectedSummary.id)}
                       />
                     ) : null}

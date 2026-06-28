@@ -142,6 +142,28 @@ projectsRoutes.delete("/:projectId", async (c) => {
   return c.json({ ok: true });
 });
 
+projectsRoutes.post("/:projectId/clear-results", async (c) => {
+  const projectId = c.req.param("projectId");
+  const snapshot = await getProject(c.env.DB, projectId);
+  if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
+
+  const stub = c.env.PROJECT.getByName(projectId);
+  try {
+    await stub.applyCommandFromWorker({
+      commandId: crypto.randomUUID(),
+      command: { type: "clearResults" },
+      user: c.get("user").email,
+    });
+  } catch (err) {
+    console.error("Failed to clear project results", err);
+    throw new HTTPException(500, {
+      message: err instanceof Error ? err.message : "Failed to clear results",
+    });
+  }
+
+  return c.json({ ok: true });
+});
+
 projectsRoutes.get("/:projectId/ws", async (c) => {
   const projectId = c.req.param("projectId");
   const stub = c.env.PROJECT.getByName(projectId);

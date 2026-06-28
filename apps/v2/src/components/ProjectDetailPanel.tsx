@@ -39,6 +39,7 @@ export interface ProjectDetailPanelProps {
   updatedAt: string;
   isLastOpened: boolean;
   onContinue: (hasValidSession: boolean) => void;
+  onClearResults: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
@@ -48,32 +49,30 @@ export function ProjectDetailPanel({
   updatedAt,
   isLastOpened,
   onContinue,
+  onClearResults,
   onDelete,
 }: ProjectDetailPanelProps) {
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loadingSnapshot, setLoadingSnapshot] = useState(true);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const reloadSnapshot = () => {
     setLoadingSnapshot(true);
     void getProject(projectId)
-      .then((data) => {
-        if (!cancelled) setSnapshot(data);
-      })
+      .then((data) => setSnapshot(data))
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "プロジェクトの取得に失敗しました");
-        }
+        setError(err instanceof Error ? err.message : "プロジェクトの取得に失敗しました");
       })
-      .finally(() => {
-        if (!cancelled) setLoadingSnapshot(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .finally(() => setLoadingSnapshot(false));
+  };
+
+  useEffect(() => {
+    reloadSnapshot();
   }, [projectId]);
 
   const hasValidSession =
@@ -87,6 +86,22 @@ export function ProjectDetailPanel({
   const handleExportResults = () => {
     if (!snapshot) return;
     downloadText(serializeResultsJson(snapshot.results), "results.json", "application/json");
+  };
+
+  const handleClear = async () => {
+    setClearing(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await onClearResults();
+      setClearDialogOpen(false);
+      setSuccessMessage("テスト結果をクリアしました");
+      reloadSnapshot();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "テスト結果のクリアに失敗しました");
+    } finally {
+      setClearing(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -148,11 +163,19 @@ export function ProjectDetailPanel({
             </p>
 
             <div className="flex flex-wrap gap-2">
+              <Button variant="destructive" size="sm" onClick={() => setClearDialogOpen(true)}>
+                結果をクリア
+              </Button>
               <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
                 削除
               </Button>
             </div>
 
+            {successMessage && (
+              <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
+                <AlertDescription>{successMessage}</AlertDescription>
+              </Alert>
+            )}
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -161,6 +184,25 @@ export function ProjectDetailPanel({
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>テスト結果をクリアしますか？</DialogTitle>
+            <DialogDescription>
+              「{name}」の実行結果、バグ、セッション設定を削除します。tests.yml の定義は残ります。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
+              キャンセル
+            </Button>
+            <Button variant="destructive" disabled={clearing} onClick={() => void handleClear()}>
+              {clearing ? "クリア中…" : "クリア"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent showCloseButton={false}>

@@ -60,6 +60,12 @@ export async function deleteProject(projectId: string): Promise<void> {
   });
 }
 
+export async function clearProjectResults(projectId: string): Promise<void> {
+  await apiJson<{ ok: true }>(`/api/projects/${encodeURIComponent(projectId)}/clear-results`, {
+    method: "POST",
+  });
+}
+
 export async function replaceProjectFromYaml(
   projectId: string,
   testsYaml: string,

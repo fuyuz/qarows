@@ -1,6 +1,10 @@
 import { Navigate, Outlet, useParams } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { ProjectSyncProvider, useProjectSync } from "@/context/ProjectSyncContext";
+import { BugsPage } from "@/pages/BugsPage";
+import { DashboardPage } from "@/pages/DashboardPage";
+import { MatrixPage } from "@/pages/MatrixPage";
 import { RunPage } from "@/pages/RunPage";
 import { SessionPageRoute } from "@/pages/SessionPage";
 import type { ProjectPage } from "@/lib/project-routes";
@@ -24,7 +28,11 @@ function ProjectWorkspaceShell() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <RunnerWorkspaceBridge>
+      <Outlet />
+    </RunnerWorkspaceBridge>
+  );
 }
 
 export function ProjectWorkspaceLayout() {
@@ -46,6 +54,12 @@ export function ProjectPageRouter() {
       return <SessionPageRoute />;
     case "run":
       return <RunPage />;
+    case "matrix":
+      return <MatrixPage />;
+    case "dashboard":
+      return <DashboardPage />;
+    case "bugs":
+      return <BugsPage />;
     default:
       return <Navigate to="session" replace />;
   }

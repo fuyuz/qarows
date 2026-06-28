@@ -102,6 +102,8 @@
       "dependencies": {
         "@qarows/shared": "*",
         "@qarows/ui": "*",
+        "@tanstack/react-table": "^8.21.3",
+        "@tanstack/react-virtual": "^3.14.4",
         "lucide-react": "^1.21.0",
         "nuqs": "^2.8.9",
         "react-router-dom": "^7.6.2",

@@ -13,6 +13,7 @@ import {
   deleteProject as deleteProjectApi,
   listProjects,
   replaceProjectFromYaml,
+  clearProjectResults as clearProjectResultsApi,
   type ProjectSummary,
 } from "@/lib/api/projects";
 
@@ -32,6 +33,7 @@ interface ProjectsContextValue {
   importProject: (testsYaml: string, existingProjectId?: string) => Promise<string>;
   createNamedProject: (name: string) => Promise<string>;
   removeProject: (projectId: string) => Promise<void>;
+  clearProjectResults: (projectId: string) => Promise<void>;
   markProjectOpened: (projectId: string) => void;
 }
 
@@ -117,6 +119,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     [lastOpenedProjectId, refreshProjects],
   );
 
+  const clearProjectResults = useCallback(
+    async (projectId: string) => {
+      await clearProjectResultsApi(projectId);
+      await refreshProjects();
+    },
+    [refreshProjects],
+  );
+
   const markProjectOpened = useCallback((projectId: string) => {
     writeLastOpenedProjectId(projectId);
     setLastOpenedProjectId(projectId);
@@ -133,6 +143,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       importProject,
       createNamedProject,
       removeProject,
+      clearProjectResults,
       markProjectOpened,
     }),
     [
@@ -145,6 +156,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       importProject,
       createNamedProject,
       removeProject,
+      clearProjectResults,
       markProjectOpened,
     ],
   );

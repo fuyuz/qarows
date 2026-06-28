@@ -2,7 +2,6 @@ import { Navigate } from "react-router-dom";
 import { isValidSession } from "@qarows/shared";
 import { RunPageLayout } from "@qarows/runner-ui";
 import { AppNav } from "@/components/AppNav";
-import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { useProjectSync } from "@/context/ProjectSyncContext";
 import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 
@@ -14,9 +13,5 @@ export function RunPage() {
     return <Navigate to={path("session")} replace />;
   }
 
-  return (
-    <RunnerWorkspaceBridge>
-      <RunPageLayout nav={<AppNav />} availableNavPages={["session", "run"]} />
-    </RunnerWorkspaceBridge>
-  );
+  return <RunPageLayout nav={<AppNav />} />;
 }

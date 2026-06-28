@@ -101,18 +101,43 @@ export class ProjectRoom extends DurableObject<Env> {
 
     let applied: ApplyCommandResult;
     try {
-      applied = await this.applyCommand(parsed.commandId, parsed.command, parsed.user);
+      applied = await this.applyCommandAndSync(parsed.commandId, parsed.command, parsed.user);
     } catch (err) {
       const messageText = err instanceof Error ? err.message : "Command failed";
       send(ws, { type: "error", message: messageText });
       return;
     }
 
+    if (applied.duplicate) {
+      return;
+    }
+  }
+
+  /** Worker-internal RPC: apply a command, broadcast to clients, and persist. */
+  async applyCommandFromWorker(body: {
+    commandId: string;
+    command: ProjectCommand;
+    user: string;
+  }): Promise<{ revision: number; duplicate: boolean }> {
+    await this.ensureLoaded();
+    if (!this.state || !this.projectId) {
+      throw new Error("Project not found");
+    }
+
+    const applied = await this.applyCommandAndSync(body.commandId, body.command, body.user);
+    return { revision: applied.revision, duplicate: applied.duplicate };
+  }
+
+  private async broadcastCommandApplied(
+    commandId: string,
+    command: ProjectCommand,
+    applied: ApplyCommandResult,
+  ): Promise<void> {
     const appliedAt = new Date().toISOString();
     const broadcast: Parameters<typeof send>[1] = {
       type: "commandApplied",
-      command: parsed.command,
-      commandId: parsed.commandId,
+      command,
+      commandId,
       user: applied.user,
       revision: applied.revision,
       appliedAt,
@@ -122,24 +147,19 @@ export class ProjectRoom extends DurableObject<Env> {
     for (const socket of this.ctx.getWebSockets()) {
       send(socket, broadcast);
     }
+  }
 
+  private async applyCommandAndSync(
+    commandId: string,
+    command: ProjectCommand,
+    user: string,
+  ): Promise<ApplyCommandResult> {
+    const applied = await this.applyCommand(commandId, command, user);
     if (!applied.duplicate) {
-      try {
-        await this.persistToD1();
-      } catch (err) {
-        console.error(
-          JSON.stringify({
-            level: "error",
-            message: "D1 persist failed after command broadcast",
-            projectId: this.projectId,
-            revision: applied.revision,
-            commandId: parsed.commandId,
-            error: err instanceof Error ? err.message : String(err),
-          }),
-        );
-        send(ws, { type: "error", message: "変更の永続化に失敗しました" });
-      }
+      await this.broadcastCommandApplied(commandId, command, applied);
+      await this.persistToD1();
     }
+    return applied;
   }
 
   override async webSocketClose(
