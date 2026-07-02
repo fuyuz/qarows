@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
 import { Alert, AlertDescription, LoadingScreen } from "@qarows/ui";
 import { ProjectDetailPanel } from "@/components/ProjectDetailPanel";
 import { ProjectImportPanel } from "@/components/ProjectImportPanel";
@@ -8,7 +9,8 @@ import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { useProjects } from "@/context/ProjectsContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
 import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";
-import { readFileAsText } from "@/lib/file-utils";
+import { getProject } from "@/lib/api/projects";
+import { downloadText, readFileAsText } from "@/lib/file-utils";
 import { sortProjectSummaries } from "@/lib/project-summaries";
 
 function resolveDefaultSelection(
@@ -90,6 +92,18 @@ export function ProjectsPage() {
     [clearProjectResults],
   );
 
+  const handleExportYaml = useCallback(async (targetProjectId: string) => {
+    const data = await getProject(targetProjectId);
+    if (!data) throw new Error("プロジェクトが見つかりません");
+    downloadText(serializeTestsYaml(data.definition), "tests.yml", "text/yaml");
+  }, []);
+
+  const handleExportResults = useCallback(async (targetProjectId: string) => {
+    const data = await getProject(targetProjectId);
+    if (!data) throw new Error("プロジェクトが見つかりません");
+    downloadText(serializeResultsJson(data.results), "results.json", "application/json");
+  }, []);
+
   const handleDelete = useCallback(
     async (targetProjectId: string) => {
       await removeProject(targetProjectId);
@@ -148,6 +162,8 @@ export function ProjectsPage() {
                           handleMerge(selectedSummary.id, files, expectedGeneration)
                         }
                         onClearResults={() => handleClearResults(selectedSummary.id)}
+                        onExportYaml={() => handleExportYaml(selectedSummary.id)}
+                        onExportResults={() => handleExportResults(selectedSummary.id)}
                         onDelete={() => handleDelete(selectedSummary.id)}
                       />
                     ) : null}

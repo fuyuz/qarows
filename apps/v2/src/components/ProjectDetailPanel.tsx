@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
 import {
   Alert,
   AlertDescription,
@@ -22,7 +21,7 @@ import {
   Separator,
 } from "@qarows/ui";
 import { getProject, type ProjectSnapshot } from "@/lib/api/projects";
-import { appendUniqueFiles, downloadText, fileKey } from "@/lib/file-utils";
+import { appendUniqueFiles, fileKey } from "@/lib/file-utils";
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);
@@ -45,6 +44,8 @@ export interface ProjectDetailPanelProps {
   onContinue: () => void;
   onMerge: (files: File[], expectedGeneration: string) => Promise<void>;
   onClearResults: () => Promise<void>;
+  onExportYaml: () => Promise<void>;
+  onExportResults: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
@@ -57,10 +58,11 @@ export function ProjectDetailPanel({
   onContinue,
   onMerge,
   onClearResults,
+  onExportYaml,
+  onExportResults,
   onDelete,
 }: ProjectDetailPanelProps) {
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
-  const [loadingSnapshot, setLoadingSnapshot] = useState(true);
   const [mergeFiles, setMergeFiles] = useState<File[]>([]);
   const [merging, setMerging] = useState(false);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
@@ -70,24 +72,23 @@ export function ProjectDetailPanel({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const projectIdRef = useRef(projectId);
+  const snapshotCacheRef = useRef<Map<string, ProjectSnapshot>>(new Map());
   projectIdRef.current = projectId;
 
-  const snapshotReady = snapshot != null && snapshot.id === projectId && !loadingSnapshot;
-
   const loadSnapshot = useCallback(async (targetProjectId: string) => {
-    setLoadingSnapshot(true);
+    const cached = snapshotCacheRef.current.get(targetProjectId);
+    if (cached) {
+      setSnapshot(cached);
+    }
     setError(null);
     try {
       const data = await getProject(targetProjectId);
       if (projectIdRef.current !== targetProjectId) return;
+      snapshotCacheRef.current.set(targetProjectId, data);
       setSnapshot(data);
     } catch (err: unknown) {
       if (projectIdRef.current !== targetProjectId) return;
       setError(err instanceof Error ? err.message : "プロジェクトの取得に失敗しました");
-    } finally {
-      if (projectIdRef.current === targetProjectId) {
-        setLoadingSnapshot(false);
-      }
     }
   }, []);
 
@@ -96,16 +97,6 @@ export function ProjectDetailPanel({
     setMergeFiles([]);
     void loadSnapshot(projectId);
   }, [projectId, loadSnapshot]);
-
-  const handleExportYaml = () => {
-    if (!snapshotReady) return;
-    downloadText(serializeTestsYaml(snapshot!.definition), "tests.yml", "text/yaml");
-  };
-
-  const handleExportResults = () => {
-    if (!snapshotReady) return;
-    downloadText(serializeResultsJson(snapshot!.results), "results.json", "application/json");
-  };
 
   const appendMergeFiles = (files: File[]) => {
     const { results, unknown } = classifyResultsFiles(files);
@@ -186,20 +177,10 @@ export function ProjectDetailPanel({
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
               <Button onClick={onContinue}>続ける</Button>
-              <Button
-                variant="outline"
-                disabled={!snapshotReady}
-                aria-busy={loadingSnapshot}
-                onClick={handleExportYaml}
-              >
+              <Button variant="outline" onClick={() => void onExportYaml()}>
                 tests.yml
               </Button>
-              <Button
-                variant="outline"
-                disabled={!snapshotReady}
-                aria-busy={loadingSnapshot}
-                onClick={handleExportResults}
-              >
+              <Button variant="outline" onClick={() => void onExportResults()}>
                 results.json
               </Button>
             </div>
