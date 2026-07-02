@@ -53,7 +53,7 @@ export function TestRunner() {
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [dialogBusy, setDialogBusy] = useState(false);
   const [bugDialogOpen, setBugDialogOpen] = useState(false);
   const [bugDialogState, setBugDialogState] = useState<BugDialogOpenState | null>(null);
   const [bugCreateMore, setBugCreateMore] = useState(false);
@@ -230,18 +230,13 @@ export function TestRunner() {
   );
 
   const applyBatch = useCallback(
-    async (status: TestStatus) => {
-      if (!current || !envTargets || busy || testSlideIndex == null) return;
+    (status: TestStatus) => {
+      if (!current || !envTargets || testSlideIndex == null) return;
       cancelPendingAdvance();
-      setBusy(true);
-      try {
-        await updateResultsBatch(current.id, envTargets.environmentIds, {
-          status,
-          memo: memo.trim() || undefined,
-        });
-      } finally {
-        setBusy(false);
-      }
+      void updateResultsBatch(current.id, envTargets.environmentIds, {
+        status,
+        memo: memo.trim() || undefined,
+      });
       const nextSlide =
         testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
 
@@ -252,7 +247,6 @@ export function TestRunner() {
       void advanceAfterComplete(nextSlide);
     },
     [
-      busy,
       cancelPendingAdvance,
       current,
       envTargets,
@@ -266,65 +260,59 @@ export function TestRunner() {
   );
 
   const applySingle = useCallback(
-    async (envId: string, status: TestStatus) => {
-      if (!current || !session || !envTargets || !results || !definition || busy || testSlideIndex == null) return;
+    (envId: string, status: TestStatus) => {
+      if (!current || !session || !envTargets || !results || !definition || testSlideIndex == null) return;
       cancelPendingAdvance();
-      setBusy(true);
-      try {
-        const existing = results.results[current.id]?.[envId];
-        const validExisting = isResultEntryValid(existing, current) ? existing : undefined;
-        await updateResults(current.id, envId, {
-          status,
-          memo: memo.trim() || validExisting?.memo,
-          executedAt: new Date().toISOString(),
-          executedBy: session.executorName,
-        });
+      const existing = results.results[current.id]?.[envId];
+      const validExisting = isResultEntryValid(existing, current) ? existing : undefined;
+      void updateResults(current.id, envId, {
+        status,
+        memo: memo.trim() || validExisting?.memo,
+        executedAt: new Date().toISOString(),
+        executedBy: session.executorName,
+      });
 
-        const version = getTestCaseVersion(current);
-        const nextEntry = {
-          status,
-          memo: memo.trim() || validExisting?.memo,
-          ...(version > 1 ? { version } : {}),
-        };
-        const nextByEnv = {
-          ...(results.results[current.id] ?? {}),
-          [envId]: nextEntry,
-        };
-        const completionTargets = resolveIncompleteCheckTargets(
-          current,
-          definition,
-          session.selectedEnvironmentIds,
-        );
-        const isComplete =
-          completionTargets.required === "any"
-            ? completionTargets.environmentIds.some((id) =>
-                isResultEntryValid(nextByEnv[id], current),
-              )
-            : completionTargets.environmentIds.every((id) =>
-                isResultEntryValid(nextByEnv[id], current),
-              );
+      const version = getTestCaseVersion(current);
+      const nextEntry = {
+        status,
+        memo: memo.trim() || validExisting?.memo,
+        ...(version > 1 ? { version } : {}),
+      };
+      const nextByEnv = {
+        ...(results.results[current.id] ?? {}),
+        [envId]: nextEntry,
+      };
+      const completionTargets = resolveIncompleteCheckTargets(
+        current,
+        definition,
+        session.selectedEnvironmentIds,
+      );
+      const isComplete =
+        completionTargets.required === "any"
+          ? completionTargets.environmentIds.some((id) =>
+              isResultEntryValid(nextByEnv[id], current),
+            )
+          : completionTargets.environmentIds.every((id) =>
+              isResultEntryValid(nextByEnv[id], current),
+            );
 
-        if (isComplete) {
-          const nextSlide =
-            testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
+      if (isComplete) {
+        const nextSlide =
+          testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
 
-          if (status === "NG") {
-            pendingAdvanceSlideRef.current = nextSlide;
-            openBugDialog({
-              initialTestCaseLinked: true,
-              initialEnvironmentIds: [envId],
-              fromNg: true,
-            });
-            return;
-          }
-          void advanceAfterComplete(nextSlide);
+        if (status === "NG") {
+          pendingAdvanceSlideRef.current = nextSlide;
+          openBugDialog({
+            initialTestCaseLinked: true,
+            initialEnvironmentIds: [envId],
+            fromNg: true,
+          });
+          return;
         }
-      } finally {
-        setBusy(false);
+        void advanceAfterComplete(nextSlide);
       }
     },
     [
-      busy,
       cancelPendingAdvance,
       current,
       definition,
@@ -341,22 +329,17 @@ export function TestRunner() {
   );
 
   const applyClear = useCallback(
-    async (envId: string) => {
-      if (!current || busy || testSlideIndex == null) return;
-      setBusy(true);
-      try {
-        await clearTestResult(current.id, envId);
-      } finally {
-        setBusy(false);
-      }
+    (envId: string) => {
+      if (!current || testSlideIndex == null) return;
+      void clearTestResult(current.id, envId);
     },
-    [busy, clearTestResult, current, testSlideIndex],
+    [clearTestResult, current, testSlideIndex],
   );
 
   const handleBugSubmit = useCallback(
     async (draft: BugDialogDraft) => {
       if (!results) return;
-      setBusy(true);
+      setDialogBusy(true);
       try {
         const bug = bugDraftToBug(nextBugId(results.bugs), draft);
         await addBug(bug);
@@ -367,7 +350,7 @@ export function TestRunner() {
         }
         closeBugDialog(false);
       } finally {
-        setBusy(false);
+        setDialogBusy(false);
       }
     },
     [bugCreateMore, closeBugDialog, results, addBug],
@@ -375,11 +358,11 @@ export function TestRunner() {
 
   const handleRelatedBugSave = useCallback(
     async (bug: Bug) => {
-      setBusy(true);
+      setDialogBusy(true);
       try {
         await updateBug(bug);
       } finally {
-        setBusy(false);
+        setDialogBusy(false);
       }
     },
     [updateBug],
@@ -388,11 +371,11 @@ export function TestRunner() {
   const handleTestCaseSave = useCallback(
     async (patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>) => {
       if (!current) return;
-      setBusy(true);
+      setDialogBusy(true);
       try {
         await updateTestCase(current.id, patch);
       } finally {
-        setBusy(false);
+        setDialogBusy(false);
       }
     },
     [current, updateTestCase],
@@ -411,7 +394,7 @@ export function TestRunner() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (busy || bugDialogOpen || relatedBugsDialogOpen || testCaseEditDialogOpen) return;
+      if (dialogBusy || bugDialogOpen || relatedBugsDialogOpen || testCaseEditDialogOpen) return;
       if (isRunnerTypingTarget(e.target)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
@@ -451,7 +434,7 @@ export function TestRunner() {
     bugDialogOpen,
     relatedBugsDialogOpen,
     testCaseEditDialogOpen,
-    busy,
+    dialogBusy,
     goToSlide,
     maxSlide,
     openManualBugDialog,
@@ -470,7 +453,6 @@ export function TestRunner() {
               <RunnerIntroCard
                 canPrev={slideIndex > 0}
                 canNext={slideIndex < maxSlide}
-                busy={busy}
                 onPrev={() => goToSlide(slideIndex - 1)}
                 onNext={() => goToSlide(slideIndex + 1)}
               />
@@ -480,7 +462,6 @@ export function TestRunner() {
                 testCount={targets.length}
                 canPrev={slideIndex > 0}
                 canNext={slideIndex < maxSlide}
-                busy={busy}
                 onPrev={() => goToSlide(slideIndex - 1)}
                 onNext={() => goToSlide(slideIndex + 1)}
               />
@@ -492,7 +473,6 @@ export function TestRunner() {
                 results={results.results}
                 envTargets={envTargets}
                 memo={memo}
-                busy={busy}
                 canPrev={slideIndex > 0}
                 canNext={slideIndex < maxSlide}
                 onPrev={() => goToSlide(slideIndex - 1)}
@@ -524,7 +504,7 @@ export function TestRunner() {
           createMore={bugCreateMore}
           formKey={bugFormKey}
           defaultAssignee={session.executorName}
-          busy={busy}
+          busy={dialogBusy}
           onCreateMoreChange={setBugCreateMore}
           onSubmit={handleBugSubmit}
           onCancel={() => closeBugDialog(true)}
@@ -538,7 +518,7 @@ export function TestRunner() {
           testCase={current}
           environments={definition.environments}
           availableEnvironmentIds={envTargets.environmentIds}
-          busy={busy}
+          busy={dialogBusy}
           onSave={handleRelatedBugSave}
           onClose={() => setRelatedBugsDialogOpen(false)}
         />
@@ -549,7 +529,7 @@ export function TestRunner() {
           open={testCaseEditDialogOpen}
           testCase={current}
           envTargets={envTargets}
-          busy={busy}
+          busy={dialogBusy}
           onSave={handleTestCaseSave}
           onClose={() => setTestCaseEditDialogOpen(false)}
         />

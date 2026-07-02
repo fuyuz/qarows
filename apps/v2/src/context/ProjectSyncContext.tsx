@@ -237,6 +237,7 @@ export function ProjectSyncProvider({
         userEmailRef.current = await getSyncUser();
         if (cancelled) return;
         setUserEmail(userEmailRef.current);
+        workspace.channel.setActor(userEmailRef.current ?? "");
         const activated = await workspace.controller.activateProject(projectId);
         if (cancelled) return;
         if (!activated) {

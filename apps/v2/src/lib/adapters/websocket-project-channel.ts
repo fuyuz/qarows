@@ -1,4 +1,5 @@
 import {
+  applyProjectCommand,
   projectSnapshotFromRoom,
   IDLE_CONNECTION,
   type ConnectionState,
@@ -18,6 +19,7 @@ export class WebSocketProjectChannel implements ProjectChannel {
   private revision = 0;
   private pendingCommands = 0;
   private connectionStatus: ConnectionStatus = "idle";
+  private actor = "";
 
   connect(projectId: string, handlers: ProjectChannelHandlers): void {
     this.projectId = projectId;
@@ -103,7 +105,13 @@ export class WebSocketProjectChannel implements ProjectChannel {
     return this.snapshot;
   }
 
+  setActor(actor: string): void {
+    this.actor = actor.trim();
+  }
+
   async send(envelope: CommandEnvelope): Promise<void> {
+    this.applyOptimistic(envelope);
+
     this.pendingCommands += 1;
     this.emitConnectionState();
     try {
@@ -111,6 +119,26 @@ export class WebSocketProjectChannel implements ProjectChannel {
     } finally {
       this.pendingCommands = Math.max(0, this.pendingCommands - 1);
       this.emitConnectionState();
+    }
+  }
+
+  private applyOptimistic(envelope: CommandEnvelope): void {
+    if (!this.snapshot || !this.handlers) return;
+
+    try {
+      const { snapshot: next } = applyProjectCommand(this.snapshot, envelope.command, {
+        actor: this.actor || undefined,
+      });
+      this.snapshot = next;
+      this.handlers.onEvent?.({
+        type: "commandApplied",
+        command: envelope.command,
+        snapshot: next,
+        revision: this.revision,
+        commandId: envelope.commandId,
+      });
+    } catch {
+      // Server remains authoritative; invalid optimistic commands are dropped locally.
     }
   }
 

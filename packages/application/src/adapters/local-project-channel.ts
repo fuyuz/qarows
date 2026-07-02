@@ -84,10 +84,6 @@ export class LocalProjectChannel implements ProjectChannel {
       this.snapshot = next;
       this.revision += 1;
 
-      if (this.onPersist) {
-        await this.onPersist(next);
-      }
-
       this.handlers?.onEvent?.({
         type: "commandApplied",
         command: envelope.command,
@@ -96,6 +92,10 @@ export class LocalProjectChannel implements ProjectChannel {
         commandId: envelope.commandId,
       });
       this.handlers?.onEvent?.({ type: "connectionState", state: this.getConnectionState() });
+
+      if (this.onPersist) {
+        await this.onPersist(next);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.handlers?.onEvent?.({ type: "error", message });
