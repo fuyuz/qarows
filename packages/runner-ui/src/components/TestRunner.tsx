@@ -277,7 +277,6 @@ export function TestRunner() {
           status,
           memo: memo.trim() || validExisting?.memo,
           executedAt: new Date().toISOString(),
-          executedBy: session.executorName,
         });
 
         const version = getTestCaseVersion(current);

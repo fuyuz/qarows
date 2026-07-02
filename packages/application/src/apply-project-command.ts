@@ -43,19 +43,29 @@ export function applyProjectCommand(
   options: ApplyProjectCommandOptions = {},
 ): ApplyProjectCommandResult {
   const now = options.now ?? new Date().toISOString();
+  const actor = options.actor?.trim();
   validateProjectCommand(snapshot, command);
 
   switch (command.type) {
     case "setSession": {
-      validateSession(command.session);
+      const session = actor
+        ? { ...command.session, executorName: actor }
+        : command.session;
+      validateSession(session);
       return {
-        snapshot: { ...snapshot, session: command.session, updatedAt: now },
+        snapshot: { ...snapshot, session, updatedAt: now },
         affectedTestCaseId: null,
       };
     }
 
     case "updateResult": {
-      const stamped = stampResultVersion(snapshot, command.testCaseId, command.entry);
+      let entry = command.entry;
+      if (actor) {
+        entry = { ...entry, executedBy: actor };
+      } else if (!entry.executedBy?.trim() && snapshot.session) {
+        entry = { ...entry, executedBy: snapshot.session.executorName };
+      }
+      const stamped = stampResultVersion(snapshot, command.testCaseId, entry);
       const next = withUpdatedResults(snapshot, {
         ...snapshot.results,
         results: {
@@ -77,12 +87,13 @@ export function applyProjectCommand(
       const testCase = snapshot.definition.testCases.find((tc) => tc.id === command.testCaseId);
       const version = testCase ? getTestCaseVersion(testCase) : 1;
       const caseResults = { ...(snapshot.results.results[command.testCaseId] ?? {}) };
+      const executedBy = actor || session.executorName;
       for (const envId of command.envIds) {
         caseResults[envId] = {
           status: command.partial.status,
           memo: command.partial.memo ?? caseResults[envId]?.memo,
           executedAt: now,
-          executedBy: session.executorName,
+          executedBy,
           ...(version > 1 ? { version } : {}),
         };
       }

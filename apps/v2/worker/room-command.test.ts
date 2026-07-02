@@ -38,7 +38,7 @@ function applyRoomCommand(
     updatedAt: state.results.updatedAt,
   });
 
-  const { snapshot: next } = applyProjectCommand(snapshot, command);
+  const { snapshot: next } = applyProjectCommand(snapshot, command, { actor: user });
   const nextState: RoomState = {
     revision: state.revision + 1,
     definition: next.definition,

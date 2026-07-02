@@ -28,6 +28,30 @@ describe("SessionSetupForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("submits fixed executor name when provided", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <SessionSetupForm
+        projectName="Demo"
+        environments={environments}
+        fixedExecutorName="qa@example.com"
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.click(screen.getAllByRole("checkbox")[0]!);
+    await user.click(screen.getByRole("button", { name: "テスト実行を開始" }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        executorName: "qa@example.com",
+        selectedEnvironmentIds: ["chrome"],
+      });
+    });
+  });
+
   it("submits trimmed session when valid", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);

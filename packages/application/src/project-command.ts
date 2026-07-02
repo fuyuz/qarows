@@ -43,6 +43,8 @@ export type ProjectCommand =
 export interface ApplyProjectCommandOptions {
   /** テスト用固定時刻。省略時は実行時の ISO 文字列 */
   now?: string;
+  /** Team 版: 認証済みユーザ。指定時は実施者名・executedBy を上書きする */
+  actor?: string;
 }
 
 export interface ApplyProjectCommandResult {

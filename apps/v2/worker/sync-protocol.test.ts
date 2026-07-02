@@ -50,7 +50,7 @@ describe("sync-protocol", () => {
       commandId: "cmd-session",
       command: {
         type: "setSession",
-        session: { executorName: "Alice", selectedEnvironmentIds: ["chrome"] },
+        session: { selectedEnvironmentIds: ["chrome"] },
       },
     });
 

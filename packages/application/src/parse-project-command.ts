@@ -64,9 +64,8 @@ function isStringArray(value: unknown, maxItems: number, maxItemLength: number):
 
 function parseSession(value: unknown): ProjectCommand | null {
   if (!isRecord(value)) return null;
-  const executorName = value.executorName;
+  const executorName = typeof value.executorName === "string" ? value.executorName : "";
   const selectedEnvironmentIds = value.selectedEnvironmentIds;
-  if (!isNonEmptyString(executorName, MAX_SHORT_TEXT)) return null;
   if (!isStringArray(selectedEnvironmentIds, MAX_ENVIRONMENT_IDS, MAX_ID_LENGTH)) return null;
   return {
     type: "setSession",

@@ -19,6 +19,12 @@ import type {
 } from "@qarows/shared";
 import type { ConnectionStatus, ProjectCommand, ProjectEvent } from "@qarows/application";
 import { createTeamWorkspaceController } from "@/lib/adapters/create-team-workspace";
+import {
+  loadLocalSelectedEnvironmentIds,
+  mergeSessionWithLocalEnvironments,
+  sanitizeLocalSelectedEnvironmentIds,
+  saveLocalSelectedEnvironmentIds,
+} from "@/lib/local-session";
 import { getSyncUser } from "@/lib/sync/sync-user";
 
 interface ProjectSyncContextValue {
@@ -32,9 +38,10 @@ interface ProjectSyncContextValue {
   definition: TestDefinition | null;
   results: ResultsFile | null;
   session: SessionConfig | null;
+  userEmail: string | null;
   lastUpdatedTestId: string | null;
   syncPulseKey: number;
-  setSession: (session: SessionConfig) => Promise<void>;
+  setSession: (selectedEnvironmentIds: string[]) => Promise<void>;
   updateResults: (
     testCaseId: string,
     envId: string,
@@ -88,6 +95,7 @@ export function ProjectSyncProvider({
   const [definition, setDefinition] = useState<TestDefinition | null>(null);
   const [results, setResults] = useState<ResultsFile | null>(null);
   const [session, setSessionState] = useState<SessionConfig | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [lastUpdatedTestId, setLastUpdatedTestId] = useState<string | null>(null);
   const [syncPulseKey, setSyncPulseKey] = useState(0);
 
@@ -99,6 +107,34 @@ export function ProjectSyncProvider({
   const noticeClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readyRef = useRef(false);
   const connectedRef = useRef(false);
+  const userEmailRef = useRef<string | null>(null);
+
+  const mergeSessionFromSnapshot = useCallback(
+    (serverSession: SessionConfig | null): SessionConfig | null => {
+      const userEmail = userEmailRef.current;
+      const localEnvironmentIds =
+        userEmail != null ? loadLocalSelectedEnvironmentIds(projectId, userEmail) : null;
+      return mergeSessionWithLocalEnvironments(
+        serverSession,
+        localEnvironmentIds,
+        userEmail,
+      );
+    },
+    [projectId],
+  );
+
+  const persistLocalEnvironmentIds = useCallback(
+    (selectedEnvironmentIds: string[]) => {
+      const userEmail = userEmailRef.current;
+      if (userEmail == null) return;
+      const sanitized =
+        definitionRef.current != null
+          ? sanitizeLocalSelectedEnvironmentIds(selectedEnvironmentIds, definitionRef.current)
+          : selectedEnvironmentIds;
+      saveLocalSelectedEnvironmentIds(projectId, userEmail, sanitized);
+    },
+    [projectId],
+  );
 
   const pulseSyncIndicator = useCallback(() => {
     setSyncPulseKey((key) => key + 1);
@@ -125,12 +161,13 @@ export function ProjectSyncProvider({
     }) => {
       definitionRef.current = snapshot.definition;
       resultsRef.current = snapshot.results;
-      sessionRef.current = snapshot.session;
+      const mergedSession = mergeSessionFromSnapshot(snapshot.session);
+      sessionRef.current = mergedSession;
       setDefinition(snapshot.definition);
       setResults(snapshot.results);
-      setSessionState(snapshot.session);
+      setSessionState(mergedSession);
     },
-    [],
+    [mergeSessionFromSnapshot],
   );
 
   useEffect(() => {
@@ -152,9 +189,20 @@ export function ProjectSyncProvider({
           if (wasReady && connectedRef.current) pulseSyncIndicator();
           return;
         }
-        case "snapshotReplaced":
+        case "snapshotReplaced": {
           setRevision(event.revision);
           applySnapshotState(event.snapshot);
+          const userEmail = userEmailRef.current;
+          if (userEmail != null) {
+            const localEnvironmentIds = loadLocalSelectedEnvironmentIds(projectId, userEmail);
+            if (localEnvironmentIds != null) {
+              const sanitized = sanitizeLocalSelectedEnvironmentIds(
+                localEnvironmentIds,
+                event.snapshot.definition,
+              );
+              saveLocalSelectedEnvironmentIds(projectId, userEmail, sanitized);
+            }
+          }
           setReady(true);
           readyRef.current = true;
           setSyncError(null);
@@ -164,6 +212,7 @@ export function ProjectSyncProvider({
           noticeClearTimerRef.current = setTimeout(() => setSyncNotice(null), 8000);
           if (connectedRef.current) pulseSyncIndicator();
           return;
+        }
         case "commandApplied":
           setRevision(event.revision);
           applySnapshotState(event.snapshot);
@@ -193,8 +242,9 @@ export function ProjectSyncProvider({
 
     void (async () => {
       try {
-        await getSyncUser();
+        userEmailRef.current = await getSyncUser();
         if (cancelled) return;
+        setUserEmail(userEmailRef.current);
         const activated = await workspace.controller.activateProject(projectId);
         if (cancelled) return;
         if (!activated) {
@@ -223,10 +273,20 @@ export function ProjectSyncProvider({
   }, []);
 
   const setSession = useCallback(
-    async (nextSession: SessionConfig) => {
-      await dispatch({ type: "setSession", session: nextSession });
+    async (selectedEnvironmentIds: string[]) => {
+      persistLocalEnvironmentIds(selectedEnvironmentIds);
+      const mergedSession = mergeSessionFromSnapshot({
+        executorName: userEmailRef.current ?? "",
+        selectedEnvironmentIds,
+      });
+      sessionRef.current = mergedSession;
+      setSessionState(mergedSession);
+      await dispatch({
+        type: "setSession",
+        session: { executorName: "", selectedEnvironmentIds },
+      });
     },
-    [dispatch],
+    [dispatch, mergeSessionFromSnapshot, persistLocalEnvironmentIds],
   );
 
   const updateResults = useCallback(
@@ -295,6 +355,7 @@ export function ProjectSyncProvider({
       definition,
       results,
       session,
+      userEmail,
       lastUpdatedTestId,
       syncPulseKey,
       setSession,
@@ -316,6 +377,7 @@ export function ProjectSyncProvider({
       definition,
       results,
       session,
+      userEmail,
       lastUpdatedTestId,
       syncPulseKey,
       setSession,

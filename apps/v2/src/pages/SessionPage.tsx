@@ -6,7 +6,7 @@ import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 
 export function SessionPage() {
   const navigate = useNavigate();
-  const { definition, session, syncError, setSession } = useProjectSync();
+  const { definition, session, syncError, setSession, userEmail } = useProjectSync();
   const { path } = useProjectRoutes();
 
   if (!definition) return null;
@@ -18,12 +18,12 @@ export function SessionPage() {
         <SessionSetupForm
           projectName={definition.project.name}
           environments={definition.environments}
-          initialExecutorName={session?.executorName}
           initialSelectedEnvIds={session?.selectedEnvironmentIds}
+          fixedExecutorName={userEmail ?? undefined}
           syncError={syncError}
           submittingSubmitLabel="保存中…"
-          onSubmit={async (nextSession) => {
-            await setSession(nextSession);
+          onSubmit={async ({ selectedEnvironmentIds }) => {
+            await setSession(selectedEnvironmentIds);
             navigate(path("run"));
           }}
         />

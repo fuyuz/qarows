@@ -34,6 +34,51 @@ describe("applyProjectCommand", () => {
     expect(next.session?.executorName).toBe("Alice");
   });
 
+  it("setSession overwrites executorName when actor is set", () => {
+    const snapshot = makeSnapshot();
+    const { snapshot: next } = applyProjectCommand(
+      snapshot,
+      {
+        type: "setSession",
+        session: { executorName: "fake", selectedEnvironmentIds: ["chrome"] },
+      },
+      { now: NOW, actor: "qa@example.com" },
+    );
+    expect(next.session?.executorName).toBe("qa@example.com");
+  });
+
+  it("updateResult overwrites executedBy when actor is set", () => {
+    const snapshot = makeSnapshot();
+    const { snapshot: next } = applyProjectCommand(
+      snapshot,
+      {
+        type: "updateResult",
+        testCaseId: "TC-001",
+        envId: "chrome",
+        entry: { status: "OK", executedBy: "fake" },
+      },
+      { now: NOW, actor: "qa@example.com" },
+    );
+    expect(next.results.results["TC-001"]?.chrome?.executedBy).toBe("qa@example.com");
+  });
+
+  it("updateResult stamps executedBy from session when entry omits it", () => {
+    const snapshot = makeSnapshot({
+      session: { executorName: "Alice", selectedEnvironmentIds: ["chrome"] },
+    });
+    const { snapshot: next } = applyProjectCommand(
+      snapshot,
+      {
+        type: "updateResult",
+        testCaseId: "TC-001",
+        envId: "chrome",
+        entry: { status: "OK" },
+      },
+      { now: NOW },
+    );
+    expect(next.results.results["TC-001"]?.chrome?.executedBy).toBe("Alice");
+  });
+
   it("updateResultsBatch stamps executor and version", () => {
     const definition = makeDefinition({
       testCases: [
@@ -70,6 +115,28 @@ describe("applyProjectCommand", () => {
       version: 2,
     });
     expect(next.results.results["TC-001"]?.firefox?.executedBy).toBe("Bob");
+  });
+
+  it("updateResultsBatch uses actor over session executorName", () => {
+    const definition = makeDefinition();
+    const id = definition.project.id ?? "test";
+    const snapshot = makeSnapshot({
+      definition,
+      session: { executorName: "Bob", selectedEnvironmentIds: ["chrome"] },
+    });
+
+    const { snapshot: next } = applyProjectCommand(
+      snapshot,
+      {
+        type: "updateResultsBatch",
+        testCaseId: "TC-001",
+        envIds: ["chrome"],
+        partial: { status: "OK" },
+      },
+      { now: NOW, actor: "qa@example.com" },
+    );
+
+    expect(next.results.results["TC-001"]?.chrome?.executedBy).toBe("qa@example.com");
   });
 
   it("mergeResults applies OK < SKIP < NG", () => {

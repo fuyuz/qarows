@@ -13,6 +13,17 @@ describe("parseClientProjectCommand", () => {
     expect(cmd?.type).toBe("updateResult");
   });
 
+  it("accepts setSession without executorName", () => {
+    const cmd = parseClientProjectCommand({
+      type: "setSession",
+      session: { selectedEnvironmentIds: ["chrome"] },
+    });
+    expect(cmd).toEqual({
+      type: "setSession",
+      session: { executorName: "", selectedEnvironmentIds: ["chrome"] },
+    });
+  });
+
   it("rejects mergeResults from client", () => {
     expect(
       parseClientProjectCommand({

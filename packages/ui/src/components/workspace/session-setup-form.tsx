@@ -20,6 +20,8 @@ export interface SessionSetupFormProps {
   idleSubmitLabel?: string;
   submittingSubmitLabel?: string;
   showEmptyEnvHint?: boolean;
+  /** 指定時はログインユーザー等の固定実施者名（入力不可） */
+  fixedExecutorName?: string;
 }
 
 export function SessionSetupForm({
@@ -33,16 +35,17 @@ export function SessionSetupForm({
   idleSubmitLabel = "テスト実行を開始",
   submittingSubmitLabel = "開始中…",
   showEmptyEnvHint = true,
+  fixedExecutorName,
 }: SessionSetupFormProps) {
-  const [executorName, setExecutorName] = useState(initialExecutorName);
+  const [executorName, setExecutorName] = useState(fixedExecutorName ?? initialExecutorName);
   const [selectedEnvIds, setSelectedEnvIds] = useState<string[]>(initialSelectedEnvIds);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [shakeExecutor, setShakeExecutor] = useState(false);
   const [shakeEnvs, setShakeEnvs] = useState(false);
 
-  const trimmedName = executorName.trim();
-  const canStart = trimmedName.length > 0 && selectedEnvIds.length > 0;
+  const resolvedExecutorName = (fixedExecutorName ?? executorName).trim();
+  const canStart = resolvedExecutorName.length > 0 && selectedEnvIds.length > 0;
 
   const toggleEnv = (envId: string) => {
     setSelectedEnvIds((prev) =>
@@ -58,7 +61,7 @@ export function SessionSetupForm({
 
   const handleStart = async () => {
     if (!canStart) {
-      if (!trimmedName) {
+      if (!resolvedExecutorName) {
         setError("実施者名を入力してください");
         setShakeExecutor(true);
         setTimeout(() => setShakeExecutor(false), 350);
@@ -73,7 +76,7 @@ export function SessionSetupForm({
     setError(null);
     try {
       await onSubmit({
-        executorName: trimmedName,
+        executorName: resolvedExecutorName,
         selectedEnvironmentIds: selectedEnvIds,
       });
     } catch (err) {
@@ -99,21 +102,31 @@ export function SessionSetupForm({
       )}
 
       <section className="mb-6">
-        <Label htmlFor="executor-name" className="mb-1.5 block">
-          実施者名 <span className="text-xs font-semibold text-destructive">必須</span>
+        <Label htmlFor={fixedExecutorName ? undefined : "executor-name"} className="mb-1.5 block">
+          実施者{fixedExecutorName ? "" : "名"}{" "}
+          <span className="text-xs font-semibold text-destructive">必須</span>
         </Label>
-        <Input
-          id="executor-name"
-          type="text"
-          required
-          placeholder="例: tanaka"
-          value={executorName}
-          className={cn(shakeExecutor && "animate-ui-shake border-destructive ring-destructive/20")}
-          onChange={(event) => {
-            setExecutorName(event.target.value);
-            setError(null);
-          }}
-        />
+        {fixedExecutorName ? (
+          <p
+            id="executor-name"
+            className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-foreground"
+          >
+            {fixedExecutorName}
+          </p>
+        ) : (
+          <Input
+            id="executor-name"
+            type="text"
+            required
+            placeholder="例: tanaka"
+            value={executorName}
+            className={cn(shakeExecutor && "animate-ui-shake border-destructive ring-destructive/20")}
+            onChange={(event) => {
+              setExecutorName(event.target.value);
+              setError(null);
+            }}
+          />
+        )}
       </section>
 
       <section className="mb-6">

@@ -375,7 +375,7 @@ export class ProjectRoom extends DurableObject<Env> {
       updatedAt: state.results.updatedAt,
     });
 
-    const { snapshot: next } = applyProjectCommand(snapshot, command);
+    const { snapshot: next } = applyProjectCommand(snapshot, command, { actor: user });
     state.revision += 1;
     state.definition = next.definition;
     state.results = next.results;

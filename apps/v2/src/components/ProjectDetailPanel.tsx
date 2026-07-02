@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isValidSession, serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
 import {
   Alert,
@@ -23,6 +23,11 @@ import {
 } from "@qarows/ui";
 import { getProject, type ProjectSnapshot } from "@/lib/api/projects";
 import { appendUniqueFiles, downloadText, fileKey } from "@/lib/file-utils";
+import {
+  loadLocalSelectedEnvironmentIds,
+  mergeSessionWithLocalEnvironments,
+} from "@/lib/local-session";
+import { getSyncUser } from "@/lib/sync/sync-user";
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);
@@ -67,6 +72,7 @@ export function ProjectDetailPanel({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
 
@@ -88,14 +94,29 @@ export function ProjectDetailPanel({
   }, []);
 
   useEffect(() => {
+    void getSyncUser()
+      .then(setUserEmail)
+      .catch(() => setUserEmail(null));
+  }, []);
+
+  useEffect(() => {
     setSuccessMessage(null);
     setMergeFiles([]);
     setSnapshot(null);
     void loadSnapshot(projectId);
   }, [projectId, loadSnapshot]);
 
-  const hasValidSession =
-    snapshot?.session != null && isValidSession(snapshot.session);
+  const hasValidSession = useMemo(() => {
+    if (!snapshot) return false;
+    const localEnvironmentIds =
+      userEmail != null ? loadLocalSelectedEnvironmentIds(projectId, userEmail) : null;
+    const merged = mergeSessionWithLocalEnvironments(
+      snapshot.session,
+      localEnvironmentIds,
+      userEmail,
+    );
+    return merged != null && isValidSession(merged);
+  }, [projectId, snapshot, userEmail]);
 
   const handleExportYaml = () => {
     if (!snapshot) return;
