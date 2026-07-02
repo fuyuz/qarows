@@ -20,8 +20,8 @@ import type {
 import type { ConnectionStatus, ProjectCommand, ProjectEvent } from "@qarows/application";
 import { createTeamWorkspaceController } from "@/lib/adapters/create-team-workspace";
 import {
+  buildLocalSession,
   loadLocalSelectedEnvironmentIds,
-  mergeSessionWithLocalEnvironments,
   sanitizeLocalSelectedEnvironmentIds,
   saveLocalSelectedEnvironmentIds,
 } from "@/lib/local-session";
@@ -109,19 +109,12 @@ export function ProjectSyncProvider({
   const connectedRef = useRef(false);
   const userEmailRef = useRef<string | null>(null);
 
-  const mergeSessionFromSnapshot = useCallback(
-    (serverSession: SessionConfig | null): SessionConfig | null => {
-      const userEmail = userEmailRef.current;
-      const localEnvironmentIds =
-        userEmail != null ? loadLocalSelectedEnvironmentIds(projectId, userEmail) : null;
-      return mergeSessionWithLocalEnvironments(
-        serverSession,
-        localEnvironmentIds,
-        userEmail,
-      );
-    },
-    [projectId],
-  );
+  const loadLocalSession = useCallback((): SessionConfig | null => {
+    const userEmail = userEmailRef.current;
+    const localEnvironmentIds =
+      userEmail != null ? loadLocalSelectedEnvironmentIds(projectId, userEmail) : null;
+    return buildLocalSession(userEmail, localEnvironmentIds);
+  }, [projectId]);
 
   const persistLocalEnvironmentIds = useCallback(
     (selectedEnvironmentIds: string[]) => {
@@ -157,17 +150,16 @@ export function ProjectSyncProvider({
     (snapshot: {
       definition: TestDefinition;
       results: ResultsFile;
-      session: SessionConfig | null;
     }) => {
       definitionRef.current = snapshot.definition;
       resultsRef.current = snapshot.results;
-      const mergedSession = mergeSessionFromSnapshot(snapshot.session);
-      sessionRef.current = mergedSession;
+      const localSession = loadLocalSession();
+      sessionRef.current = localSession;
       setDefinition(snapshot.definition);
       setResults(snapshot.results);
-      setSessionState(mergedSession);
+      setSessionState(localSession);
     },
-    [mergeSessionFromSnapshot],
+    [loadLocalSession],
   );
 
   useEffect(() => {
@@ -275,18 +267,18 @@ export function ProjectSyncProvider({
   const setSession = useCallback(
     async (selectedEnvironmentIds: string[]) => {
       persistLocalEnvironmentIds(selectedEnvironmentIds);
-      const mergedSession = mergeSessionFromSnapshot({
-        executorName: userEmailRef.current ?? "",
+      const localSession = buildLocalSession(
+        userEmailRef.current,
         selectedEnvironmentIds,
-      });
-      sessionRef.current = mergedSession;
-      setSessionState(mergedSession);
+      );
+      sessionRef.current = localSession;
+      setSessionState(localSession);
       await dispatch({
         type: "setSession",
-        session: { executorName: "", selectedEnvironmentIds },
+        session: { selectedEnvironmentIds, executorName: "" },
       });
     },
-    [dispatch, mergeSessionFromSnapshot, persistLocalEnvironmentIds],
+    [dispatch, persistLocalEnvironmentIds],
   );
 
   const updateResults = useCallback(

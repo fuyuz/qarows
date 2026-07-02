@@ -408,7 +408,7 @@ export class ProjectRoom extends DurableObject<Env> {
 
   private async persistToD1(): Promise<void> {
     if (!this.state || !this.projectId) return;
-    const { testsYaml, resultsJson, session, updatedAt } = snapshotToPersisted({
+    const { testsYaml, resultsJson, sessionStarted, updatedAt } = snapshotToPersisted({
       definition: this.state.definition,
       results: this.state.results,
       session: this.state.session,
@@ -417,7 +417,7 @@ export class ProjectRoom extends DurableObject<Env> {
     await updateProjectSnapshot(this.env.DB, this.projectId, {
       testsYaml,
       resultsJson,
-      session,
+      sessionStarted,
       updatedAt,
     });
   }

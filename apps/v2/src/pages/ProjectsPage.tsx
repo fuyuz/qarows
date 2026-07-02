@@ -68,9 +68,9 @@ export function ProjectsPage() {
   }, [projectId, projectSummaries]);
 
   const handleContinue = useCallback(
-    (targetProjectId: string, hasValidSession: boolean) => {
-      markProjectOpened(targetProjectId);
-      navigate(projectPath(targetProjectId, hasValidSession ? "run" : "session"));
+    (summary: (typeof projectSummaries)[number]) => {
+      markProjectOpened(summary.id);
+      navigate(projectPath(summary.id, summary.hasValidSession ? "run" : "session"));
     },
     [markProjectOpened, navigate],
   );
@@ -143,9 +143,7 @@ export function ProjectsPage() {
                         updatedAt={selectedSummary.updatedAt}
                         hasValidSession={selectedSummary.hasValidSession}
                         isLastOpened={selectedSummary.id === lastOpenedProjectId}
-                        onContinue={() =>
-                          handleContinue(selectedSummary.id, selectedSummary.hasValidSession)
-                        }
+                        onContinue={() => handleContinue(selectedSummary)}
                         onMerge={(files, expectedGeneration) =>
                           handleMerge(selectedSummary.id, files, expectedGeneration)
                         }

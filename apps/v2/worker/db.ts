@@ -5,7 +5,6 @@ import {
   parseResultsJson,
   parseTestsYaml,
   reconcileResultsOnDefinitionReplace,
-  sanitizeSessionOnDefinitionReplace,
   serializeResultsJson,
   serializeTestsYaml,
   type ResultsFile,
@@ -18,7 +17,7 @@ export interface ProjectRow {
   name: string;
   tests_yaml: string;
   results_json: string;
-  session_json: string | null;
+  session_started: number;
   generation: string;
   updated_at: string;
   created_at: string;
@@ -55,16 +54,21 @@ function resolveGeneration(projectId: string, generation: string | null | undefi
   return `${projectId}-legacy`;
 }
 
+/** D1 は session_started のみ永続化。DO 再読込時の in-memory プレースホルダ。 */
+export function sessionFromStartedFlag(sessionStarted: boolean): SessionConfig | null {
+  if (!sessionStarted) return null;
+  return { executorName: "", selectedEnvironmentIds: [] };
+}
+
 function rowToSnapshot(row: ProjectRow): ProjectSnapshot {
   const definition = parseTestsYaml(row.tests_yaml);
   const results = parseResultsJson(row.results_json, { definition });
-  const session = row.session_json ? (JSON.parse(row.session_json) as SessionConfig) : null;
   return {
     id: row.id,
     name: row.name,
     definition,
     results,
-    session,
+    session: sessionFromStartedFlag(row.session_started === 1),
     generation: resolveGeneration(row.id, row.generation),
     updatedAt: row.updated_at,
     createdAt: row.created_at,
@@ -102,7 +106,6 @@ export async function insertProject(
   input: {
     testsYaml: string;
     resultsJson?: string;
-    session?: SessionConfig | null;
   },
 ): Promise<ProjectSnapshot> {
   const definition = parseTestsYaml(input.testsYaml);
@@ -112,19 +115,17 @@ export async function insertProject(
   const results = input.resultsJson
     ? parseResultsJson(input.resultsJson, { definition })
     : createEmptyResults(projectId);
-  const sessionJson = input.session ? JSON.stringify(input.session) : null;
 
   await db
     .prepare(
-      `INSERT INTO projects (id, name, tests_yaml, results_json, session_json, generation, updated_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO projects (id, name, tests_yaml, results_json, session_started, generation, updated_at, created_at)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?)`,
     )
     .bind(
       projectId,
       definition.project.name,
       input.testsYaml,
       serializeResultsJson(results),
-      sessionJson,
       generation,
       now,
       now,
@@ -140,7 +141,7 @@ export async function updateProjectSnapshot(
   input: {
     testsYaml?: string;
     resultsJson?: string;
-    session?: SessionConfig | null;
+    sessionStarted?: boolean;
     updatedAt?: string;
   },
 ): Promise<ProjectSnapshot | null> {
@@ -156,25 +157,21 @@ export async function updateProjectSnapshot(
     input.resultsJson ??
     existing.results_json ??
     serializeResultsJson(createEmptyResults(projectId));
-  const sessionJson =
-    input.session !== undefined
-      ? input.session
-        ? JSON.stringify(input.session)
-        : null
-      : existing.session_json;
+  const sessionStarted =
+    input.sessionStarted !== undefined ? (input.sessionStarted ? 1 : 0) : existing.session_started;
   const updatedAt = input.updatedAt ?? new Date().toISOString();
 
   await db
     .prepare(
       `UPDATE projects
-       SET name = ?, tests_yaml = ?, results_json = ?, session_json = ?, updated_at = ?
+       SET name = ?, tests_yaml = ?, results_json = ?, session_started = ?, updated_at = ?
        WHERE id = ?`,
     )
     .bind(
       definition.project.name,
       testsYaml,
       resultsJson,
-      sessionJson,
+      sessionStarted,
       updatedAt,
       projectId,
     )
@@ -183,7 +180,7 @@ export async function updateProjectSnapshot(
   return getProject(db, projectId);
 }
 
-/** tests.yml 置換: 既存 results/session を reconcile して同一行を更新 */
+/** tests.yml 置換: 既存 results を reconcile して同一行を更新 */
 export async function replaceProjectDefinition(
   db: D1Database,
   projectId: string,
@@ -209,21 +206,19 @@ export async function replaceProjectDefinition(
   if (options?.mergeIncoming) {
     results = mergeResultsFiles(results, options.mergeIncoming);
   }
-  const session = sanitizeSessionOnDefinitionReplace(current.session, definition);
   const generation = crypto.randomUUID();
   const updatedAt = new Date().toISOString();
 
   await db
     .prepare(
       `UPDATE projects
-       SET name = ?, tests_yaml = ?, results_json = ?, session_json = ?, generation = ?, updated_at = ?
+       SET name = ?, tests_yaml = ?, results_json = ?, generation = ?, updated_at = ?
        WHERE id = ?`,
     )
     .bind(
       definition.project.name,
       testsYaml,
       serializeResultsJson(results),
-      session ? JSON.stringify(session) : null,
       generation,
       updatedAt,
       projectId,
@@ -243,11 +238,16 @@ export function snapshotToPersisted(row: {
   results: ResultsFile;
   session: SessionConfig | null;
   updatedAt: string;
-}): { testsYaml: string; resultsJson: string; session: SessionConfig | null; updatedAt: string } {
+}): {
+  testsYaml: string;
+  resultsJson: string;
+  sessionStarted: boolean;
+  updatedAt: string;
+} {
   return {
     testsYaml: serializeTestsYaml(row.definition),
     resultsJson: serializeResultsJson(row.results),
-    session: row.session,
+    sessionStarted: row.session != null,
     updatedAt: row.updatedAt,
   };
 }

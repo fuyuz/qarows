@@ -1,15 +1,12 @@
 import { isValidSession } from "@qarows/shared";
 import type { ProjectSummary } from "@/lib/api/projects";
-import {
-  loadLocalSelectedEnvironmentIds,
-  mergeSessionWithLocalEnvironments,
-} from "@/lib/local-session";
+import { buildLocalSession, loadLocalSelectedEnvironmentIds } from "@/lib/local-session";
 
 export function computeHasValidSession(projectId: string, userEmail: string | null): boolean {
-  if (!userEmail) return false;
-  const localEnvironmentIds = loadLocalSelectedEnvironmentIds(projectId, userEmail);
-  const merged = mergeSessionWithLocalEnvironments(null, localEnvironmentIds, userEmail);
-  return merged != null && isValidSession(merged);
+  const localEnvironmentIds =
+    userEmail != null ? loadLocalSelectedEnvironmentIds(projectId, userEmail) : null;
+  const session = buildLocalSession(userEmail, localEnvironmentIds);
+  return session != null && isValidSession(session);
 }
 
 export function enrichSummariesWithSession<T extends ProjectSummary>(

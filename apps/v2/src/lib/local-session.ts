@@ -57,16 +57,15 @@ export function sanitizeLocalSelectedEnvironmentIds(
   return selectedEnvironmentIds.filter((id) => validEnvIds.has(id));
 }
 
-/** サーバー同期 session とブラウザ保存の端末/環境選択を合成する（端末/環境は常にローカル優先） */
-export function mergeSessionWithLocalEnvironments(
-  serverSession: SessionConfig | null,
+/** Team 版: 認証メール + ブラウザ保存の端末/環境選択からセッションを組み立てる */
+export function buildLocalSession(
+  userEmail: string | null,
   localEnvironmentIds: string[] | null,
-  userEmail: string | null = null,
 ): SessionConfig | null {
+  const executorName = userEmail?.trim() ?? "";
   const selectedEnvironmentIds = localEnvironmentIds ?? [];
-  const executorName = userEmail?.trim() || serverSession?.executorName || "";
 
-  if (selectedEnvironmentIds.length === 0 && executorName.trim().length === 0) {
+  if (selectedEnvironmentIds.length === 0 && executorName.length === 0) {
     return null;
   }
 

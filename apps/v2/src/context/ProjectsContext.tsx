@@ -31,7 +31,6 @@ interface ProjectsContextValue {
   ready: boolean;
   loading: boolean;
   error: string | null;
-  userEmail: string | null;
   projectSummaries: EnrichedProjectSummary[];
   lastOpenedProjectId: string | null;
   refreshProjects: () => Promise<void>;
@@ -183,7 +182,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       ready,
       loading,
       error,
-      userEmail,
       projectSummaries,
       lastOpenedProjectId,
       refreshProjects,
@@ -199,7 +197,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       ready,
       loading,
       error,
-      userEmail,
       projectSummaries,
       lastOpenedProjectId,
       refreshProjects,
