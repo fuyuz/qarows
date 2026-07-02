@@ -17,20 +17,25 @@ import {
   mergeProjectResults as mergeProjectResultsApi,
   type ProjectSummary,
 } from "@/lib/api/projects";
+import { clearLocalSelectedEnvironmentIds } from "@/lib/local-session";
+import { enrichSummariesWithSession } from "@/lib/project-session";
+import { getSyncUser } from "@/lib/sync/sync-user";
 
 const LAST_OPENED_KEY = "qarows-v2:lastOpenedProjectId";
 
 export interface EnrichedProjectSummary extends ProjectSummary {
-  hasValidSession?: boolean;
+  hasValidSession: boolean;
 }
 
 interface ProjectsContextValue {
   ready: boolean;
   loading: boolean;
   error: string | null;
+  userEmail: string | null;
   projectSummaries: EnrichedProjectSummary[];
   lastOpenedProjectId: string | null;
   refreshProjects: () => Promise<void>;
+  recomputeSessionState: () => void;
   importProject: (
     testsYaml: string,
     options?: { existingProjectId?: string; resultsJsonList?: string[] },
@@ -69,17 +74,32 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [projectSummaries, setProjectSummaries] = useState<EnrichedProjectSummary[]>([]);
+  const [rawProjectSummaries, setRawProjectSummaries] = useState<ProjectSummary[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [sessionRevision, setSessionRevision] = useState(0);
   const [lastOpenedProjectId, setLastOpenedProjectId] = useState<string | null>(() =>
     readLastOpenedProjectId(),
+  );
+
+  const recomputeSessionState = useCallback(() => {
+    setSessionRevision((revision) => revision + 1);
+  }, []);
+
+  const projectSummaries = useMemo(
+    () => enrichSummariesWithSession(rawProjectSummaries, userEmail),
+    [rawProjectSummaries, userEmail, sessionRevision],
   );
 
   const refreshProjects = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const summaries = await listProjects();
-      setProjectSummaries(summaries);
+      const [summaries, email] = await Promise.all([
+        listProjects(),
+        getSyncUser().catch(() => null),
+      ]);
+      setRawProjectSummaries(summaries);
+      setUserEmail(email);
     } catch (err) {
       setError(err instanceof Error ? err.message : "プロジェクト一覧の取得に失敗しました");
     } finally {
@@ -135,9 +155,13 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const clearProjectResults = useCallback(
     async (projectId: string) => {
       await clearProjectResultsApi(projectId);
+      if (userEmail) {
+        clearLocalSelectedEnvironmentIds(projectId, userEmail);
+      }
+      recomputeSessionState();
       await refreshProjects();
     },
-    [refreshProjects],
+    [refreshProjects, recomputeSessionState, userEmail],
   );
 
   const mergeResultsIntoProject = useCallback(
@@ -159,9 +183,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       ready,
       loading,
       error,
+      userEmail,
       projectSummaries,
       lastOpenedProjectId,
       refreshProjects,
+      recomputeSessionState,
       importProject,
       createNamedProject,
       removeProject,
@@ -173,9 +199,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       ready,
       loading,
       error,
+      userEmail,
       projectSummaries,
       lastOpenedProjectId,
       refreshProjects,
+      recomputeSessionState,
       importProject,
       createNamedProject,
       removeProject,

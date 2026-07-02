@@ -30,6 +30,7 @@ export function ProjectsPage() {
     error,
     projectSummaries,
     lastOpenedProjectId,
+    recomputeSessionState,
     removeProject,
     clearProjectResults,
     mergeResultsIntoProject,
@@ -41,6 +42,10 @@ export function ProjectsPage() {
     () => resolveDefaultSelection(projectSummaries, lastOpenedProjectId),
     [projectSummaries, lastOpenedProjectId],
   );
+
+  useEffect(() => {
+    recomputeSessionState();
+  }, [recomputeSessionState]);
 
   useEffect(() => {
     if (!ready) return;
@@ -136,9 +141,10 @@ export function ProjectsPage() {
                         projectId={selectedSummary.id}
                         name={selectedSummary.name}
                         updatedAt={selectedSummary.updatedAt}
+                        hasValidSession={selectedSummary.hasValidSession}
                         isLastOpened={selectedSummary.id === lastOpenedProjectId}
-                        onContinue={(hasValidSession) =>
-                          handleContinue(selectedSummary.id, hasValidSession)
+                        onContinue={() =>
+                          handleContinue(selectedSummary.id, selectedSummary.hasValidSession)
                         }
                         onMerge={(files, expectedGeneration) =>
                           handleMerge(selectedSummary.id, files, expectedGeneration)

@@ -21,7 +21,7 @@ export function ProjectList() {
       lastOpenedProjectId={lastOpenedProjectId}
       newProjectSelectionId={NEW_PROJECT_SELECTION}
       onSelect={(nextProjectId) => void setProjectId(nextProjectId)}
-      showSessionBadge={false}
+      showSessionBadge={true}
     />
   );
 }

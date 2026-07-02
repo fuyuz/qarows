@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isValidSession, serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
 import {
   Alert,
   AlertDescription,
@@ -23,11 +23,6 @@ import {
 } from "@qarows/ui";
 import { getProject, type ProjectSnapshot } from "@/lib/api/projects";
 import { appendUniqueFiles, downloadText, fileKey } from "@/lib/file-utils";
-import {
-  loadLocalSelectedEnvironmentIds,
-  mergeSessionWithLocalEnvironments,
-} from "@/lib/local-session";
-import { getSyncUser } from "@/lib/sync/sync-user";
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);
@@ -45,8 +40,9 @@ export interface ProjectDetailPanelProps {
   projectId: string;
   name: string;
   updatedAt: string;
+  hasValidSession: boolean;
   isLastOpened: boolean;
-  onContinue: (hasValidSession: boolean) => void;
+  onContinue: () => void;
   onMerge: (files: File[], expectedGeneration: string) => Promise<void>;
   onClearResults: () => Promise<void>;
   onDelete: () => Promise<void>;
@@ -56,6 +52,7 @@ export function ProjectDetailPanel({
   projectId,
   name,
   updatedAt,
+  hasValidSession,
   isLastOpened,
   onContinue,
   onMerge,
@@ -72,9 +69,10 @@ export function ProjectDetailPanel({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
+
+  const snapshotReady = snapshot != null && snapshot.id === projectId && !loadingSnapshot;
 
   const loadSnapshot = useCallback(async (targetProjectId: string) => {
     setLoadingSnapshot(true);
@@ -94,38 +92,19 @@ export function ProjectDetailPanel({
   }, []);
 
   useEffect(() => {
-    void getSyncUser()
-      .then(setUserEmail)
-      .catch(() => setUserEmail(null));
-  }, []);
-
-  useEffect(() => {
     setSuccessMessage(null);
     setMergeFiles([]);
-    setSnapshot(null);
     void loadSnapshot(projectId);
   }, [projectId, loadSnapshot]);
 
-  const hasValidSession = useMemo(() => {
-    if (!snapshot) return false;
-    const localEnvironmentIds =
-      userEmail != null ? loadLocalSelectedEnvironmentIds(projectId, userEmail) : null;
-    const merged = mergeSessionWithLocalEnvironments(
-      snapshot.session,
-      localEnvironmentIds,
-      userEmail,
-    );
-    return merged != null && isValidSession(merged);
-  }, [projectId, snapshot, userEmail]);
-
   const handleExportYaml = () => {
-    if (!snapshot) return;
-    downloadText(serializeTestsYaml(snapshot.definition), "tests.yml", "text/yaml");
+    if (!snapshotReady) return;
+    downloadText(serializeTestsYaml(snapshot!.definition), "tests.yml", "text/yaml");
   };
 
   const handleExportResults = () => {
-    if (!snapshot) return;
-    downloadText(serializeResultsJson(snapshot.results), "results.json", "application/json");
+    if (!snapshotReady) return;
+    downloadText(serializeResultsJson(snapshot!.results), "results.json", "application/json");
   };
 
   const appendMergeFiles = (files: File[]) => {
@@ -206,22 +185,19 @@ export function ProjectDetailPanel({
         <CardContent className="min-h-0 flex-1 overflow-y-auto">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
-              <Button
-                disabled={loadingSnapshot}
-                onClick={() => onContinue(hasValidSession)}
-              >
-                続ける
-              </Button>
+              <Button onClick={onContinue}>続ける</Button>
               <Button
                 variant="outline"
-                disabled={!snapshot}
+                disabled={!snapshotReady}
+                aria-busy={loadingSnapshot}
                 onClick={handleExportYaml}
               >
                 tests.yml
               </Button>
               <Button
                 variant="outline"
-                disabled={!snapshot}
+                disabled={!snapshotReady}
+                aria-busy={loadingSnapshot}
                 onClick={handleExportResults}
               >
                 results.json

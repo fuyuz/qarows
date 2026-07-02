@@ -38,6 +38,17 @@ export function saveLocalSelectedEnvironmentIds(
   }
 }
 
+export function clearLocalSelectedEnvironmentIds(
+  projectId: string,
+  userEmail: string,
+): void {
+  try {
+    localStorage.removeItem(storageKey(projectId, userEmail));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export function sanitizeLocalSelectedEnvironmentIds(
   selectedEnvironmentIds: string[],
   definition: TestDefinition,
