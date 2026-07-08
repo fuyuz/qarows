@@ -101,6 +101,26 @@ cp wrangler.toml.example wrangler.toml
 
 `wrangler.toml` に **account_id** を設定する（Dashboard → アカウント概要）。
 
+#### 任意: Workers AI（tests.yml AI 編集）
+
+AI 編集パネルを使う場合のみ、`wrangler.toml.example` のコメントを参考に以下を追加する。
+
+```toml
+[ai]
+binding = "AI"
+
+[vars]
+AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"
+AI_MODEL_FALLBACK = "@cf/meta/llama-3.2-3b-instruct"
+```
+
+- `[ai]` が **ない** デプロイでは AI タブ・API は表示されない（opt-in）
+- `AI_MODEL` / `AI_MODEL_FALLBACK` はデプロイごとに固定。未設定時は Worker 内デフォルト（`llama-3.1-8b-instruct-fast` / `llama-3.2-3b-instruct`）を使用
+- AI 編集は [Workers AI JSON Mode](https://developers.cloudflare.com/workers-ai/features/json-mode/) の `json_schema` 対応モデルのみ利用（非対応モデルは Worker が拒否）
+- `@cf/meta/llama-3.1-8b-instruct` は 2026-05-30 に非推奨。`-fast` 系をフォールバックに使うこと
+- ローカルで AI を試す場合は `wrangler dev --remote` が必要（通常の `dev:v2` の Worker 部分を remote 起動に切り替える）
+- AI は **Web 検索・外部 API を使わない**。当該プロジェクトの tests.yml と会話内容のみ Cloudflare Workers AI へ送る
+
 ### 3.2 D1 データベース作成
 
 ```bash

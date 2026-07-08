@@ -2,6 +2,7 @@ import { Navigate, Outlet, useParams } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { ProjectSyncProvider, useProjectSync } from "@/context/ProjectSyncContext";
+import { AiEditPageRoute } from "@/pages/AiEditPage";
 import { BugsPage } from "@/pages/BugsPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { MatrixPage } from "@/pages/MatrixPage";
@@ -70,6 +71,8 @@ export function ProjectPageRouter() {
       return <DashboardPage />;
     case "bugs":
       return <BugsPage />;
+    case "ai":
+      return <AiEditPageRoute />;
     default:
       return <Navigate to="session" replace />;
   }

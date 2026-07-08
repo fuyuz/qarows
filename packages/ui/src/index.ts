@@ -94,6 +94,7 @@ export {
   type FileDropZoneProps,
   type ProjectImportShellProps,
   WorkspaceAppNav,
+  type WorkspaceAppNavExtraMenuItem,
   type WorkspaceAppNavProps,
   type WorkspaceProjectPage,
   APP_NAV_KEYBINDINGS,

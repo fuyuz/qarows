@@ -821,3 +821,43 @@ testCases:
       minor: "HUD"
     prerequisites: "1件以上のプロジェクトが登録済み、/projects を表示中"
     description: "左にプロジェクト一覧（先頭は新規作成）、右に選択中プロジェクトの管理パネルが表示される（run 画面と同型の左右分割）"
+
+  - id: TC-083
+    category:
+      major: "AI編集"
+      medium: "表示"
+      minor: "opt-in"
+    prerequisites: "Team 版。wrangler に [ai] binding なし"
+    description: "プロジェクト workspace に AI 編集タブ・/p/{id}/ai ページが表示されない"
+
+  - id: TC-084
+    category:
+      major: "AI編集"
+      medium: "表示"
+      minor: "binding 有"
+    prerequisites: "Team 版。[ai] binding 有効、/p/{id}/ai を開く"
+    description: "左右 2 ペイン（会話 / 編集案）が表示され、GET /api/health の aiEnabled が true"
+
+  - id: TC-085
+    category:
+      major: "AI編集"
+      medium: "会話"
+      minor: "質問"
+    prerequisites: "AI 編集画面、tests.yml 読み込み済み"
+    description: "「ログイン関連の TC を教えて」等の質問にチャットで回答され、編集案ペインは前回案を維持またはプレースホルダのまま"
+
+  - id: TC-086
+    category:
+      major: "AI編集"
+      medium: "編集案"
+      minor: "diff"
+    prerequisites: "AI 編集画面"
+    description: "編集指示後、構造化 diff と任意の YAML 全文 diff が編集案ペインに表示される"
+
+  - id: TC-087
+    category:
+      major: "AI編集"
+      medium: "適用"
+      minor: "revert"
+    prerequisites: "AI 編集案を生成済み"
+    description: "適用で tests.yml が更新され、元に戻す（definition_revisions）で直前の定義に復元できる"

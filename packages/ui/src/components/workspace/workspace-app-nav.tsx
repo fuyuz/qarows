@@ -30,6 +30,11 @@ interface NavLinkItem {
   page?: AppNavigationPage;
 }
 
+export interface WorkspaceAppNavExtraMenuItem {
+  label: string;
+  to: string;
+}
+
 export interface WorkspaceAppNavProps {
   definition: TestDefinition | null;
   session: SessionConfig | null;
@@ -41,6 +46,8 @@ export interface WorkspaceAppNavProps {
   onExportResults?: () => void;
   /** Team 版: 同期状態（メニュー内表示。切断・再接続時は Compass 横にドット） */
   syncStatus?: WorkspaceSyncStatus;
+  /** エディション固有の追加メニュー（例: Team 版 AI 編集） */
+  extraMenuItems?: WorkspaceAppNavExtraMenuItem[];
 }
 
 const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
@@ -61,9 +68,11 @@ function availablePageSet(pages?: readonly WorkspaceProjectPage[]): Set<Workspac
   return new Set(pages ?? DEFAULT_AVAILABLE_PAGES);
 }
 
+type NavContextPage = WorkspaceProjectPage | "load" | "projects" | "ai" | null;
+
 function workflowLinks(
   path: WorkspaceAppNavProps["path"],
-  page: WorkspaceProjectPage | "load" | "projects" | null,
+  page: NavContextPage,
   session: SessionConfig | null,
   availablePages: Set<WorkspaceProjectPage>,
 ): NavLinkItem[] {
@@ -80,8 +89,8 @@ function workflowLinks(
   } else if (page === "session" && canRun && session && isValidSession(session)) {
     items.push({ label: "テスト実行", to: path("run"), page: "run" });
   } else if (
-    (page === "matrix" || page === "dashboard" || page === "bugs") &&
-    availablePages.has(page)
+    (page === "matrix" || page === "dashboard" || page === "bugs" || page === "ai") &&
+    (page === "ai" || availablePages.has(page))
   ) {
     if (canSession) {
       items.push({ label: "セッション設定", to: path("session"), page: "session" });
@@ -105,9 +114,9 @@ function viewLinks(
   );
 }
 
-function currentProjectPage(pathname: string): WorkspaceProjectPage | "load" | "projects" | null {
-  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs)$/);
-  if (match) return match[1] as WorkspaceProjectPage;
+function currentProjectPage(pathname: string): NavContextPage {
+  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs|ai)$/);
+  if (match) return match[1] as NavContextPage;
   if (pathname === "/load") return "load";
   if (pathname === "/projects") return "projects";
   return null;
@@ -122,6 +131,7 @@ export function WorkspaceAppNav({
   onExportYaml,
   onExportResults,
   syncStatus,
+  extraMenuItems,
 }: WorkspaceAppNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -160,6 +170,7 @@ export function WorkspaceAppNav({
 
   const hasWorkflow = workflow.length > 0;
   const hasBrowse = browseLinks.length > 0;
+  const hasExtraMenu = (extraMenuItems?.length ?? 0) > 0;
 
   return (
     <div ref={rootRef} className="fixed top-3.5 right-5 z-40 flex items-center gap-1.5">
@@ -230,6 +241,27 @@ export function WorkspaceAppNav({
                   {link.page ? (
                     <DropdownMenuShortcut>{formatAppNavShortcutForPage(link.page)}</DropdownMenuShortcut>
                   ) : null}
+                </DropdownMenuItem>
+              ))}
+            </>
+          )}
+
+          {hasExtraMenu && (
+            <>
+              {(hasWorkflow || hasBrowse) && <DropdownMenuSeparator />}
+              <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
+                編集
+              </DropdownMenuLabel>
+              {extraMenuItems!.map((link) => (
+                <DropdownMenuItem
+                  key={link.to}
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    setOpen(false);
+                    navigate(link.to);
+                  }}
+                >
+                  {link.label}
                 </DropdownMenuItem>
               ))}
             </>

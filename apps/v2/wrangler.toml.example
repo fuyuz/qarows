@@ -30,6 +30,13 @@ ACCESS_AUD = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 # ACCESS_ALLOWED_EMAIL_DOMAIN = "example.com"
 # Method A — named individuals (comma-separated):
 # ACCESS_ALLOWED_EMAILS = "alice@example.com,bob@example.com"
+#
+# Optional: AI-assisted tests.yml editing (UI + API appear when bound)
+# [ai]
+# binding = "AI"
+#
+# AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"
+# AI_MODEL_FALLBACK = "@cf/meta/llama-3.2-3b-instruct"
 
 [assets]
 directory = "./dist"

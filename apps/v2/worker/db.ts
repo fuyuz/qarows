@@ -233,6 +233,116 @@ export async function deleteProject(db: D1Database, projectId: string): Promise<
   return (result.meta.changes ?? 0) > 0;
 }
 
+const DEFINITION_REVISION_LIMIT = 20;
+
+export interface DefinitionRevisionRow {
+  id: string;
+  project_id: string;
+  tests_yaml: string;
+  source: string;
+  instruction: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface DefinitionRevisionSummary {
+  id: string;
+  source: string;
+  instruction: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export async function insertDefinitionRevision(
+  db: D1Database,
+  input: {
+    projectId: string;
+    testsYaml: string;
+    source: string;
+    instruction?: string | null;
+    createdBy?: string | null;
+  },
+): Promise<DefinitionRevisionSummary> {
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  await db
+    .prepare(
+      `INSERT INTO definition_revisions (id, project_id, tests_yaml, source, instruction, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      id,
+      input.projectId,
+      input.testsYaml,
+      input.source,
+      input.instruction ?? null,
+      input.createdBy ?? null,
+      createdAt,
+    )
+    .run();
+
+  const overflow = await db
+    .prepare(
+      `SELECT id FROM definition_revisions
+       WHERE project_id = ?
+       ORDER BY created_at DESC
+       LIMIT -1 OFFSET ?`,
+    )
+    .bind(input.projectId, DEFINITION_REVISION_LIMIT)
+    .all<{ id: string }>();
+
+  for (const row of overflow.results ?? []) {
+    await db
+      .prepare("DELETE FROM definition_revisions WHERE id = ? AND project_id = ?")
+      .bind(row.id, input.projectId)
+      .run();
+  }
+
+  return {
+    id,
+    source: input.source,
+    instruction: input.instruction ?? null,
+    createdBy: input.createdBy ?? null,
+    createdAt,
+  };
+}
+
+export async function listDefinitionRevisions(
+  db: D1Database,
+  projectId: string,
+  limit = DEFINITION_REVISION_LIMIT,
+): Promise<DefinitionRevisionSummary[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, source, instruction, created_by, created_at
+       FROM definition_revisions
+       WHERE project_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`,
+    )
+    .bind(projectId, limit)
+    .all<Pick<DefinitionRevisionRow, "id" | "source" | "instruction" | "created_by" | "created_at">>();
+
+  return (result.results ?? []).map((row) => ({
+    id: row.id,
+    source: row.source,
+    instruction: row.instruction,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function getDefinitionRevision(
+  db: D1Database,
+  projectId: string,
+  revisionId: string,
+): Promise<DefinitionRevisionRow | null> {
+  return db
+    .prepare("SELECT * FROM definition_revisions WHERE project_id = ? AND id = ?")
+    .bind(projectId, revisionId)
+    .first<DefinitionRevisionRow>();
+}
+
 export function snapshotToPersisted(row: {
   definition: TestDefinition;
   results: ResultsFile;

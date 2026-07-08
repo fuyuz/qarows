@@ -38,6 +38,7 @@ export {
 } from "./components/workspace/project-import-shell";
 export {
   WorkspaceAppNav,
+  type WorkspaceAppNavExtraMenuItem,
   type WorkspaceAppNavProps,
 } from "./components/workspace/workspace-app-nav";
 export {

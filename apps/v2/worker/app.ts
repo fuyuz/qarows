@@ -3,7 +3,9 @@ import { HTTPException } from "hono/http-exception";
 import { isAccessRequired } from "./auth";
 import { accessMiddleware } from "./middleware/access";
 import { requestIdMiddleware, securityHeadersMiddleware } from "./middleware/security-headers";
+import { createAiRoutes } from "./routes/ai";
 import { projectsRoutes } from "./routes/projects";
+import { resolveAiModelConfig } from "./ai/models";
 import type { AppEnv } from "./types";
 
 export function createApp() {
@@ -29,18 +31,27 @@ export function createApp() {
   app.use("*", securityHeadersMiddleware);
   app.use("*", accessMiddleware);
 
-  app.get("/api/health", (c) =>
-    c.json({
+  app.get("/api/health", (c) => {
+    const aiModels = resolveAiModelConfig(c.env);
+    return c.json({
       ok: true,
       service: "qarows-v2",
       phase: 2,
       accessRequired: isAccessRequired(c.env),
-    }),
-  );
+      aiEnabled: c.env.AI != null,
+      ...(c.env.AI != null
+        ? {
+            aiModel: aiModels.primary,
+            ...(aiModels.fallback ? { aiModelFallback: aiModels.fallback } : {}),
+          }
+        : {}),
+    });
+  });
 
   app.get("/api/me", (c) => c.json({ user: c.get("user") }));
 
   app.route("/api/projects", projectsRoutes);
+  app.route("/api/projects", createAiRoutes());
 
   app.all("/api/*", (c) => {
     throw new HTTPException(404, { message: "Not found" });
