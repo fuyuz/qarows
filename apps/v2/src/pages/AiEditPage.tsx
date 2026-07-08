@@ -8,6 +8,7 @@ import {
   proposeAiEdit,
   restoreDefinitionRevision,
   type AiChatMessage,
+  type AiIntent,
   type AiProposal,
   type DefinitionRevisionSummary,
 } from "@/lib/api/ai";
@@ -40,6 +41,7 @@ function AiEditPage() {
   const [busy, setBusy] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastIntent, setLastIntent] = useState<AiIntent | null>(null);
   const [revisions, setRevisions] = useState<DefinitionRevisionSummary[]>([]);
 
   const loadRevisions = useCallback(async () => {
@@ -96,6 +98,7 @@ function AiEditPage() {
     setInput("");
     setErrorMessage(null);
     setSuccessMessage(null);
+    setLastIntent(null);
 
     const nextHistory: AiChatMessage[] = [...chatMessages, { role: "user", content: message }];
     setChatMessages(nextHistory);
@@ -110,6 +113,7 @@ function AiEditPage() {
       });
 
       setChatMessages((prev) => [...prev, { role: "assistant", content: response.reply }]);
+      setLastIntent(response.intent);
       if (response.proposal) {
         setProposal(response.proposal);
         setWorkingFrom("proposal");
@@ -131,6 +135,7 @@ function AiEditPage() {
     setBusy(true);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setLastIntent(null);
     try {
       const generation = (await refreshGeneration()) ?? baseGeneration;
       if (!generation) {
@@ -171,6 +176,7 @@ function AiEditPage() {
     setInput("");
     setErrorMessage(null);
     setSuccessMessage(null);
+    setLastIntent(null);
     clearAiSession(projectId);
     void refreshGeneration();
   };
@@ -180,6 +186,7 @@ function AiEditPage() {
     setBusy(true);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setLastIntent(null);
     try {
       const generation = (await refreshGeneration()) ?? baseGeneration;
       if (!generation) throw new Error("generation を取得できませんでした");
@@ -223,6 +230,7 @@ function AiEditPage() {
           />
           <TestsYamlAiProposalPanel
             proposal={proposal}
+            editIntentWithoutProposal={lastIntent === "edit" && proposal == null}
             baseDefinition={definition}
             busy={busy}
             successMessage={successMessage}

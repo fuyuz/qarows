@@ -11,6 +11,7 @@ import type { AiProposal, DefinitionRevisionSummary } from "@/lib/api/ai";
 
 export function TestsYamlAiProposalPanel({
   proposal,
+  editIntentWithoutProposal = false,
   baseDefinition,
   busy,
   successMessage,
@@ -21,6 +22,7 @@ export function TestsYamlAiProposalPanel({
   onRestore,
 }: {
   proposal: AiProposal | null;
+  editIntentWithoutProposal?: boolean;
   baseDefinition: TestDefinition;
   busy: boolean;
   successMessage: string | null;
@@ -72,6 +74,13 @@ export function TestsYamlAiProposalPanel({
               ) : null}
             </div>
           </>
+        ) : editIntentWithoutProposal ? (
+          <Alert variant="destructive">
+            <AlertDescription>
+              編集した旨の応答はありますが、編集案（diff）を生成できませんでした。会話欄の補足を確認し、追加する
+              TC の内容を具体的に指定して再試行してください。
+            </AlertDescription>
+          </Alert>
         ) : (
           <p className="text-sm text-muted-foreground">
             質問だけでも OK です。編集指示を送ると、ここに tests.yml の変更案が表示されます。

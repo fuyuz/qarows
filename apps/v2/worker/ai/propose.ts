@@ -1,12 +1,16 @@
 import {
   computeDefinitionDiff,
-  getProjectIdFromDefinition,
-  parseTestsYaml,
+  serializeTestsYaml,
   type TestDefinition,
 } from "@qarows/shared";
 import type { Env } from "../env";
+import {
+  applyDefinitionPatch,
+  hasDefinitionPatch,
+  parseDefinitionPatch,
+} from "./apply-patches";
 import { AI_ASSISTANT_INSTRUCTIONS, TESTS_YAML_AI_GUIDE } from "./prompt";
-import { AiModelError, extractAiResponseText, runAiModel } from "./run-model";
+import { AiModelError, parseAiJsonResponse, runAiModel } from "./run-model";
 
 export { AiModelError } from "./run-model";
 
@@ -35,16 +39,104 @@ export interface AiProposalResult {
 
 export type AiIntent = "answer" | "clarify" | "edit";
 
-interface AiJsonResponse {
-  reply?: string;
-  testsYaml?: string | null;
-}
+const CATEGORY_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    major: { type: "string" },
+    medium: { type: "string" },
+    minor: { type: "string" },
+  },
+  required: ["major"],
+};
 
-const AI_JSON_SCHEMA = {
+const TEST_CASE_ADD_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    id: { type: "string" },
+    description: { type: "string" },
+    prerequisites: { type: "string" },
+    category: CATEGORY_SCHEMA,
+  },
+  required: ["id", "description", "category"],
+};
+
+const TEST_CASE_MODIFY_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    id: { type: "string" },
+    description: { type: "string" },
+    prerequisites: { type: "string" },
+    category: {
+      type: "object" as const,
+      properties: {
+        major: { type: "string" },
+        medium: { type: "string" },
+        minor: { type: "string" },
+      },
+    },
+  },
+  required: ["id"],
+};
+
+const ENVIRONMENT_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+  },
+  required: ["id", "name"],
+};
+
+const ENVIRONMENT_MODIFY_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+  },
+  required: ["id"],
+};
+
+const PATCH_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    testCases: {
+      type: "object" as const,
+      properties: {
+        added: { type: "array", items: TEST_CASE_ADD_SCHEMA },
+        removed: { type: "array", items: { type: "string" } },
+        modified: { type: "array", items: TEST_CASE_MODIFY_SCHEMA },
+      },
+    },
+    environments: {
+      type: "object" as const,
+      properties: {
+        added: { type: "array", items: ENVIRONMENT_SCHEMA },
+        removed: { type: "array", items: { type: "string" } },
+        modified: { type: "array", items: ENVIRONMENT_MODIFY_SCHEMA },
+      },
+    },
+    project: {
+      type: "object" as const,
+      properties: {
+        name: { type: "string" },
+      },
+    },
+  },
+};
+
+const AI_QUESTION_JSON_SCHEMA = {
   type: "object" as const,
   properties: {
     reply: { type: "string" },
-    testsYaml: { type: "string" },
+  },
+  required: ["reply"],
+};
+
+const AI_EDIT_JSON_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    reply: { type: "string" },
+    patch: PATCH_SCHEMA,
   },
   required: ["reply"],
 };
@@ -76,11 +168,16 @@ function buildMessages(
   baseYaml: string,
   history: AiChatMessage[],
   message: string,
+  editMode: boolean,
 ): { role: "system" | "user" | "assistant"; content: string }[] {
+  const editHint = editMode
+    ? "\n\nIMPORTANT: This is an edit request. Return a patch object only. Never output full tests.yml."
+    : "";
+
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
     {
       role: "system",
-      content: `${AI_ASSISTANT_INSTRUCTIONS}\n\n${TESTS_YAML_AI_GUIDE}`,
+      content: `${AI_ASSISTANT_INSTRUCTIONS}${editHint}\n\n${TESTS_YAML_AI_GUIDE}`,
     },
     {
       role: "user",
@@ -95,22 +192,16 @@ function buildMessages(
   return messages;
 }
 
-function parseAiJson(raw: string): AiJsonResponse {
-  const trimmed = raw.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  const candidate = fenced?.[1]?.trim() ?? trimmed;
-  try {
-    return JSON.parse(candidate) as AiJsonResponse;
-  } catch {
-    throw new AiModelError("AI response was not valid JSON");
-  }
-}
-
-function inferIntent(testsYaml: string | null | undefined): AiIntent {
-  if (testsYaml == null || testsYaml.trim() === "") {
-    return "answer";
-  }
-  return "edit";
+function editFailureReply(reply: string, detail: string): {
+  reply: string;
+  intent: AiIntent;
+  proposal: null;
+} {
+  return {
+    reply: `${reply}\n\n（${detail}）`,
+    intent: "edit",
+    proposal: null,
+  };
 }
 
 export async function proposeTestsYamlEdit(
@@ -140,73 +231,68 @@ export async function proposeTestsYamlEdit(
       ? input.request.proposalYaml
       : input.baseYaml;
 
+  const messageIntent = classifyMessageIntent(message);
+  const editMode = messageIntent === "edit";
+
+  if (editMode && workingYaml.length > MAX_AI_CONTEXT_YAML_CHARS) {
+    throw new AiModelError(
+      "tests.yml が大きすぎるため AI 編集できません。質問のみ利用できます。",
+    );
+  }
+
   const { result, modelUsed } = await runAiModel(env, {
-    messages: buildMessages(workingYaml, history, message),
+    messages: buildMessages(workingYaml, history, message, editMode),
     temperature: 0.2,
-    maxTokens: 4096,
-    jsonSchema: AI_JSON_SCHEMA,
+    maxTokens: editMode ? 4096 : 2048,
+    jsonSchema: editMode ? AI_EDIT_JSON_SCHEMA : AI_QUESTION_JSON_SCHEMA,
   });
 
-  const parsed = parseAiJson(extractAiResponseText(result));
+  const parsed = parseAiJsonResponse(result);
   const reply = parsed.reply?.trim();
   if (!reply) {
     throw new AiModelError("AI reply is empty");
   }
 
-  const testsYamlRaw = parsed.testsYaml;
-  const testsYaml =
-    testsYamlRaw == null || String(testsYamlRaw).trim() === ""
-      ? null
-      : String(testsYamlRaw).trim();
-
-  const messageIntent = classifyMessageIntent(message);
   if (messageIntent === "answer") {
     return { reply, intent: "answer", proposal: null };
   }
 
-  let intent = inferIntent(testsYaml);
-  if (messageIntent === "clarify" && intent === "answer") {
-    intent = "clarify";
-  } else if (messageIntent === "edit") {
-    intent = "edit";
+  if (messageIntent === "clarify") {
+    const patch = parseDefinitionPatch(parsed);
+    if (!hasDefinitionPatch(patch)) {
+      return { reply, intent: "clarify", proposal: null };
+    }
   }
 
-  if (!testsYaml) {
-    return { reply, intent, proposal: null };
+  const patch = parseDefinitionPatch(parsed);
+  if (!hasDefinitionPatch(patch)) {
+    return editFailureReply(
+      reply,
+      "編集 patch が空です。追加・削除・変更内容を patch 形式で返してください。",
+    );
   }
 
-  let proposedDefinition: TestDefinition;
   try {
-    proposedDefinition = parseTestsYaml(testsYaml);
+    const proposedDefinition = applyDefinitionPatch(input.baseDefinition, patch);
+    const diff = computeDefinitionDiff(input.baseDefinition, proposedDefinition);
+    if (!diff.hasChanges) {
+      return editFailureReply(reply, "変更がありませんでした。patch の内容を確認してください。");
+    }
+    return {
+      reply,
+      intent: "edit",
+      proposal: {
+        proposedYaml: serializeTestsYaml(proposedDefinition),
+        proposedDefinition,
+        diff,
+        modelUsed,
+        generatedAt: new Date().toISOString(),
+      },
+    };
   } catch (err) {
-    return {
-      reply: `${reply}\n\n（tests.yml の検証に失敗しました: ${err instanceof Error ? err.message : "Invalid YAML"}）`,
-      intent: "edit",
-      proposal: null,
-    };
+    return editFailureReply(
+      reply,
+      `編集案の適用に失敗しました: ${err instanceof Error ? err.message : "Invalid patch"}`,
+    );
   }
-
-  const yamlProjectId = getProjectIdFromDefinition(proposedDefinition);
-  if (yamlProjectId !== input.projectId) {
-    return {
-      reply: `${reply}\n\n（project.id を ${input.projectId} から変更できません）`,
-      intent: "edit",
-      proposal: null,
-    };
-  }
-
-  const diff = computeDefinitionDiff(input.baseDefinition, proposedDefinition);
-  const generatedAt = new Date().toISOString();
-
-  return {
-    reply,
-    intent: "edit",
-    proposal: {
-      proposedYaml: testsYaml,
-      proposedDefinition,
-      diff,
-      modelUsed,
-      generatedAt,
-    },
-  };
 }

@@ -41,10 +41,12 @@ function isRetryableAiError(err: unknown): boolean {
     message.includes("7506") ||
     message.includes("JSON Mode couldn't be met") ||
     message.includes("doesn't support JSON Schema") ||
+    message.includes("not valid JSON") ||
     message.includes("model not found") ||
     lower.includes("deprecated") ||
     lower.includes("rate limit") ||
     lower.includes("empty ai response") ||
+    lower.includes("ai reply is empty") ||
     lower.includes("internal server error") ||
     lower.includes("timeout") ||
     lower.includes("context length")
@@ -76,6 +78,45 @@ function responsePayloadToText(value: unknown): string | null {
     return JSON.stringify(value);
   }
   return null;
+}
+
+export interface AiJsonResponse {
+  reply?: string;
+  patch?: unknown;
+}
+
+function extractJsonCandidate(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const inner = fenced?.[1]?.trim() ?? trimmed;
+  const start = inner.indexOf("{");
+  const end = inner.lastIndexOf("}");
+  if (start >= 0 && end > start) return inner.slice(start, end + 1);
+  return inner;
+}
+
+export function parseAiJsonResponse(result: AiRunResult): AiJsonResponse {
+  const response = result.response;
+  if (response && typeof response === "object" && !Array.isArray(response)) {
+    const obj = response as Record<string, unknown>;
+    if (typeof obj.reply === "string") {
+      return {
+        reply: obj.reply,
+        patch: obj.patch,
+      };
+    }
+  }
+
+  const raw = extractAiResponseText(result);
+  try {
+    return JSON.parse(extractJsonCandidate(raw)) as AiJsonResponse;
+  } catch (err) {
+    console.error("[ai] invalid JSON response snippet:", raw.slice(0, 500));
+    throw new AiModelError(
+      "AI response was not valid JSON (応答が長すぎて途切れた可能性があります)",
+      err,
+    );
+  }
 }
 
 export function extractAiResponseText(result: AiRunResult): string {
@@ -122,7 +163,7 @@ export async function runAiModel(
     try {
       const payload = buildModelPayload(model, input);
       const result = (await env.AI.run(model, payload)) as AiRunResult;
-      extractAiResponseText(result);
+      parseAiJsonResponse(result);
       return { result, modelUsed: model };
     } catch (err) {
       lastError = err;

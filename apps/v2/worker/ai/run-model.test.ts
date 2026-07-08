@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractAiResponseText } from "./run-model";
+import { extractAiResponseText, parseAiJsonResponse } from "./run-model";
 import { DEFAULT_AI_MODEL, DEFAULT_AI_MODEL_FALLBACK, supportsJsonSchemaResponse } from "./models";
 
 describe("AI model defaults", () => {
@@ -19,20 +19,54 @@ describe("supportsJsonSchemaResponse", () => {
 
 describe("extractAiResponseText", () => {
   it("reads legacy string response field", () => {
-    expect(extractAiResponseText({ response: '{"reply":"ok","testsYaml":null}' })).toBe(
-      '{"reply":"ok","testsYaml":null}',
-    );
+    expect(extractAiResponseText({ response: '{"reply":"ok"}' })).toBe('{"reply":"ok"}');
   });
 
   it("reads json_schema object response field", () => {
     expect(
       extractAiResponseText({
-        response: { reply: "ok", testsYaml: null },
+        response: { reply: "ok", patch: { testCases: { removed: ["TC-1"] } } },
       }),
-    ).toBe('{"reply":"ok","testsYaml":null}');
+    ).toBe('{"reply":"ok","patch":{"testCases":{"removed":["TC-1"]}}}');
   });
 
   it("throws on empty response", () => {
     expect(() => extractAiResponseText({})).toThrow("Empty AI response");
+  });
+});
+
+describe("parseAiJsonResponse", () => {
+  it("reads object response directly", () => {
+    expect(
+      parseAiJsonResponse({
+        response: {
+          reply: "回答です",
+          patch: { testCases: { added: [{ id: "TC-1", category: { major: "A" }, description: "d" }] } },
+        },
+      }),
+    ).toEqual({
+      reply: "回答です",
+      patch: { testCases: { added: [{ id: "TC-1", category: { major: "A" }, description: "d" }] } },
+    });
+  });
+
+  it("parses fenced JSON string", () => {
+    expect(
+      parseAiJsonResponse({
+        response: '```json\n{"reply":"ok","patch":{"testCases":{"removed":["TC-1"]}}}\n```',
+      }),
+    ).toEqual({ reply: "ok", patch: { testCases: { removed: ["TC-1"] } } });
+  });
+
+  it("extracts JSON object from surrounding text", () => {
+    expect(
+      parseAiJsonResponse({
+        response: 'Here is JSON:\n{"reply":"ok","patch":{}}\nThanks',
+      }),
+    ).toEqual({ reply: "ok", patch: {} });
+  });
+
+  it("throws on invalid JSON", () => {
+    expect(() => parseAiJsonResponse({ response: '{"reply":' })).toThrow("not valid JSON");
   });
 });
