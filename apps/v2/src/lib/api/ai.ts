@@ -9,11 +9,13 @@ export interface AiChatMessage {
 export type AiIntent = "answer" | "clarify" | "edit";
 
 export interface AiProposal {
+  proposalId: string;
   proposedYaml: string;
   proposedDefinition: TestDefinition;
   diff: DefinitionDiff;
   modelUsed: string;
   generatedAt: string;
+  expiresAt: string;
 }
 
 export interface AiProposeResponse {
@@ -51,7 +53,7 @@ export async function proposeAiEdit(
 export async function applyAiProposal(
   projectId: string,
   body: {
-    proposedYaml: string;
+    proposalId: string;
     expectedGeneration: string;
     instruction?: string;
   },

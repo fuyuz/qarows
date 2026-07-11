@@ -4,7 +4,14 @@ import { HTTPException } from "hono/http-exception";
 import { parseAiChatHistory, proposeTestsYamlEdit } from "../ai/propose";
 import { AiRateLimitError, assertAiProposeRateLimit } from "../ai/rate-limit";
 import { AiModelError } from "../ai/run-model";
-import { getProject, listDefinitionRevisions } from "../db";
+import {
+  AiProposalError,
+  getProject,
+  insertAiProposal,
+  listDefinitionRevisions,
+  markAiProposalConsumed,
+  requireUsableAiProposal,
+} from "../db";
 import {
   restoreDefinitionRevision,
   saveCheckpointAndReplaceDefinition,
@@ -21,9 +28,11 @@ interface ProposeBody {
 }
 
 interface ApplyBody {
-  proposedYaml?: string;
+  proposalId?: string;
   expectedGeneration?: string;
   instruction?: string;
+  /** @deprecated Client YAML is ignored — proposals are server-stored. */
+  proposedYaml?: string;
 }
 
 interface RestoreBody {
@@ -42,6 +51,9 @@ function isAiModelError(err: unknown): err is AiModelError {
 
 function handleAiRouteError(err: unknown): never {
   if (err instanceof HTTPException) throw err;
+  if (err instanceof AiProposalError) {
+    throw new HTTPException(err.status, { message: err.message });
+  }
   if (err instanceof AiRateLimitError) {
     throw new HTTPException(429, { message: err.message });
   }
@@ -125,44 +137,79 @@ export function createAiRoutes(): Hono<AppEnv> {
           proposalYaml: body.proposalYaml,
         },
       });
-      return c.json(result);
+
+      if (!result.proposal) {
+        return c.json(result);
+      }
+
+      const stored = await insertAiProposal(c.env.DB, {
+        projectId,
+        proposedYaml: result.proposal.proposedYaml,
+        baseGeneration: snapshot.generation,
+        instruction: message,
+        createdBy: c.get("user").email,
+      });
+
+      return c.json({
+        reply: result.reply,
+        intent: result.intent,
+        proposal: {
+          ...result.proposal,
+          proposalId: stored.id,
+          expiresAt: stored.expiresAt,
+        },
+      });
     } catch (err) {
       handleAiRouteError(err);
     }
   });
 
   ai.post("/:projectId/ai/apply", async (c) => {
-    const projectId = c.req.param("projectId");
-    let body: ApplyBody;
     try {
-      const raw = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES + 4096);
-      body = JSON.parse(raw) as ApplyBody;
-    } catch (err) {
-      if (err instanceof BodyTooLargeError) {
-        throw new HTTPException(413, { message: "Request body is too large" });
+      const projectId = c.req.param("projectId");
+      let body: ApplyBody;
+      try {
+        const raw = await readRequestTextWithLimit(c.req.raw, 4096);
+        body = JSON.parse(raw) as ApplyBody;
+      } catch (err) {
+        if (err instanceof BodyTooLargeError) {
+          throw new HTTPException(413, { message: "Request body is too large" });
+        }
+        throw new HTTPException(400, { message: "Invalid JSON body" });
       }
-      throw new HTTPException(400, { message: "Invalid JSON body" });
-    }
 
-    const proposedYaml = body.proposedYaml?.trim();
-    const expectedGeneration = body.expectedGeneration?.trim();
-    if (!proposedYaml) {
-      throw new HTTPException(400, { message: "proposedYaml is required" });
-    }
-    if (!expectedGeneration) {
-      throw new HTTPException(400, { message: "expectedGeneration is required" });
-    }
+      if (body.proposedYaml != null) {
+        throw new HTTPException(400, {
+          message: "proposedYaml is no longer accepted; pass proposalId from /ai/propose",
+        });
+      }
 
-    const result = await saveCheckpointAndReplaceDefinition(c.env, {
-      projectId,
-      testsYaml: proposedYaml,
-      expectedGeneration,
-      source: "ai_apply",
-      instruction: body.instruction?.trim() || null,
-      createdBy: c.get("user").email,
-    });
+      const proposalId = body.proposalId?.trim();
+      const expectedGeneration = body.expectedGeneration?.trim();
+      if (!proposalId) {
+        throw new HTTPException(400, { message: "proposalId is required" });
+      }
+      if (!expectedGeneration) {
+        throw new HTTPException(400, { message: "expectedGeneration is required" });
+      }
 
-    return c.json({ ok: true, ...result });
+      const proposal = await requireUsableAiProposal(c.env.DB, { projectId, proposalId });
+
+      const result = await saveCheckpointAndReplaceDefinition(c.env, {
+        projectId,
+        testsYaml: proposal.proposedYaml,
+        expectedGeneration,
+        source: "ai_apply",
+        instruction: body.instruction?.trim() || proposal.instruction,
+        createdBy: c.get("user").email,
+      });
+
+      await markAiProposalConsumed(c.env.DB, { projectId, proposalId });
+
+      return c.json({ ok: true, ...result });
+    } catch (err) {
+      handleAiRouteError(err);
+    }
   });
 
   ai.get("/:projectId/definition-revisions", async (c) => {

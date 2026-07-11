@@ -981,3 +981,11 @@ testCases:
       minor: "Access"
     prerequisites: "本番デプロイ（または staging）の Team 版 URL"
     description: "未ログインでは Access ログインへ誘導され、AUTH_DEV_BYPASS が効いていない（/api/me が 401 またはログイン画面）"
+
+  - id: TC-104
+    category:
+      major: "Team 版"
+      medium: "AI"
+      minor: "提案適用"
+    prerequisites: "Team 版で AI が有効、テスト定義画面を開いている"
+    description: "AI 編集案を得たあと、編集画面に反映→Apply で保存できる。サーバーは proposalId 付き提案を保持する（手書き YAML の /ai/apply は拒否）"

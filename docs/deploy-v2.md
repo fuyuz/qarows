@@ -334,6 +334,7 @@ Browser
 - AI propose はメール単位の簡易レート制限あり（isolate 内）。本番では Cloudflare Rate Limiting の併用を推奨
 - Access JWT は `email` claim 必須（`common_name` は使わない）
 - WebSocket は本番で Origin 必須。`PUT /definition` も `expectedGeneration` 必須
+- AI `/ai/apply` は `/ai/propose` が発行した `proposalId` のみ受理（クライアント YAML 不可・30分 TTL・一度きり）
 
 ---
 
