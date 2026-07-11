@@ -275,7 +275,7 @@ cp apps/v2/.dev.vars.example apps/v2/.dev.vars
 # AUTH_DEV_BYPASS = "true"  （example に含まれる）
 ```
 
-ローカルでは Access/JWT/AUD は不要。`X-Qarows-User: you@example.com` ヘッダ（任意）。未指定時は `dev@local`。
+ローカルでは Access/JWT/AUD は不要（`AUTH_DEV_BYPASS=true` は **localhost / 127.0.0.1:8787 へのリクエストのみ** 有効）。`X-Qarows-User: you@example.com` ヘッダ（任意）。未指定時は `dev@local`。
 
 ### 4.6 動作確認
 
@@ -329,6 +329,9 @@ Browser
 - `wrangler.toml`（account_id 等）、`.dev.vars`、API トークンは **コミットしない**
 - 本番は `ACCESS_TEAM_DOMAIN` + JWT 検証必須。allow guard は Method A（`ACCESS_ALLOWED_EMAILS`）または B（`ACCESS_ALLOWED_EMAIL_DOMAIN`）を推奨
 - workers.dev とカスタムドメイン **両方** を Access Application に登録する
+- `AUTH_DEV_BYPASS` はローカル `wrangler`（`localhost` / `127.0.0.1:8787`）でのみ有効。本番ホストでは設定しても無視される
+- 状態変更 API は Origin（または `Sec-Fetch-Site: same-origin`）を検証する。`clear-results` は JSON + `expectedGeneration` 必須
+- AI propose はメール単位の簡易レート制限あり（isolate 内）。本番では Cloudflare Rate Limiting の併用を推奨
 
 ---
 

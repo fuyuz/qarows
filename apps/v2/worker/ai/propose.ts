@@ -16,6 +16,7 @@ export { AiModelError } from "./run-model";
 
 export const MAX_AI_MESSAGE_BYTES = 4096;
 export const MAX_AI_CONTEXT_YAML_CHARS = 48_000;
+export const MAX_AI_HISTORY_ENTRIES = 20;
 
 export interface AiChatMessage {
   role: "user" | "assistant";
@@ -24,9 +25,41 @@ export interface AiChatMessage {
 
 export interface AiProposeRequest {
   message: string;
-  history?: AiChatMessage[];
+  history?: unknown;
   workingFrom?: "definition" | "proposal";
   proposalYaml?: string;
+}
+
+/** Runtime-validate client chat history (TypeScript types are not a security boundary). */
+export function parseAiChatHistory(raw: unknown): AiChatMessage[] {
+  if (raw == null) return [];
+  if (!Array.isArray(raw)) {
+    throw new AiModelError("history must be an array");
+  }
+  if (raw.length > MAX_AI_HISTORY_ENTRIES) {
+    throw new AiModelError(`history must have at most ${MAX_AI_HISTORY_ENTRIES} entries`);
+  }
+
+  const history: AiChatMessage[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const entry = raw[i];
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      throw new AiModelError(`history[${i}] is invalid`);
+    }
+    const role = (entry as { role?: unknown }).role;
+    const content = (entry as { content?: unknown }).content;
+    if (role !== "user" && role !== "assistant") {
+      throw new AiModelError(`history[${i}].role must be "user" or "assistant"`);
+    }
+    if (typeof content !== "string") {
+      throw new AiModelError(`history[${i}].content must be a string`);
+    }
+    if (new TextEncoder().encode(content).byteLength > MAX_AI_MESSAGE_BYTES) {
+      throw new AiModelError(`history[${i}].content is too long`);
+    }
+    history.push({ role, content });
+  }
+  return history;
 }
 
 export interface AiProposalResult {
@@ -225,7 +258,7 @@ export async function proposeTestsYamlEdit(
     throw new AiModelError("message is too long");
   }
 
-  const history = input.request.history ?? [];
+  const history = parseAiChatHistory(input.request.history);
   const workingYaml =
     input.request.workingFrom === "proposal" && input.request.proposalYaml?.trim()
       ? input.request.proposalYaml

@@ -1,7 +1,8 @@
 import { getProjectIdFromDefinition, parseTestsYaml, serializeTestsYaml } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { proposeTestsYamlEdit } from "../ai/propose";
+import { parseAiChatHistory, proposeTestsYamlEdit } from "../ai/propose";
+import { AiRateLimitError, assertAiProposeRateLimit } from "../ai/rate-limit";
 import { AiModelError } from "../ai/run-model";
 import { getProject, listDefinitionRevisions } from "../db";
 import {
@@ -13,7 +14,7 @@ import type { AppEnv } from "../types";
 
 interface ProposeBody {
   message?: string;
-  history?: { role: "user" | "assistant"; content: string }[];
+  history?: unknown;
   workingFrom?: "definition" | "proposal";
   proposalYaml?: string;
   baseYaml?: string;
@@ -41,6 +42,9 @@ function isAiModelError(err: unknown): err is AiModelError {
 
 function handleAiRouteError(err: unknown): never {
   if (err instanceof HTTPException) throw err;
+  if (err instanceof AiRateLimitError) {
+    throw new HTTPException(429, { message: err.message });
+  }
   if (isAiModelError(err)) {
     throw new HTTPException(502, { message: err.message });
   }
@@ -59,6 +63,8 @@ export function createAiRoutes(): Hono<AppEnv> {
 
   ai.post("/:projectId/ai/propose", async (c) => {
     try {
+      assertAiProposeRateLimit(c.get("user").email);
+
       const projectId = c.req.param("projectId");
       const snapshot = await getProject(c.env.DB, projectId);
       if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
@@ -77,6 +83,16 @@ export function createAiRoutes(): Hono<AppEnv> {
       const message = body.message?.trim();
       if (!message) {
         throw new HTTPException(400, { message: "message is required" });
+      }
+
+      let history;
+      try {
+        history = parseAiChatHistory(body.history);
+      } catch (err) {
+        if (isAiModelError(err)) {
+          throw new HTTPException(400, { message: err.message });
+        }
+        throw err;
       }
 
       let baseDefinition = snapshot.definition;
@@ -104,7 +120,7 @@ export function createAiRoutes(): Hono<AppEnv> {
         baseYaml,
         request: {
           message,
-          history: body.history,
+          history,
           workingFrom: body.workingFrom,
           proposalYaml: body.proposalYaml,
         },

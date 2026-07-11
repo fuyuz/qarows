@@ -86,8 +86,8 @@ export function ProjectsPage() {
   );
 
   const handleClearResults = useCallback(
-    async (targetProjectId: string) => {
-      await clearProjectResults(targetProjectId);
+    async (targetProjectId: string, expectedGeneration: string) => {
+      await clearProjectResults(targetProjectId, expectedGeneration);
     },
     [clearProjectResults],
   );
@@ -161,7 +161,9 @@ export function ProjectsPage() {
                         onMerge={(files, expectedGeneration) =>
                           handleMerge(selectedSummary.id, files, expectedGeneration)
                         }
-                        onClearResults={() => handleClearResults(selectedSummary.id)}
+                        onClearResults={(expectedGeneration) =>
+                          handleClearResults(selectedSummary.id, expectedGeneration)
+                        }
                         onExportYaml={() => handleExportYaml(selectedSummary.id)}
                         onExportResults={() => handleExportResults(selectedSummary.id)}
                         onDelete={() => handleDelete(selectedSummary.id)}

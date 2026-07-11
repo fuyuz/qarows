@@ -329,15 +329,50 @@ projectsRoutes.post("/:projectId/clear-results", async (c) => {
   const snapshot = await getProject(c.env.DB, projectId);
   if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
 
+  const contentType = c.req.header("Content-Type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new HTTPException(400, { message: "Content-Type must be application/json" });
+  }
+
+  let body: { expectedGeneration?: string };
+  try {
+    const raw = await readRequestTextWithLimit(c.req.raw, 4096);
+    if (!raw.trim()) {
+      throw new HTTPException(400, { message: "Request body is required" });
+    }
+    body = JSON.parse(raw) as { expectedGeneration?: string };
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) {
+      throw new HTTPException(413, { message: "Request body is too large" });
+    }
+    if (err instanceof HTTPException) throw err;
+    throw new HTTPException(400, { message: "Invalid JSON body" });
+  }
+
+  const expectedGeneration = body.expectedGeneration?.trim();
+  if (!expectedGeneration) {
+    throw new HTTPException(400, { message: "expectedGeneration is required" });
+  }
+
+  try {
+    assertGenerationMatch(expectedGeneration, snapshot.generation);
+  } catch (err) {
+    generationConflictError(err);
+  }
+
   const stub = c.env.PROJECT.getByName(projectId);
   try {
     await stub.applyCommandFromWorker({
       projectId,
+      expectedGeneration,
       commandId: crypto.randomUUID(),
       command: { type: "clearResults" },
       user: c.get("user").email,
     });
   } catch (err) {
+    if (err instanceof GenerationMismatchError) {
+      generationConflictError(err);
+    }
     internalError(c, "Failed to clear project results", err);
   }
 

@@ -14,12 +14,25 @@ export class AccessDeniedError extends Error {
   }
 }
 
+/** Local `wrangler dev` Worker host (Vite proxies here). */
+export function isLocalDevWorkerRequest(request: Request): boolean {
+  try {
+    const url = new URL(request.url);
+    if (url.hostname !== "localhost" && url.hostname !== "127.0.0.1") return false;
+    return url.port === "8787";
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Access is always required unless AUTH_DEV_BYPASS=true (local .dev.vars only).
- * Production wrangler.toml must not set AUTH_DEV_BYPASS — auth cannot be disabled.
+ * Access is required unless AUTH_DEV_BYPASS=true **and** the request hits local wrangler.
+ * Setting AUTH_DEV_BYPASS on a deployed Worker is ignored (fail closed).
  */
-export function isAccessRequired(env: Env): boolean {
-  return env.AUTH_DEV_BYPASS !== "true";
+export function isAccessRequired(env: Env, request?: Request): boolean {
+  if (env.AUTH_DEV_BYPASS !== "true") return true;
+  if (!request) return true;
+  return !isLocalDevWorkerRequest(request);
 }
 
 function getAccessJwt(request: Request): string | null {
@@ -81,28 +94,56 @@ function assertAccessConfig(env: Env): { teamDomain: string; audience: string } 
   return { teamDomain, audience };
 }
 
+function originsMatch(request: Request, originHeader: string): boolean {
+  const requestOrigin = new URL(request.url).origin;
+  const clientOrigin = new URL(originHeader).origin;
+  return clientOrigin === requestOrigin;
+}
+
 /** Reject cross-origin WebSocket upgrades when Origin is present. */
 export function assertWebSocketOrigin(request: Request, env?: Env): void {
   const origin = request.headers.get("Origin");
   if (!origin) return;
 
-  let requestOrigin: string;
-  let clientOrigin: string;
   try {
-    requestOrigin = new URL(request.url).origin;
-    clientOrigin = new URL(origin).origin;
+    if (originsMatch(request, origin)) return;
   } catch {
     throw new AccessDeniedError("Invalid Origin");
   }
 
-  if (clientOrigin === requestOrigin) return;
-
   // Vite dev proxy: browser Origin is localhost:5177, Worker sees 127.0.0.1:8787.
-  if (env && !isAccessRequired(env) && isLocalDevFrontendOrigin(clientOrigin)) {
+  if (env && !isAccessRequired(env, request) && isLocalDevFrontendOrigin(origin)) {
     return;
   }
 
   throw new AccessDeniedError("Invalid Origin");
+}
+
+/**
+ * Reject cross-site state-changing HTTP requests (CSRF defense for Access cookie sessions).
+ * Same-origin SPA fetches send Origin; simple cross-site form POSTs are blocked.
+ */
+export function assertMutatingRequestOrigin(request: Request, env: Env): void {
+  const origin = request.headers.get("Origin");
+  if (origin) {
+    try {
+      if (originsMatch(request, origin)) return;
+    } catch {
+      throw new AccessDeniedError("Invalid Origin");
+    }
+    if (!isAccessRequired(env, request) && isLocalDevFrontendOrigin(origin)) {
+      return;
+    }
+    throw new AccessDeniedError("Invalid Origin");
+  }
+
+  const secFetchSite = request.headers.get("Sec-Fetch-Site");
+  if (secFetchSite === "same-origin") return;
+
+  // Local wrangler / tests (curl) without Origin — only when bypass is active on localhost.
+  if (!isAccessRequired(env, request)) return;
+
+  throw new AccessDeniedError("Origin required");
 }
 
 function isLocalDevFrontendOrigin(origin: string): boolean {
@@ -148,7 +189,7 @@ async function resolveProductionUser(request: Request, env: Env): Promise<AuthUs
  * Local dev: optional X-Qarows-User header, otherwise dev@local.
  */
 export async function resolveAuthUser(request: Request, env: Env): Promise<AuthUser> {
-  if (isAccessRequired(env)) {
+  if (isAccessRequired(env, request)) {
     return resolveProductionUser(request, env);
   }
 

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { isAccessRequired } from "./auth";
 import { accessMiddleware } from "./middleware/access";
+import { csrfMiddleware } from "./middleware/csrf";
 import { requestIdMiddleware, securityHeadersMiddleware } from "./middleware/security-headers";
 import { createAiRoutes } from "./routes/ai";
 import { projectsRoutes } from "./routes/projects";
@@ -30,6 +31,7 @@ export function createApp() {
   app.use("*", requestIdMiddleware);
   app.use("*", securityHeadersMiddleware);
   app.use("*", accessMiddleware);
+  app.use("*", csrfMiddleware);
 
   app.get("/api/health", (c) => {
     const aiModels = resolveAiModelConfig(c.env);
@@ -37,7 +39,7 @@ export function createApp() {
       ok: true,
       service: "qarows-v2",
       phase: 2,
-      accessRequired: isAccessRequired(c.env),
+      accessRequired: isAccessRequired(c.env, c.req.raw),
       aiEnabled: c.env.AI != null,
       ...(c.env.AI != null
         ? {

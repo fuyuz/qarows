@@ -41,7 +41,7 @@ interface ProjectsContextValue {
   ) => Promise<string>;
   createNamedProject: (name: string) => Promise<string>;
   removeProject: (projectId: string) => Promise<void>;
-  clearProjectResults: (projectId: string) => Promise<void>;
+  clearProjectResults: (projectId: string, expectedGeneration: string) => Promise<void>;
   mergeResultsIntoProject: (
     projectId: string,
     resultsJsonList: string[],
@@ -152,8 +152,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   const clearProjectResults = useCallback(
-    async (projectId: string) => {
-      await clearProjectResultsApi(projectId);
+    async (projectId: string, expectedGeneration: string) => {
+      await clearProjectResultsApi(projectId, expectedGeneration);
       if (userEmail) {
         clearLocalSelectedEnvironmentIds(projectId, userEmail);
       }

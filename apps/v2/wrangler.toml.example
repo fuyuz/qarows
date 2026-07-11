@@ -18,7 +18,8 @@ enabled = true
 head_sampling_rate = 0.01
 
 [vars]
-# Access JWT is always enforced (cannot be disabled in production).
+# Access JWT is always enforced on deployed hosts.
+# AUTH_DEV_BYPASS is only honored for local wrangler (localhost/127.0.0.1:8787).
 # Zero Trust team name (https://<ACCESS_TEAM_DOMAIN>.cloudflareaccess.com)
 ACCESS_TEAM_DOMAIN = "your-team-name"
 # Access Application AUD tag — copy from Zero Trust → Access → Application → Overview

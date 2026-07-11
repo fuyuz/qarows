@@ -43,7 +43,7 @@ export interface ProjectDetailPanelProps {
   isLastOpened: boolean;
   onContinue: () => void;
   onMerge: (files: File[], expectedGeneration: string) => Promise<void>;
-  onClearResults: () => Promise<void>;
+  onClearResults: (expectedGeneration: string) => Promise<void>;
   onExportYaml: () => Promise<void>;
   onExportResults: () => Promise<void>;
   onDelete: () => Promise<void>;
@@ -129,11 +129,15 @@ export function ProjectDetailPanel({
   };
 
   const handleClear = async () => {
+    if (!snapshot?.generation) {
+      setError("generation を取得できませんでした。再読み込みしてください");
+      return;
+    }
     setClearing(true);
     setError(null);
     setSuccessMessage(null);
     try {
-      await onClearResults();
+      await onClearResults(snapshot.generation);
       setClearDialogOpen(false);
       setSuccessMessage("テスト結果をクリアしました");
       await loadSnapshot(projectId);

@@ -72,9 +72,14 @@ export async function deleteProject(projectId: string): Promise<void> {
   });
 }
 
-export async function clearProjectResults(projectId: string): Promise<void> {
+export async function clearProjectResults(
+  projectId: string,
+  expectedGeneration: string,
+): Promise<void> {
   await apiJson<{ ok: true }>(`/api/projects/${encodeURIComponent(projectId)}/clear-results`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expectedGeneration }),
   });
 }
 

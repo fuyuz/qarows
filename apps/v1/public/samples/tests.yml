@@ -965,3 +965,19 @@ testCases:
       minor: "表示"
     prerequisites: "Team 版（本番または localhost:5177）でプロジェクトを開いている"
     description: "ナビの「テスト定義」を開くと空白にならず、フィルタ・端末・テストケース編集 UI が表示される"
+
+  - id: TC-102
+    category:
+      major: "Team 版"
+      medium: "セキュリティ"
+      minor: "結果クリア"
+    prerequisites: "Team 版でプロジェクトに結果があり、詳細パネルを開いている"
+    description: "結果クリア確認ダイアログからクリアでき、クリア後は結果が空になる（generation 付き JSON POST）"
+
+  - id: TC-103
+    category:
+      major: "Team 版"
+      medium: "セキュリティ"
+      minor: "Access"
+    prerequisites: "本番デプロイ（または staging）の Team 版 URL"
+    description: "未ログインでは Access ログインへ誘導され、AUTH_DEV_BYPASS が効いていない（/api/me が 401 またはログイン画面）"
