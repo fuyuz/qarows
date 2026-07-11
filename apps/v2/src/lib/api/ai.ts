@@ -38,7 +38,10 @@ export async function proposeAiEdit(
     message: string;
     history?: AiChatMessage[];
     workingFrom?: "definition" | "proposal";
+    /** Prefer baseProposalId to avoid large request bodies. */
     proposalYaml?: string;
+    /** Continue from a server-stored proposal instead of resending YAML. */
+    baseProposalId?: string;
     /** When set, AI edits against this YAML (e.g. current editor draft) instead of saved definition */
     baseYaml?: string;
   },

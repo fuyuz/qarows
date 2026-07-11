@@ -836,7 +836,15 @@ testCases:
       medium: "表示"
       minor: "binding 有"
     prerequisites: "Team 版。[ai] binding 有効、/p/{id}/tests を開く"
-    description: "テスト定義画面の右サイドに AI アシスタント（会話 / 編集案）が表示される"
+    description: "テスト定義画面の右サイドに AI アシスタントが表示され、会話と編集案はどちらか一方のみ展開（ヘッダクリックで切替）"
+
+  - id: TC-117
+    category:
+      major: "AI編集"
+      medium: "表示"
+      minor: "フォーカス切替"
+    prerequisites: "テスト定義画面で AI アシスタント表示中、会話パネル展開中"
+    description: "編集指示で編集案が生成されると編集案パネルが自動展開され、会話は折りたたまれる。折りたたみヘッダから会話に戻れる"
 
   - id: TC-112
     category:

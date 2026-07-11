@@ -4,6 +4,12 @@ export const MAX_TESTS_YAML_BYTES = 5 * 1024 * 1024;
 /** Maximum merge-results request body size (5 MiB). */
 export const MAX_RESULTS_JSON_BYTES = 5 * 1024 * 1024;
 
+/**
+ * AI /propose body: message + history + optional draft YAML.
+ * Sized for one ~48k-char YAML (UTF-8) plus chat history — not two full YAMLs.
+ */
+export const MAX_AI_PROPOSE_BODY_BYTES = 256 * 1024;
+
 export class BodyTooLargeError extends Error {
   readonly maxBytes: number;
 

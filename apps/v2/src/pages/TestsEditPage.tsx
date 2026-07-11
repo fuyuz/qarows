@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { serializeTestsYaml, type TestDefinition } from "@qarows/shared";
 import {
   TestsEditPageLayout,
@@ -17,6 +17,8 @@ import { ApiError } from "@/lib/api/client";
 import { applyDefinitionEdit, getProject } from "@/lib/api/projects";
 import { useParams } from "react-router-dom";
 
+type AiAsideSection = "chat" | "proposal";
+
 export function TestsEditPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const { definition, revision, syncNotice } = useProjectSync();
@@ -27,6 +29,7 @@ export function TestsEditPage() {
   });
   const [draftImport, setDraftImport] = useState<TestsEditDraftImport | null>(null);
   const [aiOpen, setAiOpen] = useState(true);
+  const [aiSection, setAiSection] = useState<AiAsideSection>("chat");
   const [importToken, setImportToken] = useState(0);
 
   // AI 無効 / 未判定中はフックを動かさない（sessionStorage・revisions API を叩かない）
@@ -37,7 +40,16 @@ export function TestsEditPage() {
     projectId,
     definition,
     draft: draftState.draft,
+    draftHasChanges: draftState.hasChanges,
   });
+
+  // 編集案（または生成失敗）が来たら編集案パネルへフォーカス
+  useEffect(() => {
+    if (!aiActive) return;
+    if (ai.proposal || ai.editIntentWithoutProposal) {
+      setAiSection("proposal");
+    }
+  }, [aiActive, ai.proposal, ai.editIntentWithoutProposal]);
 
   const onApply = useCallback(
     async (next: TestDefinition) => {
@@ -90,11 +102,13 @@ export function TestsEditPage() {
           </Button>
         </div>
         {syncNotice ? <p className="text-xs text-amber-800">{syncNotice}</p> : null}
-        <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-rows-2">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
           <TestsYamlAiChatPanel
             messages={ai.chatMessages}
             input={ai.input}
             busy={ai.busy}
+            expanded={aiSection === "chat"}
+            onExpand={() => setAiSection("chat")}
             onInputChange={ai.setInput}
             onSend={() => void ai.handleSend()}
             onReset={ai.handleReset}
@@ -104,6 +118,8 @@ export function TestsEditPage() {
             editIntentWithoutProposal={ai.editIntentWithoutProposal}
             baseDefinition={draftState.draft ?? definition}
             busy={ai.busy}
+            expanded={aiSection === "proposal"}
+            onExpand={() => setAiSection("proposal")}
             successMessage={ai.successMessage}
             errorMessage={ai.errorMessage}
             revisions={ai.revisions}

@@ -18,12 +18,15 @@ export function useTestsYamlAiEdit({
   projectId,
   definition,
   draft,
+  draftHasChanges = false,
 }: {
   enabled?: boolean;
   projectId: string | undefined;
   definition: TestDefinition | null;
-  /** Current editor draft — used as AI base when present */
+  /** Current editor draft — used as AI base when it has local changes */
   draft: TestDefinition | null;
+  /** Only then is draft serialized into the propose body (avoids 413 on large YAML). */
+  draftHasChanges?: boolean;
 }) {
   const [chatMessages, setChatMessages] = useState<AiChatMessage[]>([]);
   const [proposal, setProposal] = useState<AiProposal | null>(null);
@@ -94,15 +97,15 @@ export function useTestsYamlAiEdit({
     setBusy(true);
 
     try {
-      // Only send baseYaml when the editor has a draft override; otherwise the
-      // server uses its snapshot (keeps the 32 KiB propose body under the limit).
-      // Unaccepted proposal YAML is sent separately as proposalYaml.
+      // Prefer server-stored proposal id over resending YAML.
+      // Only send baseYaml when the editor draft differs from the saved definition.
       const response = await proposeAiEdit(projectId, {
         message,
         history: chatMessages,
         workingFrom: proposal ? "proposal" : "definition",
-        proposalYaml: proposal?.proposedYaml,
-        baseYaml: draft ? serializeTestsYaml(draft) : undefined,
+        baseProposalId: proposal?.proposalId,
+        baseYaml:
+          draftHasChanges && draft ? serializeTestsYaml(draft) : undefined,
       });
 
       setChatMessages((prev) => [...prev, { role: "assistant", content: response.reply }]);
@@ -118,7 +121,7 @@ export function useTestsYamlAiEdit({
     } finally {
       setBusy(false);
     }
-  }, [enabled, projectId, definition, draft, input, busy, chatMessages, proposal]);
+  }, [enabled, projectId, definition, draft, draftHasChanges, input, busy, chatMessages, proposal]);
 
   const handleDiscardProposal = useCallback(() => {
     setProposal(null);

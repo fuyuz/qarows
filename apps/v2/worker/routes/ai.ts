@@ -16,14 +16,17 @@ import {
   restoreDefinitionRevision,
   saveCheckpointAndReplaceDefinition,
 } from "../replace-definition";
-import { BodyTooLargeError, MAX_TESTS_YAML_BYTES, readRequestTextWithLimit } from "../request-body";
+import { BodyTooLargeError, MAX_AI_PROPOSE_BODY_BYTES, readRequestTextWithLimit } from "../request-body";
 import type { AppEnv } from "../types";
 
 interface ProposeBody {
   message?: string;
   history?: unknown;
   workingFrom?: "definition" | "proposal";
+  /** @deprecated Prefer baseProposalId — full YAML bloats the request body. */
   proposalYaml?: string;
+  /** Server-stored proposal to continue editing from (avoids resending YAML). */
+  baseProposalId?: string;
   baseYaml?: string;
 }
 
@@ -83,7 +86,7 @@ export function createAiRoutes(): Hono<AppEnv> {
 
       let body: ProposeBody;
       try {
-        const raw = await readRequestTextWithLimit(c.req.raw, 32_768);
+        const raw = await readRequestTextWithLimit(c.req.raw, MAX_AI_PROPOSE_BODY_BYTES);
         body = JSON.parse(raw) as ProposeBody;
       } catch (err) {
         if (err instanceof BodyTooLargeError) {
@@ -126,7 +129,16 @@ export function createAiRoutes(): Hono<AppEnv> {
         }
       }
 
-      const proposalYaml = body.proposalYaml?.trim();
+      let proposalYaml = body.proposalYaml?.trim() || undefined;
+      const baseProposalId = body.baseProposalId?.trim();
+      if (body.workingFrom === "proposal" && baseProposalId) {
+        const stored = await requireUsableAiProposal(c.env.DB, {
+          projectId,
+          proposalId: baseProposalId,
+        });
+        proposalYaml = stored.proposedYaml;
+      }
+
       if (body.workingFrom === "proposal" && proposalYaml) {
         try {
           const proposalDefinition = parseTestsYaml(proposalYaml);
@@ -141,6 +153,10 @@ export function createAiRoutes(): Hono<AppEnv> {
             message: err instanceof Error ? err.message : "Invalid proposalYaml",
           });
         }
+      } else if (body.workingFrom === "proposal") {
+        throw new HTTPException(400, {
+          message: "workingFrom=proposal には baseProposalId または proposalYaml が必要です",
+        });
       }
 
       const result = await proposeTestsYamlEdit(c.env, {
@@ -151,7 +167,7 @@ export function createAiRoutes(): Hono<AppEnv> {
           message,
           history,
           workingFrom: body.workingFrom,
-          proposalYaml: body.proposalYaml,
+          proposalYaml,
         },
       });
 
