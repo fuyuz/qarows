@@ -69,6 +69,8 @@ export function TestsEditPage() {
     const token = importToken + 1;
     setImportToken(token);
     setDraftImport({ definition: accepted, token });
+    // Optimistic: next AI turn can use post-diff YAML before draftImport useEffect lands.
+    setDraftState({ hasChanges: true, draft: accepted });
   }, [ai, draftState.hasChanges, importToken]);
 
   if (!definition || !projectId) return null;

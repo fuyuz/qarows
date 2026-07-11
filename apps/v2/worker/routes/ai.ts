@@ -126,6 +126,23 @@ export function createAiRoutes(): Hono<AppEnv> {
         }
       }
 
+      const proposalYaml = body.proposalYaml?.trim();
+      if (body.workingFrom === "proposal" && proposalYaml) {
+        try {
+          const proposalDefinition = parseTestsYaml(proposalYaml);
+          if (getProjectIdFromDefinition(proposalDefinition) !== projectId) {
+            throw new HTTPException(400, {
+              message: "proposalYaml project.id が URL の projectId と一致しません",
+            });
+          }
+        } catch (err) {
+          if (err instanceof HTTPException) throw err;
+          throw new HTTPException(400, {
+            message: err instanceof Error ? err.message : "Invalid proposalYaml",
+          });
+        }
+      }
+
       const result = await proposeTestsYamlEdit(c.env, {
         projectId,
         baseDefinition,

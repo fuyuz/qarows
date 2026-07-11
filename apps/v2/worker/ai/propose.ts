@@ -1,5 +1,7 @@
 import {
   computeDefinitionDiff,
+  getProjectIdFromDefinition,
+  parseTestsYaml,
   serializeTestsYaml,
   type TestDefinition,
 } from "@qarows/shared";
@@ -253,9 +255,18 @@ type EditProposalBuild =
 
 /** Validate/parse/apply an AI edit response. Exported for unit tests. */
 export function buildEditProposalFromAiResponse(
-  baseDefinition: TestDefinition,
+  /** Definition the model patch is applied against (latest working context). */
+  workingDefinition: TestDefinition,
   parsed: { reply?: string; patch?: unknown; testCases?: unknown; environments?: unknown; project?: unknown },
   modelUsed: string,
+  options?: {
+    /**
+     * Diff anchor (e.g. editor draft). Defaults to workingDefinition.
+     * When iterating on an unaccepted proposal, pass the editor draft so the
+     * returned diff is cumulative vs the editor, not incremental vs the proposal.
+     */
+    diffAgainst?: TestDefinition;
+  },
 ): EditProposalBuild {
   const reply = parsed.reply?.trim() ?? "";
   if (!reply) {
@@ -271,8 +282,9 @@ export function buildEditProposalFromAiResponse(
         error: "編集 patch が空です。追加・削除・変更内容を patch 形式で返してください。",
       };
     }
-    const proposedDefinition = applyDefinitionPatch(baseDefinition, patch);
-    const diff = computeDefinitionDiff(baseDefinition, proposedDefinition);
+    const proposedDefinition = applyDefinitionPatch(workingDefinition, patch);
+    const diffBase = options?.diffAgainst ?? workingDefinition;
+    const diff = computeDefinitionDiff(diffBase, proposedDefinition);
     if (!diff.hasChanges) {
       return {
         ok: false,
@@ -343,10 +355,23 @@ export async function proposeTestsYamlEdit(
   }
 
   const history = parseAiChatHistory(input.request.history);
-  const workingYaml =
-    input.request.workingFrom === "proposal" && input.request.proposalYaml?.trim()
-      ? input.request.proposalYaml
-      : input.baseYaml;
+
+  // Latest context for the model: unaccepted proposal YAML when iterating, else editor/saved base.
+  let workingYaml = input.baseYaml;
+  let workingDefinition = input.baseDefinition;
+  if (input.request.workingFrom === "proposal" && input.request.proposalYaml?.trim()) {
+    workingYaml = input.request.proposalYaml.trim();
+    try {
+      workingDefinition = parseTestsYaml(workingYaml);
+    } catch (err) {
+      throw new AiModelError(
+        err instanceof Error ? `Invalid proposalYaml: ${err.message}` : "Invalid proposalYaml",
+      );
+    }
+    if (getProjectIdFromDefinition(workingDefinition) !== input.projectId) {
+      throw new AiModelError("proposalYaml project.id が URL の projectId と一致しません");
+    }
+  }
 
   const messageIntent = classifyMessageIntent(message);
   const editMode = messageIntent === "edit";
@@ -391,11 +416,16 @@ export async function proposeTestsYamlEdit(
   let lastError = "";
   let lastReply = reply;
 
+  // Diff against editor/saved base so the UI shows cumulative changes when iterating on a proposal.
+  const diffAgainst =
+    workingDefinition === input.baseDefinition ? undefined : input.baseDefinition;
+
   for (let repair = 0; repair <= MAX_PATCH_REPAIR_ATTEMPTS; repair++) {
     const built = buildEditProposalFromAiResponse(
-      input.baseDefinition,
+      workingDefinition,
       latestParsed,
       latestModelUsed,
+      diffAgainst ? { diffAgainst } : undefined,
     );
     if (built.ok) {
       return { reply: built.reply, intent: "edit", proposal: built.proposal };

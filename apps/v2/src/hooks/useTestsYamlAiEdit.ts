@@ -94,13 +94,15 @@ export function useTestsYamlAiEdit({
     setBusy(true);
 
     try {
-      const baseYaml = draft ? serializeTestsYaml(draft) : undefined;
+      // Only send baseYaml when the editor has a draft override; otherwise the
+      // server uses its snapshot (keeps the 32 KiB propose body under the limit).
+      // Unaccepted proposal YAML is sent separately as proposalYaml.
       const response = await proposeAiEdit(projectId, {
         message,
         history: chatMessages,
-        workingFrom: proposal ? workingFrom : "definition",
+        workingFrom: proposal ? "proposal" : "definition",
         proposalYaml: proposal?.proposedYaml,
-        baseYaml,
+        baseYaml: draft ? serializeTestsYaml(draft) : undefined,
       });
 
       setChatMessages((prev) => [...prev, { role: "assistant", content: response.reply }]);
@@ -116,12 +118,13 @@ export function useTestsYamlAiEdit({
     } finally {
       setBusy(false);
     }
-  }, [enabled, projectId, definition, draft, input, busy, chatMessages, proposal, workingFrom]);
+  }, [enabled, projectId, definition, draft, input, busy, chatMessages, proposal]);
 
   const handleDiscardProposal = useCallback(() => {
     setProposal(null);
     setWorkingFrom("definition");
     setErrorMessage(null);
+    setLastIntent(null);
   }, []);
 
   const handleReset = useCallback(() => {
@@ -167,6 +170,8 @@ export function useTestsYamlAiEdit({
     const accepted = proposal.proposedDefinition;
     setProposal(null);
     setWorkingFrom("definition");
+    // Clear so the "diff を生成できませんでした" alert does not appear after a successful reflect.
+    setLastIntent(null);
     setSuccessMessage("編集案を編集画面に反映しました。内容を確認して Apply してください。");
     setChatMessages((prev) => [
       ...prev,
@@ -175,6 +180,7 @@ export function useTestsYamlAiEdit({
     return accepted;
   }, [enabled, proposal]);
 
+  // Only when the latest propose returned edit intent but no proposal (not after accept/discard).
   const editIntentWithoutProposal = useMemo(
     () => lastIntent === "edit" && proposal == null,
     [lastIntent, proposal],

@@ -71,6 +71,51 @@ describe("buildEditProposalFromAiResponse", () => {
     if (built.ok) return;
     expect(built.error).toContain("編集 patch が空です");
   });
+
+  it("applies patch against working definition and diffs against editor base", () => {
+    const working: TestDefinition = {
+      ...base,
+      testCases: [
+        ...base.testCases,
+        {
+          id: "TC-002",
+          category: { major: "A" },
+          description: "from prior proposal",
+        },
+      ],
+    };
+    const built = buildEditProposalFromAiResponse(
+      working,
+      {
+        reply: "さらに追加しました",
+        patch: {
+          testCases: {
+            added: [
+              {
+                id: "TC-003",
+                category: { major: "A" },
+                description: "second edit",
+              },
+            ],
+          },
+        },
+      },
+      "test-model",
+      { diffAgainst: base },
+    );
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    expect(built.proposal.proposedDefinition.testCases.map((tc) => tc.id)).toEqual([
+      "TC-001",
+      "TC-002",
+      "TC-003",
+    ]);
+    // Cumulative vs editor base includes both prior proposal TC and this turn's add.
+    expect(built.proposal.diff.testCases.added.map((tc) => tc.id).sort()).toEqual([
+      "TC-002",
+      "TC-003",
+    ]);
+  });
 });
 
 describe("buildPatchRepairUserMessage", () => {
