@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { formatUpdatedAtShort } from "../../lib/format-updated-at";
@@ -7,6 +7,15 @@ import { ScrollArea } from "../ui/scroll-area";
 import { type ProjectListItem, sortProjectListItems } from "./project-list-item";
 
 const TASK_BAR_ANIM_MS = 320;
+/** 「新規作成」行。プロジェクト index (>=0) と区別する */
+const NEW_ROW_INDEX = -1;
+/** 未選択 */
+const NONE_INDEX = -2;
+
+function focusListButton(event: MouseEvent<HTMLButtonElement>) {
+  event.preventDefault();
+  event.currentTarget.focus({ preventScroll: true });
+}
 
 export interface ProjectListPanelProps {
   summaries: ProjectListItem[];
@@ -29,36 +38,45 @@ export function ProjectListPanel({
 }: ProjectListPanelProps) {
   const sortedSummaries = useMemo(() => sortProjectListItems(summaries), [summaries]);
   const activeIndex = useMemo(() => {
-    if (selectedId === newProjectSelectionId) return -1;
-    if (!selectedId) return -1;
-    return sortedSummaries.findIndex((summary) => summary.id === selectedId);
+    if (selectedId === newProjectSelectionId) return NEW_ROW_INDEX;
+    if (!selectedId) return NONE_INDEX;
+    const index = sortedSummaries.findIndex((summary) => summary.id === selectedId);
+    return index >= 0 ? index : NONE_INDEX;
   }, [newProjectSelectionId, selectedId, sortedSummaries]);
 
   const prevActiveIndexRef = useRef(activeIndex);
   const [barPhase, setBarPhase] = useState<Record<number, "enter" | "exit">>({});
-  const listRef = useRef<HTMLUListElement>(null);
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
-  const isNewSelected = selectedId === newProjectSelectionId;
+  const newRowRef = useRef<HTMLLIElement | null>(null);
+  const isNewSelected = activeIndex === NEW_ROW_INDEX;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const prev = prevActiveIndexRef.current;
-    if (prev === activeIndex) return;
+    if (prev !== activeIndex) {
+      const nextPhase: Record<number, "enter" | "exit"> = {};
+      if (prev === NEW_ROW_INDEX || prev >= 0) nextPhase[prev] = "exit";
+      if (activeIndex === NEW_ROW_INDEX || activeIndex >= 0) nextPhase[activeIndex] = "enter";
+      setBarPhase(nextPhase);
+      prevActiveIndexRef.current = activeIndex;
 
-    const nextPhase: Record<number, "enter" | "exit"> = {};
-    if (prev >= 0) nextPhase[prev] = "exit";
-    if (activeIndex >= 0) nextPhase[activeIndex] = "enter";
-    setBarPhase(nextPhase);
+      const timer = window.setTimeout(() => setBarPhase({}), TASK_BAR_ANIM_MS);
+      if (activeIndex === NEW_ROW_INDEX) {
+        newRowRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
+      } else if (activeIndex >= 0) {
+        itemRefs.current[activeIndex]?.scrollIntoView({ block: "nearest", behavior: "auto" });
+      }
+      return () => window.clearTimeout(timer);
+    }
 
-    const timer = window.setTimeout(() => setBarPhase({}), TASK_BAR_ANIM_MS);
-    prevActiveIndexRef.current = activeIndex;
-    return () => window.clearTimeout(timer);
-  }, [activeIndex]);
-
-  useEffect(() => {
-    if (activeIndex >= 0) {
-      itemRefs.current[activeIndex]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (activeIndex === NEW_ROW_INDEX) {
+      newRowRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
+    } else if (activeIndex >= 0) {
+      itemRefs.current[activeIndex]?.scrollIntoView({ block: "nearest", behavior: "auto" });
     }
   }, [activeIndex, sortedSummaries.length]);
+
+  const newPhase = barPhase[NEW_ROW_INDEX];
+  const showNewBar = isNewSelected || newPhase === "exit";
 
   return (
     <aside
@@ -73,22 +91,28 @@ export function ProjectListPanel({
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        <ul ref={listRef} className="py-1">
+        <ul className="py-1">
           <li
+            ref={newRowRef}
             className={cn(
               "relative transition-[background-color] duration-500 ease-in-out motion-reduce:transition-none",
               isNewSelected && "bg-primary/5",
             )}
           >
-            {isNewSelected && (
+            {showNewBar && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[3px] rounded-r bg-primary animate-task-bar-enter"
+                className={cn(
+                  "pointer-events-none absolute inset-y-0 left-0 z-10 w-[3px] rounded-r bg-primary",
+                  newPhase === "exit" && "animate-task-bar-exit",
+                  newPhase === "enter" && "animate-task-bar-enter",
+                )}
               />
             )}
             <button
               type="button"
               className="relative z-[1] flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/50"
+              onMouseDown={focusListButton}
               onClick={() => onSelect(newProjectSelectionId)}
             >
               <Plus className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
@@ -102,7 +126,7 @@ export function ProjectListPanel({
           </li>
 
           {sortedSummaries.map((summary, index) => {
-            const isActive = activeIndex === index && activeIndex >= 0;
+            const isActive = activeIndex === index;
             const phase = barPhase[index];
             const showBar = isActive || phase === "exit";
             const isLastOpened = summary.id === lastOpenedProjectId;
@@ -131,6 +155,7 @@ export function ProjectListPanel({
                 <button
                   type="button"
                   className="relative z-[1] flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/50"
+                  onMouseDown={focusListButton}
                   onClick={() => onSelect(summary.id)}
                 >
                   <span className="min-w-0 flex-1">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode, isBugClosed, type Bug, type TestDefinition } from "@qarows/shared";
 import { Button } from "@qarows/ui";
 import { ScrollArea } from "@qarows/ui";
@@ -28,6 +28,11 @@ function statusClass(status: Bug["status"]): string {
   return "text-red-600";
 }
 
+function focusListButton(event: MouseEvent<HTMLButtonElement>) {
+  event.preventDefault();
+  event.currentTarget.focus({ preventScroll: true });
+}
+
 function BugListPanel({
   headerTitle,
   headerDescription,
@@ -38,8 +43,6 @@ function BugListPanel({
   definition,
   bugIndex,
   onJump,
-  listRef,
-  itemRefs,
   className,
 }: {
   headerTitle: string;
@@ -51,8 +54,6 @@ function BugListPanel({
   definition: TestDefinition;
   bugIndex: number;
   onJump: (index: number) => void;
-  listRef: RefObject<HTMLUListElement | null>;
-  itemRefs: RefObject<(HTMLLIElement | null)[]>;
   className?: string;
 }) {
   const testCaseById = useMemo(
@@ -61,21 +62,25 @@ function BugListPanel({
   );
 
   const prevBugIndexRef = useRef(bugIndex);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
   const [barPhase, setBarPhase] = useState<Record<number, "enter" | "exit">>({});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const prev = prevBugIndexRef.current;
-    if (prev === bugIndex) return;
+    if (prev !== bugIndex) {
+      const nextPhase: Record<number, "enter" | "exit"> = {};
+      if (prev >= 0) nextPhase[prev] = "exit";
+      if (bugIndex >= 0) nextPhase[bugIndex] = "enter";
+      setBarPhase(nextPhase);
+      prevBugIndexRef.current = bugIndex;
 
-    const nextPhase: Record<number, "enter" | "exit"> = {};
-    if (prev >= 0) nextPhase[prev] = "exit";
-    if (bugIndex >= 0) nextPhase[bugIndex] = "enter";
-    setBarPhase(nextPhase);
+      const timer = window.setTimeout(() => setBarPhase({}), TASK_BAR_ANIM_MS);
+      itemRefs.current[bugIndex]?.scrollIntoView({ block: "nearest", behavior: "auto" });
+      return () => window.clearTimeout(timer);
+    }
 
-    const timer = window.setTimeout(() => setBarPhase({}), TASK_BAR_ANIM_MS);
-    prevBugIndexRef.current = bugIndex;
-    return () => window.clearTimeout(timer);
-  }, [bugIndex]);
+    itemRefs.current[bugIndex]?.scrollIntoView({ block: "nearest", behavior: "auto" });
+  }, [bugIndex, targets.length]);
 
   return (
     <aside
@@ -114,7 +119,7 @@ function BugListPanel({
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        <ul ref={listRef} className="py-1">
+        <ul className="py-1">
           {targets.length === 0 ? (
             <li className="px-3.5 py-4 text-sm text-muted-foreground">対象バグがありません</li>
           ) : (
@@ -150,6 +155,7 @@ function BugListPanel({
                   <button
                     type="button"
                     className="relative z-[1] flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/50"
+                    onMouseDown={focusListButton}
                     onClick={() => onJump(index)}
                   >
                     <span
@@ -192,8 +198,6 @@ export function BugTaskList() {
   const { runnerFilters, bugId, setBugId, bugFilters } = useRunnerQueryState();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const listRef = useRef<HTMLUListElement>(null);
-  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
 
   const allEnvIds = useMemo(
     () => (definition ? getAllEnvironmentIds(definition) : []),
@@ -230,10 +234,6 @@ export function BugTaskList() {
       ? definition?.scenarios?.find((entry) => entry.id === runnerFilters.scenarioId)
       : undefined;
 
-  useEffect(() => {
-    itemRefs.current[bugIndex]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [bugIndex, targets.length]);
-
   if (!definition || !results) return null;
 
   const jumpToBug = (index: number) => {
@@ -258,8 +258,6 @@ export function BugTaskList() {
     definition,
     bugIndex,
     onJump: jumpToBug,
-    listRef,
-    itemRefs,
   };
 
   return (

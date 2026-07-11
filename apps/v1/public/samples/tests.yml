@@ -989,3 +989,11 @@ testCases:
       minor: "提案適用"
     prerequisites: "Team 版で AI が有効、テスト定義画面を開いている"
     description: "AI 編集案を得たあと、編集画面に反映→Apply で保存できる。サーバーは proposalId 付き提案を保持する（手書き YAML の /ai/apply は拒否）"
+
+  - id: TC-105
+    category:
+      major: "テスト実行"
+      medium: "タスク一覧"
+      minor: "選択バー"
+    prerequisites: "テスト実行画面 (/run) を表示中、一覧に現在より上のテストがあること"
+    description: "左のテスト一覧で現在より上のテストをクリックしたとき、青い選択バーが旧行と新行の間を行ったり来たりせず、exit→enter の一方向だけに見える"
