@@ -40,7 +40,8 @@ function viewportWidth(): number {
 function maxAiPanelWidthForViewport(vw = viewportWidth()): number {
   const available = vw - EDITOR_MIN_WIDTH_PX - NAV_CLUSTER_WIDTH_PX - NAV_RIGHT_GAP_PX;
   if (available < AI_PANEL_MIN_WIDTH) {
-    return Math.max(AI_PANEL_NARROW_FLOOR, available);
+    // Prefer the narrow floor when there's room, but never exceed available space.
+    return Math.max(0, Math.min(AI_PANEL_NARROW_FLOOR, available));
   }
   return Math.min(AI_PANEL_MAX_WIDTH, available);
 }
