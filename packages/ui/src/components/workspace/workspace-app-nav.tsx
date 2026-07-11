@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Compass } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isValidSession, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
@@ -8,6 +8,7 @@ import {
   type AppNavigationPage,
   type WorkspaceProjectPage,
 } from "../../lib/app-keybindings";
+import { cn } from "../../lib/cn";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -48,6 +49,11 @@ export interface WorkspaceAppNavProps {
   syncStatus?: WorkspaceSyncStatus;
   /** エディション固有の追加メニュー（例: Team 版 AI 編集） */
   extraMenuItems?: WorkspaceAppNavExtraMenuItem[];
+  /**
+   * 右端からのオフセット（px）。右サイドパネル（AI など）表示時にナビが重ならないようずらす。
+   * 未指定時は `right-5`（20px）。
+   */
+  offsetRight?: number;
 }
 
 const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
@@ -148,6 +154,7 @@ export function WorkspaceAppNav({
   onExportResults,
   syncStatus,
   extraMenuItems,
+  offsetRight,
 }: WorkspaceAppNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -194,8 +201,18 @@ export function WorkspaceAppNav({
   const hasEdit = editLinksList.length > 0;
   const hasExtraMenu = (extraMenuItems?.length ?? 0) > 0;
 
+  const rootStyle: CSSProperties | undefined =
+    offsetRight != null ? { right: offsetRight } : undefined;
+
   return (
-    <div ref={rootRef} className="fixed top-3.5 right-5 z-40 flex items-center gap-1.5">
+    <div
+      ref={rootRef}
+      className={cn(
+        "fixed top-3.5 z-40 flex items-center gap-1.5",
+        offsetRight == null && "right-5",
+      )}
+      style={rootStyle}
+    >
       {syncStatus ? (
         <SyncConnectionIndicator
           connected={syncStatus.connected}

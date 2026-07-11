@@ -4,7 +4,7 @@ import { useProjectSync } from "@/context/ProjectSyncContext";
 import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 import { downloadText } from "@/lib/file-utils";
 
-export function AppNav() {
+export function AppNav({ offsetRight }: { offsetRight?: number } = {}) {
   const { definition, results, session, connected, connectionStatus, pendingCommands, revision, syncPulseKey } =
     useProjectSync();
   const { path } = useProjectRoutes();
@@ -16,6 +16,7 @@ export function AppNav() {
       results={results}
       path={path}
       availablePages={["session", "run", "matrix", "dashboard", "bugs", "tests"]}
+      offsetRight={offsetRight}
       syncStatus={{
         connected,
         connectionStatus,
