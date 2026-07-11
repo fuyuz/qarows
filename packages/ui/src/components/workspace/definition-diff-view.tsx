@@ -113,12 +113,60 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
         </section>
       )}
 
-      {(diff.categoryTargets || diff.scenarios) && (
-        <section className="space-y-1 text-sm text-muted-foreground">
-          {diff.categoryTargets ? <p>categoryTargets に変更があります</p> : null}
-          {diff.scenarios ? <p>scenarios に変更があります</p> : null}
+      {(diff.scenarios.added.length > 0 ||
+        diff.scenarios.removed.length > 0 ||
+        diff.scenarios.modified.length > 0) && (
+        <section className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            シナリオ
+          </h3>
+          {diff.scenarios.added.map((scenario) => (
+            <div
+              key={scenario.id}
+              className="rounded-md border border-green-200 bg-green-50/80 px-3 py-2 text-sm"
+            >
+              <Badge variant="secondary" className="mr-2 bg-green-100 text-green-900">
+                追加
+              </Badge>
+              {scenario.id} — {scenario.name}
+              <p className="mt-1 text-xs text-muted-foreground">
+                steps: {scenario.steps.join(", ")}
+              </p>
+            </div>
+          ))}
+          {diff.scenarios.removed.map((id) => (
+            <div
+              key={id}
+              className="rounded-md border border-red-200 bg-red-50/80 px-3 py-2 text-sm line-through"
+            >
+              <Badge variant="secondary" className="mr-2 bg-red-100 text-red-900">
+                削除
+              </Badge>
+              {id}
+            </div>
+          ))}
+          {diff.scenarios.modified.map((scenario) => (
+            <div
+              key={scenario.id}
+              className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm"
+            >
+              <Badge variant="secondary" className="mr-2 bg-amber-100 text-amber-950">
+                変更
+              </Badge>
+              <span className="font-medium">{scenario.id}</span>
+              {scenario.fields.map((field) => (
+                <FieldChangeRow key={field.field} change={field} compact />
+              ))}
+            </div>
+          ))}
         </section>
       )}
+
+      {diff.categoryTargets ? (
+        <section className="space-y-1 text-sm text-muted-foreground">
+          <p>categoryTargets に変更があります</p>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -42,4 +42,39 @@ describe("computeDefinitionDiff", () => {
     expect(diff.testCases.removed).toEqual(["TC-001"]);
     expect(diff.hasChanges).toBe(true);
   });
+
+  it("detects scenario step changes", () => {
+    const before: TestDefinition = {
+      ...baseDefinition(),
+      scenarios: [
+        {
+          id: "smoke",
+          name: "Smoke",
+          steps: ["TC-001"],
+        },
+      ],
+    };
+    const after: TestDefinition = {
+      ...before,
+      testCases: [
+        ...before.testCases,
+        {
+          id: "TC-002",
+          category: { major: "認証" },
+          description: "ログアウトできる",
+        },
+      ],
+      scenarios: [
+        {
+          id: "smoke",
+          name: "Smoke",
+          steps: ["TC-001", "TC-002"],
+        },
+      ],
+    };
+    const diff = computeDefinitionDiff(before, after);
+    expect(diff.scenarios.modified).toHaveLength(1);
+    expect(diff.scenarios.modified[0]?.fields[0]?.field).toBe("steps");
+    expect(definitionDiffSummary(diff)).toContain("シナリオ 変更 1");
+  });
 });

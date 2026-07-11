@@ -42,4 +42,5 @@ export { runnerFiltersToSearchParams } from "./lib/runner-query";
 
 export { DefinitionEditFilterBar, filterDefinitionTestCases } from "./components/DefinitionEditFilterBar";
 export { DefinitionEnvironmentsPanel } from "./components/DefinitionEnvironmentsPanel";
+export { DefinitionScenariosPanel } from "./components/DefinitionScenariosPanel";
 export { TestCaseEditCard } from "./components/TestCaseEditCard";

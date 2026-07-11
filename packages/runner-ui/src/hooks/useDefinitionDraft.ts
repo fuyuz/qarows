@@ -5,8 +5,26 @@ import {
   type Environment,
   type TestCase,
   type TestDefinition,
+  type TestScenario,
   type TargetEnvironmentSpec,
 } from "@qarows/shared";
+
+function mapScenarioSteps(
+  scenarios: TestScenario[] | undefined,
+  mapStep: (stepId: string) => string | null,
+): TestScenario[] | undefined {
+  if (!scenarios?.length) return scenarios;
+  const next = scenarios
+    .map((scenario) => {
+      const steps = scenario.steps
+        .map(mapStep)
+        .filter((stepId): stepId is string => stepId != null);
+      if (steps.length === 0) return null;
+      return { ...scenario, steps };
+    })
+    .filter((scenario): scenario is TestScenario => scenario != null);
+  return next.length > 0 ? next : undefined;
+}
 
 function cloneDefinition(definition: TestDefinition): TestDefinition {
   return structuredClone(definition);
@@ -106,6 +124,9 @@ export function useDefinitionDraft(
       return {
         ...prev,
         testCases: prev.testCases.map((tc) => (tc.id === oldId ? { ...tc, id: trimmed } : tc)),
+        scenarios: mapScenarioSteps(prev.scenarios, (stepId) =>
+          stepId === oldId ? trimmed : stepId,
+        ),
       };
     });
   }, []);
@@ -133,6 +154,9 @@ export function useDefinitionDraft(
       return {
         ...prev,
         testCases: prev.testCases.filter((tc) => tc.id !== testCaseId),
+        scenarios: mapScenarioSteps(prev.scenarios, (stepId) =>
+          stepId === testCaseId ? null : stepId,
+        ),
       };
     });
   }, []);
@@ -184,6 +208,78 @@ export function useDefinitionDraft(
           };
         }),
       };
+    });
+  }, []);
+
+  const updateScenario = useCallback(
+    (scenarioId: string, patch: Partial<Omit<TestScenario, "id">>) => {
+      setDraft((prev) => {
+        if (!prev?.scenarios) return prev;
+        return {
+          ...prev,
+          scenarios: prev.scenarios.map((scenario) => {
+            if (scenario.id !== scenarioId) return scenario;
+            const next: TestScenario = { ...scenario, ...patch, id: scenario.id };
+            if (patch.steps) {
+              const steps = patch.steps.map((s) => s.trim()).filter(Boolean);
+              if (steps.length === 0) return scenario;
+              next.steps = steps;
+            }
+            if (patch.name != null) next.name = patch.name;
+            if ("description" in patch) {
+              if (patch.description) next.description = patch.description;
+              else delete next.description;
+            }
+            return next;
+          }),
+        };
+      });
+    },
+    [],
+  );
+
+  const setScenarioId = useCallback((oldId: string, newId: string) => {
+    const trimmed = newId.trim();
+    if (!trimmed) return;
+    setDraft((prev) => {
+      if (!prev?.scenarios) return prev;
+      if (prev.scenarios.some((s) => s.id === trimmed && s.id !== oldId)) return prev;
+      return {
+        ...prev,
+        scenarios: prev.scenarios.map((s) => (s.id === oldId ? { ...s, id: trimmed } : s)),
+      };
+    });
+  }, []);
+
+  const addScenario = useCallback((scenario: TestScenario) => {
+    const id = scenario.id.trim();
+    const name = scenario.name.trim() || id;
+    const steps = scenario.steps.map((s) => s.trim()).filter(Boolean);
+    if (!id || steps.length === 0) return;
+    setDraft((prev) => {
+      if (!prev) return prev;
+      if (prev.scenarios?.some((s) => s.id === id)) return prev;
+      const next: TestScenario = {
+        id,
+        name,
+        steps,
+        ...(scenario.description?.trim()
+          ? { description: scenario.description.trim() }
+          : {}),
+      };
+      return { ...prev, scenarios: [...(prev.scenarios ?? []), next] };
+    });
+  }, []);
+
+  const removeScenario = useCallback((scenarioId: string) => {
+    setDraft((prev) => {
+      if (!prev?.scenarios) return prev;
+      const scenarios = prev.scenarios.filter((s) => s.id !== scenarioId);
+      if (scenarios.length === 0) {
+        const { scenarios: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, scenarios };
     });
   }, []);
 
@@ -242,6 +338,10 @@ export function useDefinitionDraft(
     updateEnvironment,
     addEnvironment,
     removeEnvironment,
+    updateScenario,
+    setScenarioId,
+    addScenario,
+    removeScenario,
     setTestCaseTargets,
     isTestCaseModified,
     isTestCaseNew,

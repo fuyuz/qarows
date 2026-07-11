@@ -22,6 +22,11 @@ export interface TestCaseChange {
   fields: FieldChange[];
 }
 
+export interface ScenarioChange {
+  id: string;
+  fields: FieldChange[];
+}
+
 export interface ArraySectionChange {
   added: number;
   removed: number;
@@ -41,7 +46,11 @@ export interface DefinitionDiff {
     modified: TestCaseChange[];
   };
   categoryTargets: ArraySectionChange | null;
-  scenarios: ArraySectionChange | null;
+  scenarios: {
+    added: TestScenario[];
+    removed: string[];
+    modified: ScenarioChange[];
+  };
   hasChanges: boolean;
 }
 
@@ -120,6 +129,24 @@ function testCaseFields(before: TestCase, after: TestCase): FieldChange[] {
   return fields;
 }
 
+function scenarioFields(before: TestScenario, after: TestScenario): FieldChange[] {
+  const fields: FieldChange[] = [];
+  if (before.name !== after.name) {
+    fields.push({ field: "name", before: before.name, after: after.name });
+  }
+  const bDesc = before.description ?? "";
+  const aDesc = after.description ?? "";
+  if (bDesc !== aDesc) {
+    fields.push({ field: "description", before: bDesc, after: aDesc });
+  }
+  const bSteps = before.steps.join(", ");
+  const aSteps = after.steps.join(", ");
+  if (bSteps !== aSteps) {
+    fields.push({ field: "steps", before: bSteps, after: aSteps });
+  }
+  return fields;
+}
+
 function jsonEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -179,7 +206,33 @@ export function computeDefinitionDiff(
     before.categoryTargets,
     after.categoryTargets,
   );
-  const scenarios = diffArraySection<TestScenario>(before.scenarios, after.scenarios);
+
+  const beforeScenarios = before.scenarios ?? [];
+  const afterScenarios = after.scenarios ?? [];
+  const beforeScenarioMap = new Map(beforeScenarios.map((s) => [s.id, s]));
+  const afterScenarioMap = new Map(afterScenarios.map((s) => [s.id, s]));
+  const scenarioAdded: TestScenario[] = [];
+  const scenarioRemoved: string[] = [];
+  const scenarioModified: ScenarioChange[] = [];
+
+  for (const scenario of afterScenarios) {
+    if (!beforeScenarioMap.has(scenario.id)) scenarioAdded.push(scenario);
+  }
+  for (const scenario of beforeScenarios) {
+    if (!afterScenarioMap.has(scenario.id)) scenarioRemoved.push(scenario.id);
+  }
+  for (const [id, afterScenario] of afterScenarioMap) {
+    const beforeScenario = beforeScenarioMap.get(id);
+    if (!beforeScenario) continue;
+    const fields = scenarioFields(beforeScenario, afterScenario);
+    if (fields.length > 0) scenarioModified.push({ id, fields });
+  }
+
+  const scenarios = {
+    added: scenarioAdded,
+    removed: scenarioRemoved,
+    modified: scenarioModified,
+  };
 
   const hasChanges =
     project.length > 0 ||
@@ -190,7 +243,9 @@ export function computeDefinitionDiff(
     tcRemoved.length > 0 ||
     tcModified.length > 0 ||
     categoryTargets != null ||
-    scenarios != null;
+    scenarioAdded.length > 0 ||
+    scenarioRemoved.length > 0 ||
+    scenarioModified.length > 0;
 
   return {
     project,
@@ -210,8 +265,11 @@ export function definitionDiffSummary(diff: DefinitionDiff): string {
   if (testCases.modified.length) parts.push(`変更 ${testCases.modified.length} TC`);
   if (diff.environments.added.length) parts.push(`端末 +${diff.environments.added.length}`);
   if (diff.environments.removed.length) parts.push(`端末 -${diff.environments.removed.length}`);
+  if (diff.environments.modified.length) parts.push(`端末 変更 ${diff.environments.modified.length}`);
+  if (diff.scenarios.added.length) parts.push(`シナリオ +${diff.scenarios.added.length}`);
+  if (diff.scenarios.removed.length) parts.push(`シナリオ -${diff.scenarios.removed.length}`);
+  if (diff.scenarios.modified.length) parts.push(`シナリオ 変更 ${diff.scenarios.modified.length}`);
   if (diff.project.length) parts.push("プロジェクト設定");
   if (diff.categoryTargets) parts.push("categoryTargets");
-  if (diff.scenarios) parts.push("scenarios");
   return parts.length > 0 ? parts.join(" / ") : "変更なし";
 }

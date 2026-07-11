@@ -144,6 +144,7 @@ scenarios:
       - TC-097
       - TC-098
       - TC-099
+      - TC-100
 
 testCases:
   - id: TC-001
@@ -948,3 +949,11 @@ testCases:
       minor: "編集"
     prerequisites: "テスト定義画面を開いている"
     description: "プロジェクト端末の追加・削除と、ケース単位の対象端末上書き（折りたたみ展開後）ができる"
+
+  - id: TC-100
+    category:
+      major: "テスト定義"
+      medium: "シナリオ"
+      minor: "編集"
+    prerequisites: "テスト定義画面を開いている"
+    description: "シナリオパネルでシナリオの追加・削除・名前/説明編集・ステップの並び替えとテストケース追加ができる"

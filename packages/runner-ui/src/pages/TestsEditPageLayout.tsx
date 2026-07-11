@@ -24,6 +24,7 @@ import {
   useDefinitionEditFilters,
 } from "../components/DefinitionEditFilterBar";
 import { DefinitionEnvironmentsPanel } from "../components/DefinitionEnvironmentsPanel";
+import { DefinitionScenariosPanel } from "../components/DefinitionScenariosPanel";
 import { TestCaseEditCard } from "../components/TestCaseEditCard";
 
 export interface TestsEditDraftImport {
@@ -161,13 +162,24 @@ export function TestsEditPageLayout({
         ) : null}
 
         {!compact ? (
-          <DefinitionEnvironmentsPanel
-            className="mb-4 shrink-0"
-            environments={draft.environments}
-            onUpdate={draftApi.updateEnvironment}
-            onAdd={draftApi.addEnvironment}
-            onRemove={draftApi.removeEnvironment}
-          />
+          <>
+            <DefinitionEnvironmentsPanel
+              className="mb-4 shrink-0"
+              environments={draft.environments}
+              onUpdate={draftApi.updateEnvironment}
+              onAdd={draftApi.addEnvironment}
+              onRemove={draftApi.removeEnvironment}
+            />
+            <DefinitionScenariosPanel
+              className="mb-4 shrink-0"
+              scenarios={draft.scenarios ?? []}
+              testCases={draft.testCases}
+              onUpdate={draftApi.updateScenario}
+              onChangeId={draftApi.setScenarioId}
+              onAdd={draftApi.addScenario}
+              onRemove={draftApi.removeScenario}
+            />
+          </>
         ) : null}
 
         {applyError ? (
