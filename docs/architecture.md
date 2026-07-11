@@ -192,6 +192,19 @@ DO 側の処理:
 
 Local 版 のファイルマージルール（OK &lt; SKIP &lt; NG）は **Local 版 専用**（`mergeResults` command）。Team 版 の同時編集は server revision 付き command 適用で整合する。
 
+### テスト定義の編集経路（Team 版）
+
+定義変更には **意図的に 2 経路** がある。混同しないこと。
+
+| 経路 | 典型 UI | 同期 | `generation` | `definition_revisions` |
+|---|---|---|---|---|
+| **本編集** | テスト定義画面（draft → Diff → Apply）、YAML 取込、AI apply | HTTP（`definition/apply` / `PUT /definition` / `/ai/apply` 等） | **bump**（楽観ロック） | **checkpoint**（復元用） |
+| **実行中の軽微修正** | ランナーのテストケース編集ダイアログ | WebSocket `updateTestCase` | **変更しない** | **作らない** |
+
+- WS `updateTestCase` は説明・前提・分類などのその場修正向け。`revision` は増えリアルタイム同期されるが、YAML 本編集用の generation / 復元履歴とは別レイヤ。
+- 本編集（HTTP apply）は `expectedGeneration` で競合検知する。ランナー側で直した直後に、古い generation のまま HTTP apply すると **ランナー側の変更は上書きされ得る**（LWW。意図どおり）。
+- 破壊的な一括置換（`replaceDefinition` / `mergeResults` / `clearResults`）は WS クライアントからは受理しない（HTTP / Worker RPC のみ）。
+
 ### データフロー（リアルタイム同期）
 
 ```mermaid
@@ -233,6 +246,7 @@ sequenceDiagram
 - **1 デプロイ = 1 closed 環境** — 組織間でデータ非共有（マルチテナント SaaS ではない）
 - **Access 必須（本番）** — Worker 側でも JWT を検証
 - **Command + server revision** — 同一デプロイ内の編集は DO が順序付きで適用
+- **定義の本編集は HTTP** — generation bump + revision checkpoint。WS `updateTestCase` は実行中の軽微修正のみ（上記「テスト定義の編集経路」）
 - **D1 + DO** — DO がリアルタイム状態、D1 が永続 snapshot
 
 ---
