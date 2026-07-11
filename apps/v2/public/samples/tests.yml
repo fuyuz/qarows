@@ -878,6 +878,14 @@ testCases:
     prerequisites: "テスト定義画面で AI アシスタント表示中。1回目の編集案が未反映、または編集画面に反映済み"
     description: "続けて編集指示を送ると、直前の diff 適用後（未反映の編集案または反映済み draft）の tests.yml をコンテキストに次の編集案が作られる（前の変更が消えない）"
 
+  - id: TC-118
+    category:
+      major: "AI編集"
+      medium: "編集案"
+      minor: "シナリオ"
+    prerequisites: "テスト定義画面で AI アシスタント表示中。scenarios が定義済み"
+    description: "「スモークシナリオに TC-xxx を追加して」等の指示で patch.scenarios の編集案が出る。steps は存在する testCase id のみ。TC 削除時はシナリオ参照が壊れない"
+
   - id: TC-115
     category:
       major: "テスト定義"

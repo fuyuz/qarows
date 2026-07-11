@@ -1,4 +1,4 @@
-import type { Environment, TestCase, TestDefinition } from "@qarows/shared";
+import type { Environment, TestCase, TestDefinition, TestScenario } from "@qarows/shared";
 import { AiModelError } from "./run-model";
 
 export interface TestCasePatchSection {
@@ -13,6 +13,12 @@ export interface EnvironmentPatchSection {
   modified?: Array<Partial<Environment> & { id: string }>;
 }
 
+export interface ScenarioPatchSection {
+  added?: TestScenario[];
+  removed?: string[];
+  modified?: Array<Partial<TestScenario> & { id: string }>;
+}
+
 export interface ProjectPatchSection {
   name?: string;
 }
@@ -20,12 +26,14 @@ export interface ProjectPatchSection {
 export interface DefinitionPatch {
   testCases?: TestCasePatchSection;
   environments?: EnvironmentPatchSection;
+  scenarios?: ScenarioPatchSection;
   project?: ProjectPatchSection;
 }
 
 export function hasDefinitionPatch(patch: DefinitionPatch): boolean {
   const tc = patch.testCases;
   const env = patch.environments;
+  const sc = patch.scenarios;
   return (
     (tc?.added?.length ?? 0) > 0 ||
     (tc?.removed?.length ?? 0) > 0 ||
@@ -33,6 +41,9 @@ export function hasDefinitionPatch(patch: DefinitionPatch): boolean {
     (env?.added?.length ?? 0) > 0 ||
     (env?.removed?.length ?? 0) > 0 ||
     (env?.modified?.length ?? 0) > 0 ||
+    (sc?.added?.length ?? 0) > 0 ||
+    (sc?.removed?.length ?? 0) > 0 ||
+    (sc?.modified?.length ?? 0) > 0 ||
     patch.project?.name != null
   );
 }
@@ -102,6 +113,49 @@ function normalizeModifiedEnvironment(
   return patch;
 }
 
+function normalizeScenarioSteps(raw: unknown, label: string): string[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new AiModelError(`${label}.steps は1件以上必要です`);
+  }
+  return raw.map((step, index) => {
+    if (typeof step !== "string" || !step.trim()) {
+      throw new AiModelError(`${label}.steps[${index}] は空でない文字列である必要があります`);
+    }
+    return step.trim();
+  });
+}
+
+function normalizeAddedScenario(raw: Record<string, unknown>): TestScenario {
+  const id = typeof raw.id === "string" ? raw.id.trim() : "";
+  const name = typeof raw.name === "string" ? raw.name.trim() : "";
+  if (!id || !name) throw new AiModelError("patch.scenarios.added の形式が不正です（id と name が必要）");
+  const steps = normalizeScenarioSteps(raw.steps, "patch.scenarios.added");
+  const description =
+    typeof raw.description === "string" ? raw.description.trim() || undefined : undefined;
+  return {
+    id,
+    name,
+    ...(description != null ? { description } : {}),
+    steps,
+  };
+}
+
+function normalizeModifiedScenario(
+  raw: Record<string, unknown>,
+): Partial<TestScenario> & { id: string } {
+  const id = typeof raw.id === "string" ? raw.id.trim() : "";
+  if (!id) throw new AiModelError("patch.scenarios.modified.id が必要です");
+  const patch: Partial<TestScenario> & { id: string } = { id };
+  if (typeof raw.name === "string") patch.name = raw.name.trim();
+  if (typeof raw.description === "string") {
+    patch.description = raw.description.trim() || undefined;
+  }
+  if (raw.steps !== undefined) {
+    patch.steps = normalizeScenarioSteps(raw.steps, "patch.scenarios.modified");
+  }
+  return patch;
+}
+
 function parseStringArray(value: unknown, label: string): string[] | undefined {
   if (value == null) return undefined;
   if (!Array.isArray(value)) throw new AiModelError(`${label} は配列である必要があります`);
@@ -155,6 +209,21 @@ function parseEnvironmentSection(raw: unknown): EnvironmentPatchSection | undefi
   };
 }
 
+function parseScenarioSection(raw: unknown): ScenarioPatchSection | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw !== "object") throw new AiModelError("patch.scenarios の形式が不正です");
+  const section = raw as Record<string, unknown>;
+  return {
+    added: parseObjectArray(section.added, "patch.scenarios.added", normalizeAddedScenario),
+    removed: parseStringArray(section.removed, "patch.scenarios.removed"),
+    modified: parseObjectArray(
+      section.modified,
+      "patch.scenarios.modified",
+      normalizeModifiedScenario,
+    ),
+  };
+}
+
 function parsePatchObject(raw: Record<string, unknown>): DefinitionPatch {
   const projectRaw = raw.project;
   let project: ProjectPatchSection | undefined;
@@ -171,6 +240,7 @@ function parsePatchObject(raw: Record<string, unknown>): DefinitionPatch {
   return {
     testCases: parseTestCaseSection(raw.testCases),
     environments: parseEnvironmentSection(raw.environments),
+    scenarios: parseScenarioSection(raw.scenarios),
     project,
   };
 }
@@ -233,6 +303,15 @@ export function extractObjectAfterMarker(text: string, marker: string): unknown 
   return null;
 }
 
+function patchLooksLikeDefinitionPatch(obj: Record<string, unknown>): boolean {
+  return (
+    obj.testCases != null ||
+    obj.environments != null ||
+    obj.scenarios != null ||
+    obj.project != null
+  );
+}
+
 /**
  * Models sometimes put the patch in reply text or at the top level instead of `patch`.
  * Recover those shapes so edit mode does not fail with an empty patch.
@@ -242,6 +321,7 @@ export function coerceAiPatchPayload(parsed: {
   patch?: unknown;
   testCases?: unknown;
   environments?: unknown;
+  scenarios?: unknown;
   project?: unknown;
 }): unknown {
   if (typeof parsed.patch === "string") {
@@ -250,19 +330,21 @@ export function coerceAiPatchPayload(parsed: {
   }
   if (parsed.patch && typeof parsed.patch === "object" && !Array.isArray(parsed.patch)) {
     const patchObj = parsed.patch as Record<string, unknown>;
-    if (
-      patchObj.testCases != null ||
-      patchObj.environments != null ||
-      patchObj.project != null
-    ) {
+    if (patchLooksLikeDefinitionPatch(patchObj)) {
       return parsed.patch;
     }
   }
 
-  if (parsed.testCases != null || parsed.environments != null || parsed.project != null) {
+  if (
+    parsed.testCases != null ||
+    parsed.environments != null ||
+    parsed.scenarios != null ||
+    parsed.project != null
+  ) {
     return {
       testCases: parsed.testCases,
       environments: parsed.environments,
+      scenarios: parsed.scenarios,
       project: parsed.project,
     };
   }
@@ -272,21 +354,23 @@ export function coerceAiPatchPayload(parsed: {
 
   const embedded = tryParseJsonObject(reply);
   if (embedded?.patch && typeof embedded.patch === "object") return embedded.patch;
-  if (embedded?.testCases != null || embedded?.environments != null || embedded?.project != null) {
+  if (embedded && patchLooksLikeDefinitionPatch(embedded)) {
     return {
       testCases: embedded.testCases,
       environments: embedded.environments,
+      scenarios: embedded.scenarios,
       project: embedded.project,
     };
   }
 
   const testCases = extractObjectAfterMarker(reply, "patch.testCases");
   const environments = extractObjectAfterMarker(reply, "patch.environments");
+  const scenarios = extractObjectAfterMarker(reply, "patch.scenarios");
   const project = extractObjectAfterMarker(reply, "patch.project");
   const nestedPatch = extractObjectAfterMarker(reply, '"patch"') ?? extractObjectAfterMarker(reply, "patch:");
   if (nestedPatch && typeof nestedPatch === "object") return nestedPatch;
-  if (testCases != null || environments != null || project != null) {
-    return { testCases, environments, project };
+  if (testCases != null || environments != null || scenarios != null || project != null) {
+    return { testCases, environments, scenarios, project };
   }
 
   return parsed.patch ?? null;
@@ -297,6 +381,7 @@ export function parseDefinitionPatch(parsed: {
   patch?: unknown;
   testCases?: unknown;
   environments?: unknown;
+  scenarios?: unknown;
   project?: unknown;
 }): DefinitionPatch {
   const coerced = coerceAiPatchPayload(parsed);
@@ -335,13 +420,57 @@ function mergeEnvironment(
   };
 }
 
+function mergeScenario(
+  existing: TestScenario,
+  patch: Partial<TestScenario> & { id: string },
+): TestScenario {
+  return {
+    id: existing.id,
+    name: patch.name?.trim() || existing.name,
+    description:
+      patch.description !== undefined ? patch.description : existing.description,
+    steps: patch.steps ?? existing.steps,
+  };
+}
+
+function assertScenarioStepsExist(
+  scenarios: TestScenario[],
+  testCaseIds: Set<string>,
+): void {
+  for (const scenario of scenarios) {
+    for (const stepId of scenario.steps) {
+      if (!testCaseIds.has(stepId)) {
+        throw new AiModelError(
+          `scenarios "${scenario.id}" に未知の testCase id "${stepId}" があります`,
+        );
+      }
+    }
+  }
+}
+
+/** Drop removed test-case ids from scenario steps; drop scenarios left with no steps. */
+function scrubScenarioSteps(
+  scenarios: TestScenario[],
+  removedTestCaseIds: Set<string>,
+): TestScenario[] {
+  if (removedTestCaseIds.size === 0) return scenarios;
+  return scenarios
+    .map((scenario) => ({
+      ...scenario,
+      steps: scenario.steps.filter((id) => !removedTestCaseIds.has(id)),
+    }))
+    .filter((scenario) => scenario.steps.length > 0);
+}
+
 export function applyDefinitionPatch(
   base: TestDefinition,
   patch: DefinitionPatch,
 ): TestDefinition {
   let environments = [...base.environments];
   let testCases = [...base.testCases];
+  let scenarios = base.scenarios ? [...base.scenarios] : [];
   const project = { ...base.project };
+  const removedTestCaseIds = new Set(patch.testCases?.removed ?? []);
 
   if (patch.project?.name) {
     project.name = patch.project.name;
@@ -397,10 +526,42 @@ export function applyDefinitionPatch(
     }
   }
 
+  // Keep scenario step lists consistent when test cases are removed.
+  scenarios = scrubScenarioSteps(scenarios, removedTestCaseIds);
+
+  const scPatch = patch.scenarios;
+  if (scPatch?.removed?.length) {
+    const remove = new Set(scPatch.removed);
+    scenarios = scenarios.filter((sc) => !remove.has(sc.id));
+  }
+  if (scPatch?.modified?.length) {
+    const byId = new Map(scenarios.map((sc) => [sc.id, sc]));
+    for (const item of scPatch.modified) {
+      const existing = byId.get(item.id);
+      if (!existing) {
+        throw new AiModelError(`存在しないシナリオ ID です: ${item.id}`);
+      }
+      byId.set(item.id, mergeScenario(existing, item));
+    }
+    scenarios = scenarios.map((sc) => byId.get(sc.id) ?? sc);
+  }
+  if (scPatch?.added?.length) {
+    for (const sc of scPatch.added) {
+      if (scenarios.some((existing) => existing.id === sc.id)) {
+        throw new AiModelError(`シナリオ ID が重複しています: ${sc.id}`);
+      }
+      scenarios.push(sc);
+    }
+  }
+
+  const testCaseIds = new Set(testCases.map((tc) => tc.id));
+  assertScenarioStepsExist(scenarios, testCaseIds);
+
   return {
     ...base,
     project,
     environments,
     testCases,
+    ...(scenarios.length > 0 || base.scenarios != null ? { scenarios } : {}),
   };
 }

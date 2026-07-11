@@ -130,6 +130,7 @@ Every \`steps\` entry must reference an existing \`testCases[].id\`.
 - Put shared environment rules in \`categoryTargets\`; override only exceptions on cases
 - Use \`required: all\` unless the case genuinely needs only one environment (\`any\`)
 - Add \`scenarios\` for common QA flows (smoke, regression, release checklist)
+- When AI-editing, use \`patch.scenarios\` (added / removed / modified); every \`steps\` id must exist in \`testCases\`
 - Keep \`prerequisites\` short: screen, data state, role, feature flags
 
 ## Minimal valid example

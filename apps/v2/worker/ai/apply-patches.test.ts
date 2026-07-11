@@ -100,4 +100,57 @@ describe("applyDefinitionPatch", () => {
       }),
     ).toThrow("テストケース ID が重複しています: TC-001");
   });
+
+  it("adds and modifies scenarios with valid steps", () => {
+    const next = applyDefinitionPatch(base, {
+      scenarios: {
+        added: [
+          {
+            id: "smoke",
+            name: "スモーク",
+            steps: ["TC-001"],
+          },
+        ],
+      },
+    });
+    expect(next.scenarios).toEqual([
+      { id: "smoke", name: "スモーク", steps: ["TC-001"] },
+    ]);
+
+    const updated = applyDefinitionPatch(next, {
+      testCases: {
+        added: [{ id: "TC-002", category: { major: "B" }, description: "second" }],
+      },
+      scenarios: {
+        modified: [{ id: "smoke", steps: ["TC-001", "TC-002"] }],
+      },
+    });
+    expect(updated.scenarios?.[0]?.steps).toEqual(["TC-001", "TC-002"]);
+  });
+
+  it("rejects scenario steps that reference unknown test cases", () => {
+    expect(() =>
+      applyDefinitionPatch(base, {
+        scenarios: {
+          added: [{ id: "smoke", name: "スモーク", steps: ["TC-999"] }],
+        },
+      }),
+    ).toThrow('scenarios "smoke" に未知の testCase id "TC-999" があります');
+  });
+
+  it("scrubs removed test case ids from scenario steps", () => {
+    const withScenario = applyDefinitionPatch(base, {
+      testCases: {
+        added: [{ id: "TC-002", category: { major: "B" }, description: "second" }],
+      },
+      scenarios: {
+        added: [{ id: "smoke", name: "スモーク", steps: ["TC-001", "TC-002"] }],
+      },
+    });
+    const next = applyDefinitionPatch(withScenario, {
+      testCases: { removed: ["TC-002"] },
+    });
+    expect(next.testCases.map((tc) => tc.id)).toEqual(["TC-001"]);
+    expect(next.scenarios?.[0]?.steps).toEqual(["TC-001"]);
+  });
 });

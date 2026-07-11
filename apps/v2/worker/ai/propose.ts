@@ -133,6 +133,28 @@ const ENVIRONMENT_MODIFY_SCHEMA = {
   required: ["id"],
 };
 
+const SCENARIO_ADD_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    description: { type: "string" },
+    steps: { type: "array", items: { type: "string" }, minItems: 1 },
+  },
+  required: ["id", "name", "steps"],
+};
+
+const SCENARIO_MODIFY_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    description: { type: "string" },
+    steps: { type: "array", items: { type: "string" }, minItems: 1 },
+  },
+  required: ["id"],
+};
+
 const PATCH_SCHEMA = {
   type: "object" as const,
   properties: {
@@ -150,6 +172,14 @@ const PATCH_SCHEMA = {
         added: { type: "array", items: ENVIRONMENT_SCHEMA },
         removed: { type: "array", items: { type: "string" } },
         modified: { type: "array", items: ENVIRONMENT_MODIFY_SCHEMA },
+      },
+    },
+    scenarios: {
+      type: "object" as const,
+      properties: {
+        added: { type: "array", items: SCENARIO_ADD_SCHEMA },
+        removed: { type: "array", items: { type: "string" } },
+        modified: { type: "array", items: SCENARIO_MODIFY_SCHEMA },
       },
     },
     project: {
@@ -185,7 +215,7 @@ function isQuestionMessage(message: string): boolean {
 }
 
 function isEditMessage(message: string): boolean {
-  return /(追加|削除|修正|変更|書き直|更新|直して|入れて|消して|編集)/.test(message);
+  return /(追加|削除|修正|変更|書き直|更新|直して|入れて|消して|編集|シナリオ)/.test(message);
 }
 
 function classifyMessageIntent(message: string): AiIntent {
@@ -318,6 +348,7 @@ export function buildPatchRepairUserMessage(error: string): string {
     `エラー: ${error}`,
     "注意:",
     "- 既存のテストケース ID は modified / removed のみに使うこと。added には未使用の新しい ID を使うこと。",
+    "- シナリオ steps は存在する testCase id のみを使うこと（同じ patch で追加する TC も可）。",
     "- reply には短い日本語要約のみ。patch 本文を reply に書かないこと。",
     "- 空の patch は不可。",
   ].join("\n");
