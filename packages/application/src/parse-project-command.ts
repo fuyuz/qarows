@@ -17,6 +17,7 @@ const ALL_COMMAND_TYPES = new Set<ProjectCommand["type"]>([
   "addBug",
   "updateBug",
   "mergeResults",
+  "replaceDefinition",
   "replaceSnapshot",
 ]);
 
@@ -225,6 +226,7 @@ function parseCommandBody(value: unknown, allowedTypes: Set<ProjectCommand["type
       return bug ? { type: "updateBug", bug } : null;
     }
     case "mergeResults":
+    case "replaceDefinition":
     case "replaceSnapshot":
       return null;
     default:
@@ -236,7 +238,11 @@ function parseCommandBody(value: unknown, allowedTypes: Set<ProjectCommand["type
 export function parseProjectCommand(value: unknown): ProjectCommand | null {
   if (!isRecord(value) || typeof value.type !== "string") return null;
   if (!ALL_COMMAND_TYPES.has(value.type as ProjectCommand["type"])) return null;
-  if (value.type === "mergeResults" || value.type === "replaceSnapshot") {
+  if (
+    value.type === "mergeResults" ||
+    value.type === "replaceDefinition" ||
+    value.type === "replaceSnapshot"
+  ) {
     return value as ProjectCommand;
   }
   return parseCommandBody(value, ALL_COMMAND_TYPES);

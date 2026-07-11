@@ -26,6 +26,7 @@ export function AppNav() {
       session={session}
       results={results}
       path={path}
+      availablePages={["session", "run", "matrix", "dashboard", "bugs"]}
       syncStatus={{
         connected,
         connectionStatus,

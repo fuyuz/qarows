@@ -1,7 +1,7 @@
 import type { RunnerFilters, TestDefinition } from "@qarows/shared";
 import { runnerFiltersToSearchParams } from "@/lib/runner-query";
 
-export type ProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs";
+export type ProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs" | "tests";
 
 /** Query value for the new-project import panel on /projects. */
 export const NEW_PROJECT_SELECTION = "_new";

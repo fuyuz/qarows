@@ -79,6 +79,31 @@ describe("applyProjectCommand", () => {
     expect(next.results.results["TC-001"]?.chrome?.executedBy).toBe("Alice");
   });
 
+  it("replaceDefinition updates definition and prunes invalid session envs", () => {
+    const snapshot = makeSnapshot({
+      session: { executorName: "Alice", selectedEnvironmentIds: ["chrome", "missing"] },
+    });
+    const nextDefinition = {
+      ...snapshot.definition,
+      testCases: [
+        ...snapshot.definition.testCases,
+        {
+          id: "TC-NEW",
+          category: { major: "編集" },
+          description: "追加ケース",
+        },
+      ],
+    };
+    const { snapshot: next } = applyProjectCommand(
+      snapshot,
+      { type: "replaceDefinition", definition: nextDefinition },
+      { now: NOW },
+    );
+    expect(next.definition.testCases.some((tc) => tc.id === "TC-NEW")).toBe(true);
+    expect(next.session?.selectedEnvironmentIds).toEqual(["chrome"]);
+    expect(next.results).toBe(snapshot.results);
+  });
+
   it("updateResultsBatch stamps executor and version", () => {
     const definition = makeDefinition({
       testCases: [

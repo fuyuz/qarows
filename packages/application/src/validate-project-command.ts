@@ -1,4 +1,5 @@
 import type { Bug, TestDefinition, TestResultEntry } from "@qarows/shared";
+import { parseTestsYaml, serializeTestsYaml } from "@qarows/shared";
 import type { ProjectCommand } from "./project-command";
 import type { ProjectSnapshot } from "./types";
 
@@ -114,6 +115,15 @@ export function validateProjectCommand(snapshot: ProjectSnapshot, command: Proje
       }
       assertBugReferences(definition, command.bug);
       return;
+
+    case "replaceDefinition": {
+      try {
+        parseTestsYaml(serializeTestsYaml(command.definition));
+      } catch (error) {
+        fail(error instanceof Error ? error.message : "Invalid test definition");
+      }
+      return;
+    }
 
     case "clearResults":
     case "mergeResults":

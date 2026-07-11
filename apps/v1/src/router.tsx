@@ -27,6 +27,9 @@ const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 );
 const BugsPage = lazy(() => import("@/pages/BugsPage").then((m) => ({ default: m.BugsPage })));
+const TestsEditPage = lazy(() =>
+  import("@/pages/TestsEditPage").then((m) => ({ default: m.TestsEditPage })),
+);
 
 function withSuspense(Component: ComponentType): ReactNode {
   return (
@@ -191,6 +194,14 @@ function ProjectBugsPage() {
   );
 }
 
+function ProjectTestsEditPage() {
+  return (
+    <RequireProjectMatch>
+      <RequireDefinition>{withSuspense(TestsEditPage)}</RequireDefinition>
+    </RequireProjectMatch>
+  );
+}
+
 export const router = createBrowserRouter([
   { path: "/projects", element: <ProjectsRoute /> },
   { path: "/load", element: <LoadPage /> },
@@ -199,6 +210,7 @@ export const router = createBrowserRouter([
   { path: "/p/:projectId/matrix", element: <ProjectMatrixPage /> },
   { path: "/p/:projectId/dashboard", element: <ProjectDashboardPage /> },
   { path: "/p/:projectId/bugs", element: <ProjectBugsPage /> },
+  { path: "/p/:projectId/tests", element: <ProjectTestsEditPage /> },
   { path: "/", element: <LandingRoute /> },
   { path: "*", element: <Navigate to="/projects" replace /> },
 ]);
@@ -213,4 +225,5 @@ export const lazyPageModules = {
   MatrixPage: () => import("@/pages/MatrixPage"),
   DashboardPage: () => import("@/pages/DashboardPage"),
   BugsPage: () => import("@/pages/BugsPage"),
+  TestsEditPage: () => import("@/pages/TestsEditPage"),
 } as const;

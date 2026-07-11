@@ -65,6 +65,7 @@ interface AppContextValue {
     testCaseId: string,
     patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
   ) => Promise<void>;
+  replaceDefinition: (definition: TestDefinition) => Promise<void>;
   clearTestResult: (testCaseId: string, envId: string) => Promise<void>;
   clearResults: () => Promise<void>;
   clearResultsForProject: (projectId: string) => Promise<boolean>;
@@ -353,6 +354,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [dispatch],
   );
 
+  const replaceDefinition = useCallback(
+    async (nextDefinition: TestDefinition) => {
+      await dispatch({ type: "replaceDefinition", definition: nextDefinition });
+    },
+    [dispatch],
+  );
+
   const clearTestResult = useCallback(
     async (testCaseId: string, envId: string) => {
       await dispatch({ type: "clearTestResult", testCaseId, envId });
@@ -420,6 +428,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addBug,
       updateBug,
       updateTestCase,
+      replaceDefinition,
       clearTestResult,
       clearResults,
       clearResultsForProject,
@@ -447,6 +456,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addBug,
       updateBug,
       updateTestCase,
+      replaceDefinition,
       clearTestResult,
       clearResults,
       clearResultsForProject,

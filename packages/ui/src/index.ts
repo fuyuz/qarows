@@ -97,6 +97,7 @@ export {
   type WorkspaceAppNavExtraMenuItem,
   type WorkspaceAppNavProps,
   type WorkspaceProjectPage,
+  DefinitionDiffView,
   APP_NAV_KEYBINDINGS,
   APP_NAV_LABELS,
   APP_NAV_PAGES,

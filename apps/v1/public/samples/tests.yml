@@ -39,6 +39,10 @@ categoryTargets:
       major: "プロジェクト"
     required: all
 
+  - match:
+      major: "テスト定義"
+    required: all
+
 scenarios:
   - id: first-time-setup
     name: "初回セットアップ"
@@ -129,6 +133,17 @@ scenarios:
       - TC-058
       - TC-059
       - TC-082
+
+  - id: definition-edit
+    name: "テスト定義編集"
+    description: |
+      テスト定義画面で検索・絞り込み・draft 編集・Diff・Apply を確認する。
+    steps:
+      - TC-095
+      - TC-096
+      - TC-097
+      - TC-098
+      - TC-099
 
 testCases:
   - id: TC-001
@@ -893,3 +908,43 @@ testCases:
       minor: "Command"
     prerequisites: "Team 版 dev で同一プロジェクトに2ブラウザ接続"
     description: "一方で OK/NG 入力すると、もう一方のランナー・一覧・進捗が commandApplied 同期で更新される"
+
+  - id: TC-095
+    category:
+      major: "テスト定義"
+      medium: "画面"
+      minor: "遷移"
+    prerequisites: "プロジェクト読み込み済み"
+    description: "ナビの「テスト定義」から /p/:projectId/tests に遷移でき、編集カード一覧が表示される"
+
+  - id: TC-096
+    category:
+      major: "テスト定義"
+      medium: "フィルタ"
+      minor: "検索"
+    prerequisites: "テスト定義画面を開いている"
+    description: "大・中・小分類の絞り込みと文字列検索で表示ケースを絞り込める"
+
+  - id: TC-097
+    category:
+      major: "テスト定義"
+      medium: "編集"
+      minor: "draft"
+    prerequisites: "テスト定義画面を開いている"
+    description: "確認内容などを編集すると「変更あり」になり、Apply するまで他画面の定義には反映されない"
+
+  - id: TC-098
+    category:
+      major: "テスト定義"
+      medium: "編集"
+      minor: "Diff"
+    prerequisites: "テスト定義画面で未適用の変更がある"
+    description: "Diff で追加・変更・削除の差分を確認でき、Apply / Discard で反映または破棄できる"
+
+  - id: TC-099
+    category:
+      major: "テスト定義"
+      medium: "端末"
+      minor: "編集"
+    prerequisites: "テスト定義画面を開いている"
+    description: "プロジェクト端末の追加・削除と、ケース単位の対象端末上書き（折りたたみ展開後）ができる"

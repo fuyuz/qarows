@@ -13,6 +13,7 @@ const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
   "matrix",
   "dashboard",
   "bugs",
+  "tests",
 ];
 
 export interface UseAppNavigationShortcutsOptions {

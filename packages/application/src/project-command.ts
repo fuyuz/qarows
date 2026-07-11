@@ -3,6 +3,7 @@ import type {
   ResultsFile,
   SessionConfig,
   TestCase,
+  TestDefinition,
   TestResultEntry,
   TestStatus,
 } from "@qarows/shared";
@@ -33,6 +34,7 @@ export type ProjectCommand =
   | { type: "addBug"; bug: Bug }
   | { type: "updateBug"; bug: Bug }
   | { type: "mergeResults"; incoming: ResultsFile }
+  | { type: "replaceDefinition"; definition: TestDefinition }
   | {
       type: "replaceSnapshot";
       definition: ProjectSnapshot["definition"];

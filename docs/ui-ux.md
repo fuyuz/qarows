@@ -51,6 +51,18 @@ BtoB としての **信頼感**（静か・正確・邪魔しない）を損な�
 | 左（desktop） | `ProjectList` | 新規作成 + 登録済みプロジェクト一覧 |
 | 右 | `ProjectImportPanel` / `ProjectDetailPanel` | 選択に応じた import または管理操作 |
 
+テスト定義編集（`/p/:projectId/tests`）は **draft → Diff → Apply** の編集 HUD とする。
+
+| 位置 | 要素 | 役割 |
+|---|---|---|
+| 上部 sticky | `DefinitionEditFilterBar` | カテゴリ絞り込み・文字列検索・件数・ケース追加 |
+| 中央 | 端末パネル（折りたたみ）+ 編集カード縦積み | 見比べながら複数ケースを編集 |
+| 下部 sticky | Apply バー | 未適用サマリ・Diff・Discard・Apply |
+
+- 編集はページ全体の draft `TestDefinition` 上のみ。Apply で IndexedDB の定義へ一括反映
+- 対象端末はデフォルト折りたたみ（見やすさ優先）
+- ランナーの `TestCaseEditDialog` は実行中の 1 件即時修正用として残す
+
 ## 重要度ごとの強調（Level 1〜5）
 
 同時に Level 3 以上を出す要素は **1画面あたり 1〜2 個** に抑える。

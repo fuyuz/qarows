@@ -56,12 +56,17 @@ const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
   "matrix",
   "dashboard",
   "bugs",
+  "tests",
 ];
 
 const VIEW_PAGE_LABELS: Record<"dashboard" | "bugs" | "matrix", string> = {
   dashboard: "ダッシュボード",
   bugs: "バグ",
   matrix: "マトリクス",
+};
+
+const EDIT_PAGE_LABELS: Record<"tests", string> = {
+  tests: "テスト定義",
 };
 
 function availablePageSet(pages?: readonly WorkspaceProjectPage[]): Set<WorkspaceProjectPage> {
@@ -89,7 +94,7 @@ function workflowLinks(
   } else if (page === "session" && canRun && session && isValidSession(session)) {
     items.push({ label: "テスト実行", to: path("run"), page: "run" });
   } else if (
-    (page === "matrix" || page === "dashboard" || page === "bugs" || page === "ai") &&
+    (page === "matrix" || page === "dashboard" || page === "bugs" || page === "tests" || page === "ai") &&
     (page === "ai" || availablePages.has(page))
   ) {
     if (canSession) {
@@ -114,8 +119,19 @@ function viewLinks(
   );
 }
 
+function editLinks(
+  path: WorkspaceAppNavProps["path"],
+  availablePages: Set<WorkspaceProjectPage>,
+): NavLinkItem[] {
+  return (["tests"] as const).flatMap((page) =>
+    availablePages.has(page)
+      ? [{ label: EDIT_PAGE_LABELS[page], to: path(page), page }]
+      : [],
+  );
+}
+
 function currentProjectPage(pathname: string): NavContextPage {
-  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs|ai)$/);
+  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs|tests|ai)$/);
   if (match) return match[1] as NavContextPage;
   if (pathname === "/load") return "load";
   if (pathname === "/projects") return "projects";
@@ -151,6 +167,11 @@ export function WorkspaceAppNav({
     [definition, path, pageSet],
   );
 
+  const editLinksList = useMemo(
+    () => (definition ? editLinks(path, pageSet) : []),
+    [definition, path, pageSet],
+  );
+
   const canExportResults = definition != null && results != null && onExportResults != null;
   const canExportYaml = definition != null && onExportYaml != null;
 
@@ -170,6 +191,7 @@ export function WorkspaceAppNav({
 
   const hasWorkflow = workflow.length > 0;
   const hasBrowse = browseLinks.length > 0;
+  const hasEdit = editLinksList.length > 0;
   const hasExtraMenu = (extraMenuItems?.length ?? 0) > 0;
 
   return (
@@ -246,13 +268,28 @@ export function WorkspaceAppNav({
             </>
           )}
 
-          {hasExtraMenu && (
+          {(hasEdit || hasExtraMenu) && (
             <>
               {(hasWorkflow || hasBrowse) && <DropdownMenuSeparator />}
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
                 編集
               </DropdownMenuLabel>
-              {extraMenuItems!.map((link) => (
+              {editLinksList.map((link) => (
+                <DropdownMenuItem
+                  key={link.to}
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    setOpen(false);
+                    navigate(link.to);
+                  }}
+                >
+                  {link.label}
+                  {link.page ? (
+                    <DropdownMenuShortcut>{formatAppNavShortcutForPage(link.page)}</DropdownMenuShortcut>
+                  ) : null}
+                </DropdownMenuItem>
+              ))}
+              {extraMenuItems?.map((link) => (
                 <DropdownMenuItem
                   key={link.to}
                   onSelect={(event) => {

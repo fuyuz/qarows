@@ -3,6 +3,9 @@ import {
   createEmptyResults,
   getTestCaseVersion,
   mergeResultsFiles,
+  parseTestsYaml,
+  sanitizeSessionOnDefinitionReplace,
+  serializeTestsYaml,
   validateSession,
 } from "@qarows/shared";
 import type {
@@ -12,6 +15,21 @@ import type {
 } from "./project-command";
 import type { ProjectSnapshot } from "./types";
 import { validateProjectCommand } from "./validate-project-command";
+
+function normalizeReplaceDefinition(
+  snapshot: ProjectSnapshot,
+  definition: import("@qarows/shared").TestDefinition,
+): import("@qarows/shared").TestDefinition {
+  const projectId = snapshot.definition.project.id ?? snapshot.id;
+  const normalized = parseTestsYaml(serializeTestsYaml(definition));
+  return {
+    ...normalized,
+    project: {
+      ...normalized.project,
+      id: projectId,
+    },
+  };
+}
 
 function stampResultVersion(
   snapshot: ProjectSnapshot,
@@ -173,6 +191,20 @@ export function applyProjectCommand(
       const merged = mergeResultsFiles(snapshot.results, command.incoming);
       return {
         snapshot: withUpdatedResults(snapshot, merged, now),
+        affectedTestCaseId: null,
+      };
+    }
+
+    case "replaceDefinition": {
+      const definition = normalizeReplaceDefinition(snapshot, command.definition);
+      const session = sanitizeSessionOnDefinitionReplace(snapshot.session, definition);
+      return {
+        snapshot: {
+          ...snapshot,
+          definition,
+          session,
+          updatedAt: now,
+        },
         affectedTestCaseId: null,
       };
     }

@@ -4,6 +4,7 @@ export type AppNavigationPage =
   | "matrix"
   | "dashboard"
   | "bugs"
+  | "tests"
   | "projects";
 
 /** プロジェクト内画面（/p/:id/...）のみ。projects は一覧へのグローバル遷移 */
@@ -16,6 +17,7 @@ export const APP_NAV_KEYBINDINGS: Record<AppNavigationPage, string> = {
   dashboard: "d",
   bugs: "b",
   matrix: "m",
+  tests: "t",
   projects: "p",
 };
 
@@ -25,6 +27,7 @@ export const APP_NAV_LABELS: Record<AppNavigationPage, string> = {
   dashboard: "ダッシュボード",
   bugs: "バグ",
   matrix: "マトリクス",
+  tests: "テスト定義",
   projects: "プロジェクト一覧",
 };
 
@@ -36,6 +39,7 @@ export const APP_NAV_PAGES: AppNavigationPage[] = [
   "dashboard",
   "bugs",
   "matrix",
+  "tests",
 ];
 
 const PAGE_BY_KEY: Partial<Record<string, AppNavigationPage>> = Object.fromEntries(

@@ -1,7 +1,7 @@
 import type { RunnerFilters, TestDefinition } from "@qarows/shared";
 import { runnerFiltersToSearchParams } from "./runner-query";
 
-export type ProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs";
+export type ProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs" | "tests";
 
 export function resolveProjectId(
   definition: TestDefinition | null | undefined,

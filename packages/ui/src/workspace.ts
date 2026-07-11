@@ -41,6 +41,7 @@ export {
   type WorkspaceAppNavExtraMenuItem,
   type WorkspaceAppNavProps,
 } from "./components/workspace/workspace-app-nav";
+export { DefinitionDiffView } from "./components/workspace/definition-diff-view";
 export {
   APP_NAV_KEYBINDINGS,
   APP_NAV_LABELS,
