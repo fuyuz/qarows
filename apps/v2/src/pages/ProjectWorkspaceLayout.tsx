@@ -1,14 +1,24 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Outlet, useParams } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { ProjectSyncProvider, useProjectSync } from "@/context/ProjectSyncContext";
-import { BugsPage } from "@/pages/BugsPage";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { MatrixPage } from "@/pages/MatrixPage";
-import { RunPage } from "@/pages/RunPage";
-import { SessionPageRoute } from "@/pages/SessionPage";
-import { TestsEditPage } from "@/pages/TestsEditPage";
 import type { ProjectPage } from "@/lib/project-routes";
+
+const SessionPageRoute = lazy(() =>
+  import("@/pages/SessionPage").then((m) => ({ default: m.SessionPageRoute })),
+);
+const RunPage = lazy(() => import("@/pages/RunPage").then((m) => ({ default: m.RunPage })));
+const MatrixPage = lazy(() =>
+  import("@/pages/MatrixPage").then((m) => ({ default: m.MatrixPage })),
+);
+const DashboardPage = lazy(() =>
+  import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
+);
+const BugsPage = lazy(() => import("@/pages/BugsPage").then((m) => ({ default: m.BugsPage })));
+const TestsEditPage = lazy(() =>
+  import("@/pages/TestsEditPage").then((m) => ({ default: m.TestsEditPage })),
+);
 
 function ProjectWorkspaceShell() {
   const { ready, syncError, connected, syncNotice } = useProjectSync();
@@ -57,23 +67,36 @@ export function ProjectWorkspaceLayout() {
   );
 }
 
+function PageFallback() {
+  return <LoadingScreen message="画面を読み込み中…" />;
+}
+
 export function ProjectPageRouter() {
   const { page } = useParams<{ page: ProjectPage }>();
 
+  let content;
   switch (page) {
     case "session":
-      return <SessionPageRoute />;
+      content = <SessionPageRoute />;
+      break;
     case "run":
-      return <RunPage />;
+      content = <RunPage />;
+      break;
     case "matrix":
-      return <MatrixPage />;
+      content = <MatrixPage />;
+      break;
     case "dashboard":
-      return <DashboardPage />;
+      content = <DashboardPage />;
+      break;
     case "bugs":
-      return <BugsPage />;
+      content = <BugsPage />;
+      break;
     case "tests":
-      return <TestsEditPage />;
+      content = <TestsEditPage />;
+      break;
     default:
       return <Navigate to="session" replace />;
   }
+
+  return <Suspense fallback={<PageFallback />}>{content}</Suspense>;
 }

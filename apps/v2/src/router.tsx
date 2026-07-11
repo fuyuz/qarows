@@ -1,10 +1,18 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
-import { ProjectPageRouter, ProjectWorkspaceLayout } from "@/pages/ProjectWorkspaceLayout";
-import { ProjectsPage } from "@/pages/ProjectsPage";
+import {
+  ProjectPageRouter,
+  ProjectWorkspaceLayout,
+} from "@/pages/ProjectWorkspaceLayout";
 
 export const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/projects" replace /> },
-  { path: "/projects", element: <ProjectsPage /> },
+  {
+    path: "/projects",
+    lazy: () =>
+      import("@/pages/ProjectsPage").then((m) => ({
+        Component: m.ProjectsPage,
+      })),
+  },
   {
     path: "/p/:projectId",
     element: <ProjectWorkspaceLayout />,

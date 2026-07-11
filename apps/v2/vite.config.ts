@@ -27,5 +27,29 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          // React + router + nuqs together (avoids circular chunks / duplicate React).
+          if (
+            id.includes("react-dom") ||
+            id.includes("react-router") ||
+            id.includes("scheduler") ||
+            id.includes("nuqs") ||
+            /[/\\](react|use-sync-external-store)[/\\]/.test(id)
+          ) {
+            return "react-vendor";
+          }
+          if (id.includes("@radix-ui") || id.includes("/radix-ui/")) return "radix";
+          if (id.includes("lucide-react")) return "icons";
+          if (id.includes("js-yaml")) return "yaml";
+          if (id.includes(`${path.sep}diff${path.sep}`) || id.endsWith(`${path.sep}diff`)) {
+            return "diff";
+          }
+          // Leave other deps to Rollup — a catch-all "vendor" chunk often cycles with React.
+        },
+      },
+    },
   },
 });
