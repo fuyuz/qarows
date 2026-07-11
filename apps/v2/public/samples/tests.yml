@@ -861,3 +861,11 @@ testCases:
       minor: "revert"
     prerequisites: "AI 編集案を編集画面に反映済み、または手動編集の未適用変更あり"
     description: "Apply で tests.yml が更新され、履歴の復元（definition_revisions）で直前の定義に戻せる"
+
+  - id: TC-088
+    category:
+      major: "テスト定義"
+      medium: "画面"
+      minor: "表示"
+    prerequisites: "Team 版でプロジェクトを開き、ナビの「テスト定義」へ遷移"
+    description: "テスト定義画面が空白にならず、フィルタ・端末パネル・テストケース編集カードが表示される（未適用変更時の離脱確認含む）"

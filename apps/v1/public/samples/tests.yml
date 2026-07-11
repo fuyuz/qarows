@@ -957,3 +957,11 @@ testCases:
       minor: "編集"
     prerequisites: "テスト定義画面を開いている"
     description: "シナリオパネルでシナリオの追加・削除・名前/説明編集・ステップの並び替えとテストケース追加ができる"
+
+  - id: TC-101
+    category:
+      major: "Team 版"
+      medium: "テスト定義"
+      minor: "表示"
+    prerequisites: "Team 版（本番または localhost:5177）でプロジェクトを開いている"
+    description: "ナビの「テスト定義」を開くと空白にならず、フィルタ・端末・テストケース編集 UI が表示される"
