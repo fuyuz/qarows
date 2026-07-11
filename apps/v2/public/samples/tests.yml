@@ -836,7 +836,15 @@ testCases:
       medium: "表示"
       minor: "binding 有"
     prerequisites: "Team 版。[ai] binding 有効、/p/{id}/tests を開く"
-    description: "テスト定義画面の右サイドに AI アシスタントが表示され、会話と編集案はどちらか一方のみ展開（ヘッダクリックで切替）"
+    description: "テスト定義画面の右サイドに AI アシスタントが表示され、会話と編集案はどちらか一方のみ展開（ヘッダクリックで切替）。右上ナビが閉じるボタンと重ならない"
+
+  - id: TC-119
+    category:
+      major: "AI編集"
+      medium: "表示"
+      minor: "幅調整"
+    prerequisites: "テスト定義画面で AI アシスタント表示中"
+    description: "AI パネル左端をドラッグ（または左右キー）で横幅を変更でき、再表示後も幅が維持される。幅は画面内に収まる範囲（概ね 280–720px、狭い画面ではそれ以下）に制限され、最大付近でも右上ナビが閉じるボタンと重ならない"
 
   - id: TC-117
     category:
