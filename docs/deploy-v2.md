@@ -332,6 +332,8 @@ Browser
 - `AUTH_DEV_BYPASS` はローカル `wrangler`（`localhost` / `127.0.0.1:8787`）でのみ有効。本番ホストでは設定しても無視される
 - 状態変更 API は Origin（または `Sec-Fetch-Site: same-origin`）を検証する。`clear-results` は JSON + `expectedGeneration` 必須
 - AI propose はメール単位の簡易レート制限あり（isolate 内）。本番では Cloudflare Rate Limiting の併用を推奨
+- Access JWT は `email` claim 必須（`common_name` は使わない）
+- WebSocket は本番で Origin 必須。`PUT /definition` も `expectedGeneration` 必須
 
 ---
 

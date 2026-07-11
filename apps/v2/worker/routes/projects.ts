@@ -29,6 +29,7 @@ interface CreateProjectBody {
 interface ReplaceDefinitionBody {
   testsYaml?: string;
   resultsJsonList?: unknown;
+  expectedGeneration?: string;
 }
 
 interface ApplyDefinitionBody {
@@ -198,6 +199,7 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
   const contentType = c.req.header("Content-Type") ?? "";
   let testsYaml: string;
   let resultsJsonList: string[] | undefined;
+  let expectedGeneration: string | undefined;
 
   try {
     const raw = await readRequestTextWithLimit(c.req.raw, MAX_DEFINITION_REPLACE_BYTES);
@@ -216,6 +218,7 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
       if (!testsYaml) {
         throw new HTTPException(400, { message: "testsYaml is required" });
       }
+      expectedGeneration = body.expectedGeneration?.trim() || undefined;
       try {
         resultsJsonList = parseOptionalResultsJsonList(body.resultsJsonList);
       } catch (err) {
@@ -223,6 +226,7 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
       }
     } else {
       testsYaml = raw;
+      expectedGeneration = c.req.header("X-Expected-Generation")?.trim() || undefined;
     }
   } catch (err) {
     if (err instanceof BodyTooLargeError) {
@@ -231,6 +235,10 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
       });
     }
     throw err;
+  }
+
+  if (!expectedGeneration) {
+    throw new HTTPException(400, { message: "expectedGeneration is required" });
   }
 
   let definition;
@@ -251,6 +259,12 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
   const existing = await getProject(c.env.DB, projectId);
   if (!existing) throw new HTTPException(404, { message: "Project not found" });
 
+  try {
+    assertGenerationMatch(expectedGeneration, existing.generation);
+  } catch (err) {
+    generationConflictError(err);
+  }
+
   let mergeIncoming: ResultsFile | undefined;
   if (resultsJsonList?.length) {
     try {
@@ -262,10 +276,18 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
 
   const stub = c.env.PROJECT.getByName(projectId);
   try {
-    await stub.replaceProjectFromWorker({ projectId, testsYaml, mergeIncoming });
+    await stub.replaceProjectFromWorker({
+      projectId,
+      testsYaml,
+      mergeIncoming,
+      expectedGeneration,
+    });
   } catch (err) {
     if (err instanceof ProjectIdMismatchError) {
       throw new HTTPException(400, { message: err.message });
+    }
+    if (err instanceof GenerationMismatchError) {
+      generationConflictError(err);
     }
     internalError(c, "Failed to replace project definition", err);
   }

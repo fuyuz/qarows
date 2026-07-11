@@ -11,6 +11,7 @@ import {
   createEmptyProject,
   createProjectFromYaml,
   deleteProject as deleteProjectApi,
+  getProject,
   listProjects,
   replaceProjectFromYaml,
   clearProjectResults as clearProjectResultsApi,
@@ -117,9 +118,20 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       options?: { existingProjectId?: string; resultsJsonList?: string[] },
     ) => {
       const { existingProjectId, resultsJsonList } = options ?? {};
-      const snapshot = existingProjectId
-        ? await replaceProjectFromYaml(existingProjectId, testsYaml, resultsJsonList)
-        : await createProjectFromYaml(testsYaml, resultsJsonList);
+      let snapshot;
+      if (existingProjectId) {
+        const current = await getProject(existingProjectId);
+        const expectedGeneration = current.generation;
+        if (!expectedGeneration) {
+          throw new Error("generation を取得できませんでした。再読み込みしてください");
+        }
+        snapshot = await replaceProjectFromYaml(existingProjectId, testsYaml, {
+          resultsJsonList,
+          expectedGeneration,
+        });
+      } else {
+        snapshot = await createProjectFromYaml(testsYaml, resultsJsonList);
+      }
       await refreshProjects();
       writeLastOpenedProjectId(snapshot.id);
       setLastOpenedProjectId(snapshot.id);

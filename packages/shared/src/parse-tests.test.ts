@@ -73,4 +73,12 @@ testCases:
 `;
     expect(() => parseTestsYaml(yaml)).toThrow("targets は空配列にできません");
   });
+
+  it("rejects excessive YAML nesting", () => {
+    let nested = "x: 1";
+    for (let i = 0; i < 40; i++) {
+      nested = `wrap:\n  ${nested.replace(/\n/g, "\n  ")}`;
+    }
+    expect(() => parseTestsYaml(nested)).toThrow(/maxDepth|nesting/i);
+  });
 });

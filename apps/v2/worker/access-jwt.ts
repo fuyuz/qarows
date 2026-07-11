@@ -28,11 +28,7 @@ export async function verifyAccessJwt(
     issuer: `https://${teamDomain}.cloudflareaccess.com`,
   });
 
-  const email =
-    (typeof payload.email === "string" && payload.email) ||
-    (typeof payload.common_name === "string" && payload.common_name) ||
-    null;
-
+  const email = typeof payload.email === "string" ? payload.email.trim() : "";
   if (!email) {
     throw new Error("Access JWT does not contain an email claim");
   }

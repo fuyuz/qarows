@@ -100,10 +100,14 @@ function originsMatch(request: Request, originHeader: string): boolean {
   return clientOrigin === requestOrigin;
 }
 
-/** Reject cross-origin WebSocket upgrades when Origin is present. */
+/** Reject cross-origin WebSocket upgrades. Production requires Origin. */
 export function assertWebSocketOrigin(request: Request, env?: Env): void {
   const origin = request.headers.get("Origin");
-  if (!origin) return;
+  if (!origin) {
+    // Local wrangler / non-browser tools may omit Origin when bypass is active.
+    if (env && !isAccessRequired(env, request)) return;
+    throw new AccessDeniedError("Origin required");
+  }
 
   try {
     if (originsMatch(request, origin)) return;

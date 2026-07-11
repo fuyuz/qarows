@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { isAccessRequired } from "./auth";
 import { accessMiddleware } from "./middleware/access";
 import { csrfMiddleware } from "./middleware/csrf";
 import { requestIdMiddleware, securityHeadersMiddleware } from "./middleware/security-headers";
@@ -38,8 +37,6 @@ export function createApp() {
     return c.json({
       ok: true,
       service: "qarows-v2",
-      phase: 2,
-      accessRequired: isAccessRequired(c.env, c.req.raw),
       aiEnabled: c.env.AI != null,
       ...(c.env.AI != null
         ? {

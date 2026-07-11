@@ -53,10 +53,14 @@ export async function replaceProjectDefinitionInRoom(
     await stub.replaceProjectFromWorker({
       projectId: input.projectId,
       testsYaml: input.testsYaml,
+      expectedGeneration: input.expectedGeneration,
     });
   } catch (err) {
     if (err instanceof ProjectIdMismatchError) {
       throw new HTTPException(400, { message: err.message });
+    }
+    if (err instanceof GenerationMismatchError) {
+      throw new HTTPException(409, { message: err.message });
     }
     throw new HTTPException(500, { message: "Failed to replace project definition" });
   }

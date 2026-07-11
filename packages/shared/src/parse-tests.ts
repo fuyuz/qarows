@@ -9,6 +9,35 @@ import type {
   TestScenario,
 } from "./types";
 
+/** Nesting limit for js-yaml 4.3+ (default in library is 100). */
+export const MAX_YAML_DEPTH = 32;
+/** Max unique object/array nodes after parse (DoS guard). */
+export const MAX_YAML_NODES = 50_000;
+
+function assertYamlNodeBudget(root: unknown, limit: number): void {
+  let count = 0;
+  const stack: unknown[] = [root];
+  const seen = new Set<object>();
+
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (node === null || typeof node !== "object") continue;
+    if (seen.has(node)) continue;
+    seen.add(node);
+    count += 1;
+    if (count > limit) {
+      throw new Error("tests.yml が大きすぎます（構造が複雑すぎます）");
+    }
+    if (Array.isArray(node)) {
+      for (const item of node) stack.push(item);
+    } else {
+      for (const value of Object.values(node as Record<string, unknown>)) {
+        stack.push(value);
+      }
+    }
+  }
+}
+
 function parseTargetRequirement(raw: unknown, context: string): TargetRequirement {
   if (raw == null) return "all";
   if (raw === "all" || raw === "any") return raw;
@@ -191,7 +220,9 @@ function validateTargetEnvironmentIds(
 }
 
 export function parseTestsYaml(content: string): TestDefinition {
-  const data = yaml.load(content);
+  // js-yaml 4.3+: maxDepth limits nesting; node budget limits graph size after load.
+  const data = yaml.load(content, { maxDepth: MAX_YAML_DEPTH } as yaml.LoadOptions);
+  assertYamlNodeBudget(data, MAX_YAML_NODES);
   if (typeof data !== "object" || data === null) {
     throw new Error("tests.yml のルートはオブジェクトである必要があります");
   }

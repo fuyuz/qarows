@@ -62,9 +62,14 @@ describe("assertWebSocketOrigin", () => {
     expect(() => assertWebSocketOrigin(request)).toThrow(AccessDeniedError);
   });
 
-  it("allows missing Origin header", () => {
+  it("rejects missing Origin in production", () => {
     const request = new Request("https://qarows.example.com/api/projects/x/ws");
-    expect(() => assertWebSocketOrigin(request)).not.toThrow();
+    expect(() => assertWebSocketOrigin(request, prodEnv)).toThrow(AccessDeniedError);
+  });
+
+  it("allows missing Origin on local bypass", () => {
+    const request = new Request("http://127.0.0.1:8787/api/projects/x/ws");
+    expect(() => assertWebSocketOrigin(request, bypassEnv)).not.toThrow();
   });
 
   it("allows Vite dev proxy origin when auth dev bypass is enabled on local worker", () => {

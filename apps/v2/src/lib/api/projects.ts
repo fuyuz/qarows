@@ -99,25 +99,23 @@ export async function mergeProjectResults(
 export async function replaceProjectFromYaml(
   projectId: string,
   testsYaml: string,
-  resultsJsonList?: string[],
+  options?: { resultsJsonList?: string[]; expectedGeneration: string },
 ): Promise<ProjectSnapshot> {
-  if (resultsJsonList?.length) {
-    const data = await apiJson<ProjectResponse>(
-      `/api/projects/${encodeURIComponent(projectId)}/definition`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testsYaml, resultsJsonList }),
-      },
-    );
-    return data.project;
+  const expectedGeneration = options?.expectedGeneration;
+  if (!expectedGeneration) {
+    throw new Error("expectedGeneration is required");
   }
+  const resultsJsonList = options?.resultsJsonList;
   const data = await apiJson<ProjectResponse>(
     `/api/projects/${encodeURIComponent(projectId)}/definition`,
     {
       method: "PUT",
-      headers: { "Content-Type": "text/yaml; charset=utf-8" },
-      body: testsYaml,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        testsYaml,
+        expectedGeneration,
+        ...(resultsJsonList?.length ? { resultsJsonList } : {}),
+      }),
     },
   );
   return data.project;

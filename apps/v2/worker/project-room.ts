@@ -75,11 +75,16 @@ export class ProjectRoom extends DurableObject<Env> {
     projectId: string;
     testsYaml: string;
     mergeIncoming?: ResultsFile;
+    expectedGeneration?: string;
   }): Promise<RoomSnapshot> {
     this.projectId = body.projectId;
     await this.ensureLoaded();
     if (!this.state || !this.projectId) {
       throw new Error("Project not found");
+    }
+
+    if (body.expectedGeneration !== undefined) {
+      assertGenerationMatch(body.expectedGeneration, this.state.generation);
     }
 
     const snapshot = await replaceProjectDefinition(this.env.DB, this.projectId, body.testsYaml, {
