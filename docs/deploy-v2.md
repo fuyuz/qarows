@@ -110,14 +110,15 @@ AI 編集パネルを使う場合のみ、`wrangler.toml.example` のコメン�
 binding = "AI"
 
 [vars]
-AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"
-AI_MODEL_FALLBACK = "@cf/meta/llama-3.2-3b-instruct"
+AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+AI_MODEL_FALLBACK = "@cf/meta/llama-3.1-8b-instruct-fast"
 ```
 
 - `[ai]` が **ない** デプロイでは AI タブ・API は表示されない（opt-in）
-- `AI_MODEL` / `AI_MODEL_FALLBACK` はデプロイごとに固定。未設定時は Worker 内デフォルト（`llama-3.1-8b-instruct-fast` / `llama-3.2-3b-instruct`）を使用
+- `AI_MODEL` / `AI_MODEL_FALLBACK` はデプロイごとに固定。未設定時は Worker 内デフォルト（`llama-3.3-70b-instruct-fp8-fast` / `llama-3.1-8b-instruct-fast`）を使用
 - AI 編集は [Workers AI JSON Mode](https://developers.cloudflare.com/workers-ai/features/json-mode/) の `json_schema` 対応モデルのみ利用（非対応モデルは Worker が拒否）
-- `@cf/meta/llama-3.1-8b-instruct` は 2026-05-30 に非推奨。`-fast` 系をフォールバックに使うこと
+- 編集の schema 遵守には 70B 系を推奨。容量・コストを抑える場合は 8B-fast を primary にしてもよい
+- `@cf/meta/llama-3.1-8b-instruct`（非 `-fast`）は 2026-05-30 に非推奨。`-fast` / `llama-3.3-70b` を使うこと
 - ローカルで AI を試す場合は `wrangler dev --remote` が必要（通常の `dev:v2` の Worker 部分を remote 起動に切り替える）
 - AI は **Web 検索・外部 API を使わない**。当該プロジェクトの tests.yml と会話内容のみ Cloudflare Workers AI へ送る
 

@@ -34,6 +34,26 @@ describe("parseDefinitionPatch", () => {
     expect(patch.testCases?.removed).toEqual(["TC-001"]);
     expect(patch.environments?.modified?.[0]?.name).toBe("iOS 18");
   });
+
+  it("recovers patch.testCases written in reply with bare keys", () => {
+    const patch = parseDefinitionPatch({
+      reply:
+        'patch.testCases: { modified: [{ id: "TC-001", description: "updated description" }] }',
+    });
+    expect(patch.testCases?.modified).toEqual([
+      { id: "TC-001", description: "updated description" },
+    ]);
+  });
+
+  it("accepts top-level testCases when patch is missing", () => {
+    const patch = parseDefinitionPatch({
+      reply: "更新しました",
+      testCases: {
+        modified: [{ id: "TC-001", description: "from top level" }],
+      },
+    });
+    expect(patch.testCases?.modified?.[0]?.description).toBe("from top level");
+  });
 });
 
 describe("applyDefinitionPatch", () => {
@@ -63,5 +83,21 @@ describe("applyDefinitionPatch", () => {
     });
     expect(next.testCases[0]?.description).toBe("updated description");
     expect(next.testCases[0]?.category.major).toBe("A");
+  });
+
+  it("rejects added that reuses an existing test case id", () => {
+    expect(() =>
+      applyDefinitionPatch(base, {
+        testCases: {
+          added: [
+            {
+              id: "TC-001",
+              category: { major: "A" },
+              description: "duplicate",
+            },
+          ],
+        },
+      }),
+    ).toThrow("テストケース ID が重複しています: TC-001");
   });
 });

@@ -17,6 +17,8 @@ export { AiModelError } from "./run-model";
 export const MAX_AI_MESSAGE_BYTES = 4096;
 export const MAX_AI_CONTEXT_YAML_CHARS = 48_000;
 export const MAX_AI_HISTORY_ENTRIES = 20;
+/** How many times to ask the model to fix a rejected edit patch (after the first attempt). */
+export const MAX_PATCH_REPAIR_ATTEMPTS = 3;
 
 export interface AiChatMessage {
   role: "user" | "assistant";
@@ -171,7 +173,7 @@ const AI_EDIT_JSON_SCHEMA = {
     reply: { type: "string" },
     patch: PATCH_SCHEMA,
   },
-  required: ["reply"],
+  required: ["reply", "patch"],
 };
 
 function isQuestionMessage(message: string): boolean {
@@ -204,7 +206,7 @@ function buildMessages(
   editMode: boolean,
 ): { role: "system" | "user" | "assistant"; content: string }[] {
   const editHint = editMode
-    ? "\n\nIMPORTANT: This is an edit request. Return a patch object only. Never output full tests.yml."
+    ? "\n\nIMPORTANT: This is an edit request. You MUST return a non-empty \"patch\" object with the changes. Never put patch JSON inside \"reply\". Never output full tests.yml."
     : "";
 
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -235,6 +237,88 @@ function editFailureReply(reply: string, detail: string): {
     intent: "edit",
     proposal: null,
   };
+}
+
+type EditProposalBuild =
+  | {
+      ok: true;
+      reply: string;
+      proposal: AiProposalResult;
+    }
+  | {
+      ok: false;
+      reply: string;
+      error: string;
+    };
+
+/** Validate/parse/apply an AI edit response. Exported for unit tests. */
+export function buildEditProposalFromAiResponse(
+  baseDefinition: TestDefinition,
+  parsed: { reply?: string; patch?: unknown; testCases?: unknown; environments?: unknown; project?: unknown },
+  modelUsed: string,
+): EditProposalBuild {
+  const reply = parsed.reply?.trim() ?? "";
+  if (!reply) {
+    return { ok: false, reply: "", error: "AI reply is empty" };
+  }
+
+  try {
+    const patch = parseDefinitionPatch(parsed);
+    if (!hasDefinitionPatch(patch)) {
+      return {
+        ok: false,
+        reply,
+        error: "編集 patch が空です。追加・削除・変更内容を patch 形式で返してください。",
+      };
+    }
+    const proposedDefinition = applyDefinitionPatch(baseDefinition, patch);
+    const diff = computeDefinitionDiff(baseDefinition, proposedDefinition);
+    if (!diff.hasChanges) {
+      return {
+        ok: false,
+        reply,
+        error: "変更がありませんでした。patch の内容を確認してください。",
+      };
+    }
+    return {
+      ok: true,
+      reply,
+      proposal: {
+        proposedYaml: serializeTestsYaml(proposedDefinition),
+        proposedDefinition,
+        diff,
+        modelUsed,
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      reply,
+      error: `編集案の適用に失敗しました: ${err instanceof Error ? err.message : "Invalid patch"}`,
+    };
+  }
+}
+
+export function buildPatchRepairUserMessage(error: string): string {
+  return [
+    "前回の編集 patch は適用できませんでした。同じ編集意図を保ったまま、正しい patch だけを作り直してください。",
+    `エラー: ${error}`,
+    "注意:",
+    "- 既存のテストケース ID は modified / removed のみに使うこと。added には未使用の新しい ID を使うこと。",
+    "- reply には短い日本語要約のみ。patch 本文を reply に書かないこと。",
+    "- 空の patch は不可。",
+  ].join("\n");
+}
+
+function assistantTurnContent(parsed: {
+  reply?: string;
+  patch?: unknown;
+}): string {
+  return JSON.stringify({
+    reply: parsed.reply ?? "",
+    ...(parsed.patch !== undefined ? { patch: parsed.patch } : {}),
+  });
 }
 
 export async function proposeTestsYamlEdit(
@@ -273,11 +357,16 @@ export async function proposeTestsYamlEdit(
     );
   }
 
-  const { result, modelUsed } = await runAiModel(env, {
-    messages: buildMessages(workingYaml, history, message, editMode),
+  const messages = buildMessages(workingYaml, history, message, editMode);
+  const runOptions = {
     temperature: 0.2,
     maxTokens: editMode ? 4096 : 2048,
     jsonSchema: editMode ? AI_EDIT_JSON_SCHEMA : AI_QUESTION_JSON_SCHEMA,
+  } as const;
+
+  const { result, modelUsed } = await runAiModel(env, {
+    messages,
+    ...runOptions,
   });
 
   const parsed = parseAiJsonResponse(result);
@@ -297,35 +386,44 @@ export async function proposeTestsYamlEdit(
     }
   }
 
-  const patch = parseDefinitionPatch(parsed);
-  if (!hasDefinitionPatch(patch)) {
-    return editFailureReply(
-      reply,
-      "編集 patch が空です。追加・削除・変更内容を patch 形式で返してください。",
+  let latestParsed = parsed;
+  let latestModelUsed = modelUsed;
+  let lastError = "";
+  let lastReply = reply;
+
+  for (let repair = 0; repair <= MAX_PATCH_REPAIR_ATTEMPTS; repair++) {
+    const built = buildEditProposalFromAiResponse(
+      input.baseDefinition,
+      latestParsed,
+      latestModelUsed,
     );
+    if (built.ok) {
+      return { reply: built.reply, intent: "edit", proposal: built.proposal };
+    }
+
+    lastError = built.error;
+    lastReply = built.reply || lastReply;
+    if (repair === MAX_PATCH_REPAIR_ATTEMPTS) break;
+
+    messages.push({ role: "assistant", content: assistantTurnContent(latestParsed) });
+    messages.push({ role: "user", content: buildPatchRepairUserMessage(built.error) });
+
+    const repaired = await runAiModel(env, {
+      messages,
+      temperature: 0.2,
+      maxTokens: 4096,
+      jsonSchema: AI_EDIT_JSON_SCHEMA,
+    });
+    latestModelUsed = repaired.modelUsed;
+    latestParsed = parseAiJsonResponse(repaired.result);
+    if (!latestParsed.reply?.trim()) {
+      lastError = "AI reply is empty";
+      break;
+    }
   }
 
-  try {
-    const proposedDefinition = applyDefinitionPatch(input.baseDefinition, patch);
-    const diff = computeDefinitionDiff(input.baseDefinition, proposedDefinition);
-    if (!diff.hasChanges) {
-      return editFailureReply(reply, "変更がありませんでした。patch の内容を確認してください。");
-    }
-    return {
-      reply,
-      intent: "edit",
-      proposal: {
-        proposedYaml: serializeTestsYaml(proposedDefinition),
-        proposedDefinition,
-        diff,
-        modelUsed,
-        generatedAt: new Date().toISOString(),
-      },
-    };
-  } catch (err) {
-    return editFailureReply(
-      reply,
-      `編集案の適用に失敗しました: ${err instanceof Error ? err.message : "Invalid patch"}`,
-    );
-  }
+  return editFailureReply(
+    lastReply,
+    `${lastError}（${MAX_PATCH_REPAIR_ATTEMPTS} 回再試行しても修正できませんでした）`,
+  );
 }

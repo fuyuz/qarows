@@ -155,12 +155,7 @@ function parseEnvironmentSection(raw: unknown): EnvironmentPatchSection | undefi
   };
 }
 
-export function parseDefinitionPatch(parsed: { patch?: unknown }): DefinitionPatch {
-  if (parsed.patch == null) return {};
-  if (typeof parsed.patch !== "object" || Array.isArray(parsed.patch)) {
-    throw new AiModelError("patch の形式が不正です");
-  }
-  const raw = parsed.patch as Record<string, unknown>;
+function parsePatchObject(raw: Record<string, unknown>): DefinitionPatch {
   const projectRaw = raw.project;
   let project: ProjectPatchSection | undefined;
   if (projectRaw != null) {
@@ -178,6 +173,138 @@ export function parseDefinitionPatch(parsed: { patch?: unknown }): DefinitionPat
     environments: parseEnvironmentSection(raw.environments),
     project,
   };
+}
+
+function tryParseJsonObject(raw: string): Record<string, unknown> | null {
+  const candidates = [raw, quoteBareObjectKeys(raw)];
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+  return null;
+}
+
+/** Models often emit JS-like `{ modified: [...] }` instead of JSON `{ "modified": [...] }`. */
+function quoteBareObjectKeys(raw: string): string {
+  return raw.replace(/([{,]\s*)([A-Za-z_][\w]*)\s*:/g, '$1"$2":');
+}
+
+/** Extract a JSON object that starts at the first `{` after `marker`. */
+export function extractObjectAfterMarker(text: string, marker: string): unknown | null {
+  const idx = text.indexOf(marker);
+  if (idx < 0) return null;
+  const start = text.indexOf("{", idx + marker.length);
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i]!;
+    if (inString) {
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === "{") depth += 1;
+    else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return tryParseJsonObject(text.slice(start, i + 1));
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Models sometimes put the patch in reply text or at the top level instead of `patch`.
+ * Recover those shapes so edit mode does not fail with an empty patch.
+ */
+export function coerceAiPatchPayload(parsed: {
+  reply?: string;
+  patch?: unknown;
+  testCases?: unknown;
+  environments?: unknown;
+  project?: unknown;
+}): unknown {
+  if (typeof parsed.patch === "string") {
+    const asObject = tryParseJsonObject(parsed.patch.trim());
+    if (asObject) return asObject;
+  }
+  if (parsed.patch && typeof parsed.patch === "object" && !Array.isArray(parsed.patch)) {
+    const patchObj = parsed.patch as Record<string, unknown>;
+    if (
+      patchObj.testCases != null ||
+      patchObj.environments != null ||
+      patchObj.project != null
+    ) {
+      return parsed.patch;
+    }
+  }
+
+  if (parsed.testCases != null || parsed.environments != null || parsed.project != null) {
+    return {
+      testCases: parsed.testCases,
+      environments: parsed.environments,
+      project: parsed.project,
+    };
+  }
+
+  const reply = parsed.reply?.trim();
+  if (!reply) return parsed.patch ?? null;
+
+  const embedded = tryParseJsonObject(reply);
+  if (embedded?.patch && typeof embedded.patch === "object") return embedded.patch;
+  if (embedded?.testCases != null || embedded?.environments != null || embedded?.project != null) {
+    return {
+      testCases: embedded.testCases,
+      environments: embedded.environments,
+      project: embedded.project,
+    };
+  }
+
+  const testCases = extractObjectAfterMarker(reply, "patch.testCases");
+  const environments = extractObjectAfterMarker(reply, "patch.environments");
+  const project = extractObjectAfterMarker(reply, "patch.project");
+  const nestedPatch = extractObjectAfterMarker(reply, '"patch"') ?? extractObjectAfterMarker(reply, "patch:");
+  if (nestedPatch && typeof nestedPatch === "object") return nestedPatch;
+  if (testCases != null || environments != null || project != null) {
+    return { testCases, environments, project };
+  }
+
+  return parsed.patch ?? null;
+}
+
+export function parseDefinitionPatch(parsed: {
+  reply?: string;
+  patch?: unknown;
+  testCases?: unknown;
+  environments?: unknown;
+  project?: unknown;
+}): DefinitionPatch {
+  const coerced = coerceAiPatchPayload(parsed);
+  if (coerced == null) return {};
+  if (typeof coerced !== "object" || Array.isArray(coerced)) {
+    throw new AiModelError("patch の形式が不正です");
+  }
+  return parsePatchObject(coerced as Record<string, unknown>);
 }
 
 function mergeTestCase(existing: TestCase, patch: Partial<TestCase> & { id: string }): TestCase {

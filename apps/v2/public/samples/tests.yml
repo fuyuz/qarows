@@ -822,7 +822,7 @@ testCases:
     prerequisites: "1件以上のプロジェクトが登録済み、/projects を表示中"
     description: "左にプロジェクト一覧（先頭は新規作成）、右に選択中プロジェクトの管理パネルが表示される（run 画面と同型の左右分割）"
 
-  - id: TC-083
+  - id: TC-110
     category:
       major: "AI編集"
       medium: "表示"
@@ -830,7 +830,7 @@ testCases:
     prerequisites: "Team 版。wrangler に [ai] binding なし"
     description: "テスト定義画面に AI アシスタントが表示されない（ナビの AI 編集項目もない）"
 
-  - id: TC-084
+  - id: TC-111
     category:
       major: "AI編集"
       medium: "表示"
@@ -838,7 +838,7 @@ testCases:
     prerequisites: "Team 版。[ai] binding 有効、/p/{id}/tests を開く"
     description: "テスト定義画面の右サイドに AI アシスタント（会話 / 編集案）が表示される"
 
-  - id: TC-085
+  - id: TC-112
     category:
       major: "AI編集"
       medium: "会話"
@@ -846,7 +846,7 @@ testCases:
     prerequisites: "テスト定義画面で AI アシスタント表示中、tests.yml 読み込み済み"
     description: "「ログイン関連の TC を教えて」等の質問にチャットで回答され、編集案ペインは前回案を維持またはプレースホルダのまま"
 
-  - id: TC-086
+  - id: TC-113
     category:
       major: "AI編集"
       medium: "編集案"
@@ -854,7 +854,7 @@ testCases:
     prerequisites: "テスト定義画面で AI アシスタント表示中"
     description: "編集指示後、構造化 diff が表示され、「編集画面に反映」でカード編集の draft に取り込める"
 
-  - id: TC-087
+  - id: TC-114
     category:
       major: "AI編集"
       medium: "適用"
@@ -862,7 +862,7 @@ testCases:
     prerequisites: "AI 編集案を編集画面に反映済み、または手動編集の未適用変更あり"
     description: "Apply で tests.yml が更新され、履歴の復元（definition_revisions）で直前の定義に戻せる"
 
-  - id: TC-088
+  - id: TC-115
     category:
       major: "テスト定義"
       medium: "画面"
