@@ -37,6 +37,8 @@ export async function proposeAiEdit(
     history?: AiChatMessage[];
     workingFrom?: "definition" | "proposal";
     proposalYaml?: string;
+    /** When set, AI edits against this YAML (e.g. current editor draft) instead of saved definition */
+    baseYaml?: string;
   },
 ): Promise<AiProposeResponse> {
   return apiJson<AiProposeResponse>(`/api/projects/${encodeURIComponent(projectId)}/ai/propose`, {

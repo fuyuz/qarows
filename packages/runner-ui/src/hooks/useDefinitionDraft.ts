@@ -25,24 +25,41 @@ function projectKey(definition: TestDefinition): string {
   return definition.project.id ?? definition.project.name;
 }
 
-export function useDefinitionDraft(savedDefinition: TestDefinition | null) {
+export function useDefinitionDraft(
+  savedDefinition: TestDefinition | null,
+  options?: { syncKey?: string | number | null },
+) {
   const [baseline, setBaseline] = useState<TestDefinition | null>(null);
   const [draft, setDraft] = useState<TestDefinition | null>(null);
   const loadedKeyRef = useRef<string | null>(null);
+  const loadedSyncKeyRef = useRef<string | number | null | undefined>(undefined);
+  const syncKey = options?.syncKey;
 
   useEffect(() => {
     if (!savedDefinition) {
       setBaseline(null);
       setDraft(null);
       loadedKeyRef.current = null;
+      loadedSyncKeyRef.current = undefined;
       return;
     }
     const key = projectKey(savedDefinition);
-    if (loadedKeyRef.current === key) return;
+    const projectChanged = loadedKeyRef.current !== key;
+    const syncChanged =
+      syncKey !== undefined &&
+      loadedSyncKeyRef.current !== undefined &&
+      loadedSyncKeyRef.current !== syncKey;
+
+    if (!projectChanged && !syncChanged && loadedKeyRef.current != null) {
+      if (syncKey !== undefined) loadedSyncKeyRef.current = syncKey;
+      return;
+    }
+
     loadedKeyRef.current = key;
+    loadedSyncKeyRef.current = syncKey;
     setBaseline(cloneDefinition(savedDefinition));
     setDraft(cloneDefinition(savedDefinition));
-  }, [savedDefinition]);
+  }, [savedDefinition, syncKey]);
 
   const diff = useMemo(() => {
     if (!baseline || !draft) return null;
@@ -60,6 +77,11 @@ export function useDefinitionDraft(savedDefinition: TestDefinition | null) {
   const markApplied = useCallback((applied: TestDefinition) => {
     const next = cloneDefinition(applied);
     setBaseline(next);
+    setDraft(cloneDefinition(next));
+  }, []);
+
+  /** Replace draft contents while keeping baseline (shows as pending changes). */
+  const replaceDraft = useCallback((next: TestDefinition) => {
     setDraft(cloneDefinition(next));
   }, []);
 
@@ -212,6 +234,7 @@ export function useDefinitionDraft(savedDefinition: TestDefinition | null) {
     changeSummary,
     discard,
     markApplied,
+    replaceDraft,
     updateTestCase,
     setTestCaseId,
     addTestCase,

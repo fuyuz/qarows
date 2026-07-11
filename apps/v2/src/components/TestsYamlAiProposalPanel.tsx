@@ -20,6 +20,7 @@ export function TestsYamlAiProposalPanel({
   onApply,
   onDiscard,
   onRestore,
+  applyLabel = "適用",
 }: {
   proposal: AiProposal | null;
   editIntentWithoutProposal?: boolean;
@@ -31,6 +32,7 @@ export function TestsYamlAiProposalPanel({
   onApply: () => void;
   onDiscard: () => void;
   onRestore: (revisionId: string) => void;
+  applyLabel?: string;
 }) {
   const [yamlDiffOpen, setYamlDiffOpen] = useState(false);
   const baseYaml = serializeTestsYaml(baseDefinition);
@@ -130,7 +132,7 @@ export function TestsYamlAiProposalPanel({
             破棄
           </Button>
           <Button type="button" disabled={busy || !proposal.diff.hasChanges} onClick={onApply}>
-            適用
+            {applyLabel}
           </Button>
         </div>
       ) : null}

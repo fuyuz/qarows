@@ -828,22 +828,22 @@ testCases:
       medium: "表示"
       minor: "opt-in"
     prerequisites: "Team 版。wrangler に [ai] binding なし"
-    description: "プロジェクト workspace に AI 編集タブ・/p/{id}/ai ページが表示されない"
+    description: "テスト定義画面に AI アシスタントが表示されない（ナビの AI 編集項目もない）"
 
   - id: TC-084
     category:
       major: "AI編集"
       medium: "表示"
       minor: "binding 有"
-    prerequisites: "Team 版。[ai] binding 有効、/p/{id}/ai を開く"
-    description: "左右 2 ペイン（会話 / 編集案）が表示され、GET /api/health の aiEnabled が true"
+    prerequisites: "Team 版。[ai] binding 有効、/p/{id}/tests を開く"
+    description: "テスト定義画面の右サイドに AI アシスタント（会話 / 編集案）が表示される"
 
   - id: TC-085
     category:
       major: "AI編集"
       medium: "会話"
       minor: "質問"
-    prerequisites: "AI 編集画面、tests.yml 読み込み済み"
+    prerequisites: "テスト定義画面で AI アシスタント表示中、tests.yml 読み込み済み"
     description: "「ログイン関連の TC を教えて」等の質問にチャットで回答され、編集案ペインは前回案を維持またはプレースホルダのまま"
 
   - id: TC-086
@@ -851,13 +851,13 @@ testCases:
       major: "AI編集"
       medium: "編集案"
       minor: "diff"
-    prerequisites: "AI 編集画面"
-    description: "編集指示後、構造化 diff と任意の YAML 全文 diff が編集案ペインに表示される"
+    prerequisites: "テスト定義画面で AI アシスタント表示中"
+    description: "編集指示後、構造化 diff が表示され、「編集画面に反映」でカード編集の draft に取り込める"
 
   - id: TC-087
     category:
       major: "AI編集"
       medium: "適用"
       minor: "revert"
-    prerequisites: "AI 編集案を生成済み"
-    description: "適用で tests.yml が更新され、元に戻す（definition_revisions）で直前の定義に復元できる"
+    prerequisites: "AI 編集案を編集画面に反映済み、または手動編集の未適用変更あり"
+    description: "Apply で tests.yml が更新され、履歴の復元（definition_revisions）で直前の定義に戻せる"

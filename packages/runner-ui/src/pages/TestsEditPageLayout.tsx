@@ -26,23 +26,54 @@ import {
 import { DefinitionEnvironmentsPanel } from "../components/DefinitionEnvironmentsPanel";
 import { TestCaseEditCard } from "../components/TestCaseEditCard";
 
+export interface TestsEditDraftImport {
+  definition: TestDefinition;
+  token: number;
+}
+
+export interface TestsEditDraftState {
+  hasChanges: boolean;
+  draft: TestDefinition | null;
+}
+
 export function TestsEditPageLayout({
   definition,
   onApply,
   navSlot,
+  asideSlot,
+  syncKey,
+  draftImport,
+  onDraftImportConsumed,
+  onDraftStateChange,
 }: {
   definition: TestDefinition;
   onApply: (next: TestDefinition) => Promise<void>;
   navSlot?: ReactNode;
+  asideSlot?: ReactNode;
+  /** When this changes (e.g. Team revision), reset draft from saved definition */
+  syncKey?: string | number | null;
+  draftImport?: TestsEditDraftImport | null;
+  onDraftImportConsumed?: () => void;
+  onDraftStateChange?: (state: TestsEditDraftState) => void;
 }) {
-  const draftApi = useDefinitionDraft(definition);
+  const draftApi = useDefinitionDraft(definition, { syncKey });
   const [filters, setFilters] = useDefinitionEditFilters();
   const [compact, setCompact] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
 
-  const { draft, diff, hasChanges, changeSummary, discard, markApplied } = draftApi;
+  const { draft, diff, hasChanges, changeSummary, discard, markApplied, replaceDraft } = draftApi;
+
+  useEffect(() => {
+    onDraftStateChange?.({ hasChanges, draft });
+  }, [hasChanges, draft, onDraftStateChange]);
+
+  useEffect(() => {
+    if (!draftImport) return;
+    replaceDraft(draftImport.definition);
+    onDraftImportConsumed?.();
+  }, [draftImport, replaceDraft, onDraftImportConsumed]);
 
   const filtered = useMemo(() => {
     if (!draft) return [];
@@ -97,9 +128,8 @@ export function TestsEditPageLayout({
 
   if (!draft) return null;
 
-  return (
-    <div className="flex h-svh flex-col overflow-hidden">
-      {navSlot}
+  const editorColumn = (
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <DefinitionEditFilterBar
         definition={draft}
         filters={filters}
@@ -172,7 +202,7 @@ export function TestsEditPageLayout({
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/95 px-5 py-3 backdrop-blur",
+          "absolute inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/95 px-5 py-3 backdrop-blur",
           hasChanges && "border-amber-300/60",
         )}
       >
@@ -220,6 +250,14 @@ export function TestsEditPageLayout({
           </div>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+
+  return (
+    <div className="flex h-svh overflow-hidden">
+      {navSlot}
+      {editorColumn}
+      {asideSlot}
     </div>
   );
 }

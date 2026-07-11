@@ -1,4 +1,4 @@
-import { serializeTestsYaml } from "@qarows/shared";
+import { getProjectIdFromDefinition, parseTestsYaml, serializeTestsYaml } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { proposeTestsYamlEdit } from "../ai/propose";
@@ -16,6 +16,7 @@ interface ProposeBody {
   history?: { role: "user" | "assistant"; content: string }[];
   workingFrom?: "definition" | "proposal";
   proposalYaml?: string;
+  baseYaml?: string;
 }
 
 interface ApplyBody {
@@ -78,10 +79,29 @@ export function createAiRoutes(): Hono<AppEnv> {
         throw new HTTPException(400, { message: "message is required" });
       }
 
+      let baseDefinition = snapshot.definition;
+      let baseYaml = serializeTestsYaml(snapshot.definition);
+      const overrideYaml = body.baseYaml?.trim();
+      if (overrideYaml) {
+        try {
+          baseDefinition = parseTestsYaml(overrideYaml);
+          baseYaml = serializeTestsYaml(baseDefinition);
+        } catch (err) {
+          throw new HTTPException(400, {
+            message: err instanceof Error ? err.message : "Invalid baseYaml",
+          });
+        }
+        if (getProjectIdFromDefinition(baseDefinition) !== projectId) {
+          throw new HTTPException(400, {
+            message: "baseYaml project.id が URL の projectId と一致しません",
+          });
+        }
+      }
+
       const result = await proposeTestsYamlEdit(c.env, {
         projectId,
-        baseDefinition: snapshot.definition,
-        baseYaml: serializeTestsYaml(snapshot.definition),
+        baseDefinition,
+        baseYaml,
         request: {
           message,
           history: body.history,

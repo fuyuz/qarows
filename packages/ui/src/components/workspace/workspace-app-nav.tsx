@@ -73,7 +73,7 @@ function availablePageSet(pages?: readonly WorkspaceProjectPage[]): Set<Workspac
   return new Set(pages ?? DEFAULT_AVAILABLE_PAGES);
 }
 
-type NavContextPage = WorkspaceProjectPage | "load" | "projects" | "ai" | null;
+type NavContextPage = WorkspaceProjectPage | "load" | "projects" | null;
 
 function workflowLinks(
   path: WorkspaceAppNavProps["path"],
@@ -94,8 +94,8 @@ function workflowLinks(
   } else if (page === "session" && canRun && session && isValidSession(session)) {
     items.push({ label: "テスト実行", to: path("run"), page: "run" });
   } else if (
-    (page === "matrix" || page === "dashboard" || page === "bugs" || page === "tests" || page === "ai") &&
-    (page === "ai" || availablePages.has(page))
+    (page === "matrix" || page === "dashboard" || page === "bugs" || page === "tests") &&
+    availablePages.has(page)
   ) {
     if (canSession) {
       items.push({ label: "セッション設定", to: path("session"), page: "session" });
@@ -131,7 +131,7 @@ function editLinks(
 }
 
 function currentProjectPage(pathname: string): NavContextPage {
-  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs|tests|ai)$/);
+  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs|tests)$/);
   if (match) return match[1] as NavContextPage;
   if (pathname === "/load") return "load";
   if (pathname === "/projects") return "projects";

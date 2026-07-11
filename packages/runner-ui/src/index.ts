@@ -16,6 +16,10 @@ export { DashboardPageLayout } from "./pages/DashboardPageLayout";
 export { MatrixPageLayout } from "./pages/MatrixPageLayout";
 export { BugsPageLayout } from "./pages/BugsPageLayout";
 export { TestsEditPageLayout } from "./pages/TestsEditPageLayout";
+export type {
+  TestsEditDraftImport,
+  TestsEditDraftState,
+} from "./pages/TestsEditPageLayout";
 
 export { ProgressRow, progressBucketBgClass, progressBucketTextClass } from "./components/ProgressRow";
 

@@ -117,3 +117,18 @@ export async function replaceProjectFromYaml(
   );
   return data.project;
 }
+
+export async function applyDefinitionEdit(
+  projectId: string,
+  body: {
+    testsYaml: string;
+    expectedGeneration: string;
+    instruction?: string;
+  },
+): Promise<{ ok: true; generation: string; revisionId: string }> {
+  return apiJson(`/api/projects/${encodeURIComponent(projectId)}/definition/apply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}

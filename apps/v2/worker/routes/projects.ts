@@ -17,6 +17,7 @@ import {
   MAX_TESTS_YAML_BYTES,
   readRequestTextWithLimit,
 } from "../request-body";
+import { saveCheckpointAndReplaceDefinition } from "../replace-definition";
 import type { AppEnv } from "../types";
 
 interface CreateProjectBody {
@@ -28,6 +29,12 @@ interface CreateProjectBody {
 interface ReplaceDefinitionBody {
   testsYaml?: string;
   resultsJsonList?: unknown;
+}
+
+interface ApplyDefinitionBody {
+  testsYaml?: string;
+  expectedGeneration?: string;
+  instruction?: string;
 }
 
 const MAX_DEFINITION_REPLACE_BYTES = MAX_TESTS_YAML_BYTES + MAX_RESULTS_JSON_BYTES;
@@ -266,6 +273,40 @@ projectsRoutes.put("/:projectId/definition", async (c) => {
   const snapshot = await getProject(c.env.DB, projectId);
   if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
   return c.json({ project: serializeSnapshot(snapshot) });
+});
+
+projectsRoutes.post("/:projectId/definition/apply", async (c) => {
+  const projectId = c.req.param("projectId");
+  let body: ApplyDefinitionBody;
+  try {
+    const raw = await readRequestTextWithLimit(c.req.raw, MAX_TESTS_YAML_BYTES + 4096);
+    body = JSON.parse(raw) as ApplyDefinitionBody;
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) {
+      throw new HTTPException(413, { message: "Request body is too large" });
+    }
+    throw new HTTPException(400, { message: "Invalid JSON body" });
+  }
+
+  const testsYaml = body.testsYaml?.trim();
+  const expectedGeneration = body.expectedGeneration?.trim();
+  if (!testsYaml) {
+    throw new HTTPException(400, { message: "testsYaml is required" });
+  }
+  if (!expectedGeneration) {
+    throw new HTTPException(400, { message: "expectedGeneration is required" });
+  }
+
+  const result = await saveCheckpointAndReplaceDefinition(c.env, {
+    projectId,
+    testsYaml,
+    expectedGeneration,
+    source: "manual_edit",
+    instruction: body.instruction?.trim() || null,
+    createdBy: c.get("user").email,
+  });
+
+  return c.json({ ok: true, ...result });
 });
 
 projectsRoutes.delete("/:projectId", async (c) => {
