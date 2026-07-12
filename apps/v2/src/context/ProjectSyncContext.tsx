@@ -17,7 +17,12 @@ import type {
   TestResultEntry,
   TestStatus,
 } from "@qarows/shared";
-import type { ConnectionStatus, ProjectCommand, ProjectEvent } from "@qarows/application";
+import {
+  affectedTestCaseFromCommand,
+  type ConnectionStatus,
+  type ProjectCommand,
+  type ProjectEvent,
+} from "@qarows/application";
 import { createTeamWorkspaceController } from "@/lib/adapters/create-team-workspace";
 import {
   buildLocalSession,
@@ -62,21 +67,6 @@ interface ProjectSyncContextValue {
 }
 
 const ProjectSyncContext = createContext<ProjectSyncContextValue | null>(null);
-
-function affectedTestCaseFromCommand(command: ProjectCommand): string | null {
-  switch (command.type) {
-    case "updateResult":
-    case "updateResultsBatch":
-    case "clearTestResult":
-    case "updateTestCase":
-      return command.testCaseId;
-    case "addBug":
-    case "updateBug":
-      return command.bug.testCaseId ?? null;
-    default:
-      return null;
-  }
-}
 
 export function ProjectSyncProvider({
   projectId,

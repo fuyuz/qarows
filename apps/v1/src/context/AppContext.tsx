@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  affectedTestCaseFromCommand,
   applyProjectCommand,
   toProjectSnapshot,
   type ProjectCommand,
@@ -84,21 +85,6 @@ function toV1Summary(summary: ApplicationProjectSummary): ProjectSummary {
   };
 }
 
-function affectedTestCaseFromCommand(command: ProjectCommand): string | null {
-  switch (command.type) {
-    case "updateResult":
-    case "updateResultsBatch":
-    case "clearTestResult":
-    case "updateTestCase":
-      return command.testCaseId;
-    case "addBug":
-    case "updateBug":
-      return command.bug.testCaseId ?? null;
-    default:
-      return null;
-  }
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const workspaceRef = useRef<ReturnType<typeof createLocalWorkspaceController> | null>(null);
   if (workspaceRef.current === null) {
@@ -122,10 +108,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [lastOpenedProjectId, setLastOpenedProjectId] = useState<string | null>(null);
   const highlightClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const definitionRef = useRef<TestDefinition | null>(null);
-  const resultsRef = useRef<ResultsFile | null>(null);
-  const sessionRef = useRef<SessionConfig | null>(null);
-
   const markTestUpdated = useCallback((testCaseId: string) => {
     setLastUpdatedTestId(testCaseId);
     if (highlightClearTimerRef.current) clearTimeout(highlightClearTimerRef.current);
@@ -145,18 +127,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     session: SessionConfig | null;
   }) => {
     setActiveProjectId(snapshot.id);
-    definitionRef.current = snapshot.definition;
-    resultsRef.current = snapshot.results;
-    sessionRef.current = snapshot.session;
     setDefinition(snapshot.definition);
     setResults(snapshot.results);
     setSessionState(snapshot.session);
   }, []);
 
   const clearActiveSnapshot = useCallback(() => {
-    definitionRef.current = null;
-    resultsRef.current = null;
-    sessionRef.current = null;
     setActiveProjectId(null);
     setDefinition(null);
     setResults(null);
@@ -255,13 +231,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const mergeResultsFromFiles = useCallback(
     async (jsons: string[]) => {
-      const currentResults = resultsRef.current;
-      if (!currentResults) throw new Error("結果データが読み込まれていません");
+      let snapshot = workspace.getSnapshot();
+      if (!snapshot) throw new Error("結果データが読み込まれていません");
       if (jsons.length === 0) return;
-      const currentDefinition = definitionRef.current;
-      if (!currentDefinition) throw new Error("プロジェクト定義が読み込まれていません");
 
-      let snapshot = workspace.getSnapshot()!;
+      const currentDefinition = snapshot.definition;
       for (const json of jsons) {
         const incoming = parseResultsJson(json, { definition: currentDefinition });
         snapshot = applyProjectCommand(snapshot, { type: "mergeResults", incoming }).snapshot;
@@ -305,72 +279,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [activateProject, refreshProjectSummaries],
   );
 
-  const setSession = useCallback(
-    async (nextSession: SessionConfig) => {
-      await dispatch({ type: "setSession", session: nextSession });
-    },
+  /** dispatch は安定なので、コマンドを組むだけの API はまとめて一度だけ作る */
+  const commands = useMemo(
+    () => ({
+      setSession: (session: SessionConfig) => dispatch({ type: "setSession", session }),
+      updateResults: (testCaseId: string, envId: string, entry: TestResultEntry) =>
+        dispatch({ type: "updateResult", testCaseId, envId, entry }),
+      updateResultsBatch: (
+        testCaseId: string,
+        envIds: string[],
+        partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
+      ) => dispatch({ type: "updateResultsBatch", testCaseId, envIds, partial }),
+      addBug: (bug: Bug) => dispatch({ type: "addBug", bug }),
+      updateBug: (bug: Bug) => dispatch({ type: "updateBug", bug }),
+      updateTestCase: (
+        testCaseId: string,
+        patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
+      ) => dispatch({ type: "updateTestCase", testCaseId, patch }),
+      replaceDefinition: (definition: TestDefinition) =>
+        dispatch({ type: "replaceDefinition", definition }),
+      clearTestResult: (testCaseId: string, envId: string) =>
+        dispatch({ type: "clearTestResult", testCaseId, envId }),
+      clearResults: () => dispatch({ type: "clearResults" }),
+    }),
     [dispatch],
   );
-
-  const updateResults = useCallback(
-    async (testCaseId: string, envId: string, entry: TestResultEntry) => {
-      await dispatch({ type: "updateResult", testCaseId, envId, entry });
-    },
-    [dispatch],
-  );
-
-  const updateResultsBatch = useCallback(
-    async (
-      testCaseId: string,
-      envIds: string[],
-      partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
-    ) => {
-      await dispatch({ type: "updateResultsBatch", testCaseId, envIds, partial });
-    },
-    [dispatch],
-  );
-
-  const addBug = useCallback(
-    async (bug: Bug) => {
-      await dispatch({ type: "addBug", bug });
-    },
-    [dispatch],
-  );
-
-  const updateBug = useCallback(
-    async (bug: Bug) => {
-      await dispatch({ type: "updateBug", bug });
-    },
-    [dispatch],
-  );
-
-  const updateTestCase = useCallback(
-    async (
-      testCaseId: string,
-      patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
-    ) => {
-      await dispatch({ type: "updateTestCase", testCaseId, patch });
-    },
-    [dispatch],
-  );
-
-  const replaceDefinition = useCallback(
-    async (nextDefinition: TestDefinition) => {
-      await dispatch({ type: "replaceDefinition", definition: nextDefinition });
-    },
-    [dispatch],
-  );
-
-  const clearTestResult = useCallback(
-    async (testCaseId: string, envId: string) => {
-      await dispatch({ type: "clearTestResult", testCaseId, envId });
-    },
-    [dispatch],
-  );
-
-  const clearResults = useCallback(async () => {
-    await dispatch({ type: "clearResults" });
-  }, [dispatch]);
 
   const clearResultsForProject = useCallback(
     async (projectId: string): Promise<boolean> => {
@@ -422,15 +355,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       mergeResultsFromFile,
       mergeResultsFromFiles,
       mergeResultsIntoProject,
-      setSession,
-      updateResults,
-      updateResultsBatch,
-      addBug,
-      updateBug,
-      updateTestCase,
-      replaceDefinition,
-      clearTestResult,
-      clearResults,
+      ...commands,
       clearResultsForProject,
       deleteProject,
       refreshProjectSummaries,
@@ -450,15 +375,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       mergeResultsFromFile,
       mergeResultsFromFiles,
       mergeResultsIntoProject,
-      setSession,
-      updateResults,
-      updateResultsBatch,
-      addBug,
-      updateBug,
-      updateTestCase,
-      replaceDefinition,
-      clearTestResult,
-      clearResults,
+      commands,
       clearResultsForProject,
       deleteProject,
       refreshProjectSummaries,

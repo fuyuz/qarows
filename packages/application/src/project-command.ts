@@ -42,6 +42,22 @@ export type ProjectCommand =
       session: ProjectSnapshot["session"];
     };
 
+/** UI ハイライト用: コマンドが影響するテストケース ID（なければ null） */
+export function affectedTestCaseFromCommand(command: ProjectCommand): string | null {
+  switch (command.type) {
+    case "updateResult":
+    case "updateResultsBatch":
+    case "clearTestResult":
+    case "updateTestCase":
+      return command.testCaseId;
+    case "addBug":
+    case "updateBug":
+      return command.bug.testCaseId ?? null;
+    default:
+      return null;
+  }
+}
+
 export interface ApplyProjectCommandOptions {
   /** テスト用固定時刻。省略時は実行時の ISO 文字列 */
   now?: string;

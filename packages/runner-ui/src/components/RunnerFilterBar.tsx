@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ListFilterIcon } from "lucide-react";
 import {
   BUG_SEVERITY_LABELS,
@@ -10,9 +10,9 @@ import {
 } from "@qarows/shared";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
-import { Button } from "@qarows/ui";
-import { Checkbox } from "@qarows/ui";
 import {
+  Button,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,16 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@qarows/ui";
-import { Label } from "@qarows/ui";
-import {
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  cn,
 } from "@qarows/ui";
-import { cn } from "@qarows/ui";
 import { RunnerCardTransition } from "./RunnerCardTransition";
 import { BUG_SEVERITY_VALUES, BUG_STATUS_VALUES, type BugFilters } from "../lib/bug-query";
 import {
@@ -94,6 +92,18 @@ function RunnerModeSwitch({
     return () => observer.disconnect();
   }, [syncIndicator]);
 
+  const modeOptions = [
+    { mode: "filter", label: "フィルタ", ref: filterRef, onClick: onFilter, disabled: false, title: undefined },
+    {
+      mode: "scenario",
+      label: "シナリオ",
+      ref: scenarioRef,
+      onClick: onScenario,
+      disabled: !hasScenarios,
+      title: hasScenarios ? undefined : "tests.yml に scenarios がありません",
+    },
+  ] as const;
+
   return (
     <div
       ref={containerRef}
@@ -111,37 +121,48 @@ function RunnerModeSwitch({
           }}
         />
       )}
-      <button
-        ref={filterRef}
-        type="button"
-        aria-pressed={value === "filter"}
-        onClick={onFilter}
-        className={cn(
-          modeSwitchButtonClass,
-          value === "filter"
-            ? "text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-      >
-        フィルタ
-      </button>
-      <button
-        ref={scenarioRef}
-        type="button"
-        aria-pressed={value === "scenario"}
-        disabled={!hasScenarios}
-        title={hasScenarios ? undefined : "tests.yml に scenarios がありません"}
-        onClick={onScenario}
-        className={cn(
-          modeSwitchButtonClass,
-          value === "scenario"
-            ? "text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-      >
-        シナリオ
-      </button>
+      {modeOptions.map((option) => (
+        <button
+          key={option.mode}
+          ref={option.ref}
+          type="button"
+          aria-pressed={value === option.mode}
+          disabled={option.disabled}
+          title={option.title}
+          onClick={option.onClick}
+          className={cn(
+            modeSwitchButtonClass,
+            value === option.mode
+              ? "text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
+  );
+}
+
+function FilterCheckItem({
+  checked,
+  onCheckedChange,
+  children,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-200",
+        checked && "bg-primary/10 text-primary",
+      )}
+    >
+      <Checkbox checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} />
+      <span>{children}</span>
+    </label>
   );
 }
 
@@ -162,23 +183,46 @@ function FilterCheckGroup<T extends string>({
     <div className="space-y-2.5">
       <Label className="text-sm font-semibold">{label}</Label>
       <div className="flex flex-wrap gap-x-4 gap-y-2">
-        {options.map((value) => {
-          const checked = selected.includes(value);
-          return (
-            <label
-              key={value}
-              className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-200",
-                checked && "bg-primary/10 text-primary",
-              )}
-            >
-              <Checkbox checked={checked} onCheckedChange={() => onToggle(value)} />
-              <span>{labels[value]}</span>
-            </label>
-          );
-        })}
+        {options.map((value) => (
+          <FilterCheckItem
+            key={value}
+            checked={selected.includes(value)}
+            onCheckedChange={() => onToggle(value)}
+          >
+            {labels[value]}
+          </FilterCheckItem>
+        ))}
       </div>
     </div>
+  );
+}
+
+function FilterDialogTriggerButton({
+  ariaLabel,
+  activeCount,
+}: {
+  ariaLabel: string;
+  activeCount: number;
+}) {
+  const active = activeCount > 0;
+  return (
+    <DialogTrigger asChild>
+      <Button
+        type="button"
+        variant={active ? "default" : "outline"}
+        size="icon-sm"
+        aria-label={ariaLabel}
+        aria-pressed={active}
+        className={cn("relative shadow-xs", active && "hover:bg-primary/90")}
+      >
+        <ListFilterIcon className="size-4" aria-hidden />
+        {active && (
+          <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full border border-primary bg-background text-[10px] font-bold text-primary shadow-sm">
+            {activeCount}
+          </span>
+        )}
+      </Button>
+    </DialogTrigger>
   );
 }
 
@@ -213,23 +257,7 @@ function RunnerScopeFilterDialog({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant={active ? "default" : "outline"}
-          size="icon-sm"
-          aria-label="テストを絞り込み"
-          aria-pressed={active}
-          className={cn("relative shadow-xs", active && "hover:bg-primary/90")}
-        >
-          <ListFilterIcon className="size-4" aria-hidden />
-          {active && (
-            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full border border-primary bg-background text-[10px] font-bold text-primary shadow-sm">
-              {activeCount}
-            </span>
-          )}
-        </Button>
-      </DialogTrigger>
+      <FilterDialogTriggerButton ariaLabel="テストを絞り込み" activeCount={activeCount} />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>テストの絞り込み</DialogTitle>
@@ -239,19 +267,13 @@ function RunnerScopeFilterDialog({
         </DialogHeader>
         <div className="space-y-2.5">
           {RUNNER_SCOPE_FILTER_OPTIONS.map(({ key, label }) => (
-            <label
+            <FilterCheckItem
               key={key}
-              className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-200",
-                runnerFilters[key] && "bg-primary/10 text-primary",
-              )}
+              checked={runnerFilters[key]}
+              onCheckedChange={(checked) => toggleScopeFilter(key, checked)}
             >
-              <Checkbox
-                checked={runnerFilters[key]}
-                onCheckedChange={(checked) => toggleScopeFilter(key, checked === true)}
-              />
-              <span>{label}</span>
-            </label>
+              {label}
+            </FilterCheckItem>
           ))}
         </div>
         <DialogFooter>
@@ -280,23 +302,7 @@ function BugFilterDialog({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant={active ? "default" : "outline"}
-          size="icon-sm"
-          aria-label="バグを絞り込み"
-          aria-pressed={active}
-          className={cn("relative shadow-xs", active && "hover:bg-primary/90")}
-        >
-          <ListFilterIcon className="size-4" aria-hidden />
-          {active && (
-            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full border border-primary bg-background text-[10px] font-bold text-primary shadow-sm">
-              {activeCount}
-            </span>
-          )}
-        </Button>
-      </DialogTrigger>
+      <FilterDialogTriggerButton ariaLabel="バグを絞り込み" activeCount={activeCount} />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>バグの絞り込み</DialogTitle>
@@ -327,6 +333,39 @@ function BugFilterDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CategorySelect({
+  label,
+  value,
+  options,
+  onValueChange,
+  disabled,
+}: {
+  label: string;
+  value: string | undefined;
+  options: string[];
+  onValueChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="shrink-0 text-sm font-semibold">{label}</Label>
+      <Select value={value ?? ALL} onValueChange={onValueChange} disabled={disabled}>
+        <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>すべて</SelectItem>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -437,6 +476,15 @@ export function RunnerFilterBar({
     });
   };
 
+  const updateMinorFilter = (value: string) => {
+    void setRunnerFilters({
+      ...runnerFilters,
+      targetMode: "filter",
+      scenarioId: undefined,
+      minorCategoryFilter: value === ALL ? undefined : value,
+    });
+  };
+
   const filterMode = mode === "filter";
 
   return (
@@ -459,74 +507,26 @@ export function RunnerFilterBar({
             <RunnerCardTransition slideKey={filterMode ? "filter" : "scenario"}>
               {filterMode ? (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label className="shrink-0 text-sm font-semibold">大分類</Label>
-                    <Select
-                      value={runnerFilters.majorCategoryFilter ?? ALL}
-                      onValueChange={updateMajorFilter}
-                    >
-                      <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={ALL}>すべて</SelectItem>
-                        {majorCategories.map((major) => (
-                          <SelectItem key={major} value={major}>
-                            {major}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Label className="shrink-0 text-sm font-semibold">中分類</Label>
-                    <Select
-                      value={runnerFilters.mediumCategoryFilter ?? ALL}
-                      onValueChange={updateMediumFilter}
-                      disabled={mediumCategories.length === 0}
-                    >
-                      <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={ALL}>すべて</SelectItem>
-                        {mediumCategories.map((medium) => (
-                          <SelectItem key={medium} value={medium}>
-                            {medium}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Label className="shrink-0 text-sm font-semibold">小分類</Label>
-                    <Select
-                      value={runnerFilters.minorCategoryFilter ?? ALL}
-                      onValueChange={(value) =>
-                        void setRunnerFilters({
-                          ...runnerFilters,
-                          targetMode: "filter",
-                          scenarioId: undefined,
-                          minorCategoryFilter: value === ALL ? undefined : value,
-                        })
-                      }
-                      disabled={minorCategories.length === 0}
-                    >
-                      <SelectTrigger className="h-auto min-w-28 px-2.5 py-1.5 text-sm font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={ALL}>すべて</SelectItem>
-                        {minorCategories.map((minor) => (
-                          <SelectItem key={minor} value={minor}>
-                            {minor}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <CategorySelect
+                    label="大分類"
+                    value={runnerFilters.majorCategoryFilter}
+                    options={majorCategories}
+                    onValueChange={updateMajorFilter}
+                  />
+                  <CategorySelect
+                    label="中分類"
+                    value={runnerFilters.mediumCategoryFilter}
+                    options={mediumCategories}
+                    onValueChange={updateMediumFilter}
+                    disabled={mediumCategories.length === 0}
+                  />
+                  <CategorySelect
+                    label="小分類"
+                    value={runnerFilters.minorCategoryFilter}
+                    options={minorCategories}
+                    onValueChange={updateMinorFilter}
+                    disabled={minorCategories.length === 0}
+                  />
                 </div>
               ) : (
                 <div className="flex min-w-40 flex-1 items-center gap-2">
