@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { StatusBadge } from "@/components/qa-ui";
+import { StatusBadge } from "@qarows/ui";
 import { projectPath } from "@/lib/project-routes";
 
 describe("LoadingScreen", () => {

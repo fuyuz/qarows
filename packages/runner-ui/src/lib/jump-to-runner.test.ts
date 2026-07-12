@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
-import { canJumpToRunner, findRunnerIndex } from "@/lib/jump-to-runner";
+import { canJumpToRunner, findRunnerIndex } from "./jump-to-runner";
 import type { ResultsFile, SessionConfig } from "@qarows/shared";
 
 const definition = makeDefinition();

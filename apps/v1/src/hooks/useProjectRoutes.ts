@@ -3,7 +3,7 @@ import { useLocation, useParams } from "react-router-dom";
 import type { RunnerFilters } from "@qarows/shared";
 import { useApp } from "@/context/AppContext";
 import { projectPath, resolveProjectId, inheritsRunnerQueryFromLocation, type ProjectPage } from "@/lib/project-routes";
-import { parseRunnerSearchParams } from "@/lib/runner-query";
+import { parseRunnerSearchParams } from "@qarows/runner-ui";
 
 function projectIdFromPathname(pathname: string): string | null {
   const match = pathname.match(/^\/p\/([^/]+)/);

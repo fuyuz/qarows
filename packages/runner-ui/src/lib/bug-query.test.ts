@@ -5,7 +5,7 @@ import {
   matchesBugFilters,
   parseBugFilterTokens,
   parseBugFilters,
-} from "@/lib/bug-query";
+} from "./bug-query";
 import type { BugSeverity, BugStatus } from "@qarows/shared";
 
 describe("bug query", () => {

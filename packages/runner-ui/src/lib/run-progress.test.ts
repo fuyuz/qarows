@@ -5,7 +5,7 @@ import {
   computeRunProgressForTestCases,
   PROGRESS_SEGMENT_ORDER,
   type ProgressBucket,
-} from "@/lib/run-progress";
+} from "./run-progress";
 import type { TestDefinition, TestResults } from "@qarows/shared";
 
 const definition: TestDefinition = {

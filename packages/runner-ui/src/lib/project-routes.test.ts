@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inheritsRunnerQueryFromLocation, projectPath } from "@/lib/project-routes";
+import { inheritsRunnerQueryFromLocation, projectPath } from "./project-routes";
 
 describe("inheritsRunnerQueryFromLocation", () => {
   it("inherits when location and target project match", () => {

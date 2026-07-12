@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
-import { resolveMatrixTestCases } from "@/lib/matrix-test-cases";
+import { resolveMatrixTestCases } from "./matrix-test-cases";
 import type { SessionConfig } from "@qarows/shared";
 
 const session: SessionConfig = {

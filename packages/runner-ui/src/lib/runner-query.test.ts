@@ -10,7 +10,7 @@ import {
   runnerSearchChanged,
   sanitizeRunnerSearchParams,
   searchParamsToRunnerQuery,
-} from "@/lib/runner-query";
+} from "./runner-query";
 
 const definition: TestDefinition = {
   project: { name: "Demo", id: "demo" },

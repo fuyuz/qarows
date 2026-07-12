@@ -5,7 +5,7 @@ import {
   isRunnerPrevKey,
   isRunnerTypingTarget,
   matchRunnerStatusKey,
-} from "@/lib/runner-keybindings";
+} from "./runner-keybindings";
 
 describe("runner keybindings", () => {
   it("maps status keys", () => {

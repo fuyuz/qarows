@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { resolveSessionTestTargets } from "@qarows/shared";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
-import { formatBugMarkdown } from "@/lib/format-bug-markdown";
-import { formatTestCaseMarkdown } from "@/lib/format-test-case-markdown";
+import { formatBugMarkdown } from "./format-bug-markdown";
+import { formatTestCaseMarkdown } from "./format-test-case-markdown";
 
 describe("formatTestCaseMarkdown", () => {
   it("includes category, description, and related bugs", () => {

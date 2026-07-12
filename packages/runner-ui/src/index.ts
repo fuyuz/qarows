@@ -28,7 +28,11 @@ export { useProjectRoutes } from "./hooks/useProjectRoutes";
 export { useDefinitionDraft } from "./hooks/useDefinitionDraft";
 
 export type { ProjectPage } from "./lib/project-routes";
-export { projectPath, resolveProjectId } from "./lib/project-routes";
+export {
+  inheritsRunnerQueryFromLocation,
+  projectPath,
+  resolveProjectId,
+} from "./lib/project-routes";
 
 export {
   getMajorCategories,
@@ -38,7 +42,12 @@ export {
   formatRunnerFilterTitle,
 } from "./lib/runner-utils";
 
-export { runnerFiltersToSearchParams } from "./lib/runner-query";
+export {
+  parseRunnerSearchParams,
+  runnerFiltersToSearchParams,
+  runnerSearchChanged,
+  sanitizeRunnerSearchParams,
+} from "./lib/runner-query";
 
 export { DefinitionEditFilterBar, filterDefinitionTestCases } from "./components/DefinitionEditFilterBar";
 export { DefinitionEnvironmentsPanel } from "./components/DefinitionEnvironmentsPanel";

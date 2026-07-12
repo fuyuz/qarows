@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveFilteredBugs } from "@/lib/bug-filter";
+import { resolveFilteredBugs } from "./bug-filter";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
 import type { Bug, SessionConfig } from "@qarows/shared";
 
