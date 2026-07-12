@@ -997,3 +997,19 @@ testCases:
       minor: "選択バー"
     prerequisites: "テスト実行画面 (/run) を表示中、一覧に現在より上のテストがあること"
     description: "左のテスト一覧で現在より上のテストをクリックしたとき、青い選択バーが旧行と新行の間を行ったり来たりせず、exit→enter の一方向だけに見える"
+
+  - id: TC-106
+    category:
+      major: "閲覧"
+      medium: "タブタイトル"
+      minor: "一覧"
+    prerequisites: "/projects を表示中"
+    description: "ブラウザのタブタイトルが「プロジェクト一覧 | qarows」になる（プロジェクト名は含まれない）"
+
+  - id: TC-107
+    category:
+      major: "閲覧"
+      medium: "タブタイトル"
+      minor: "プロジェクト内"
+    prerequisites: "プロジェクトを開き、テスト実行画面 (/p/{projectId}/run) を表示中"
+    description: "ブラウザのタブタイトルが「テスト実行 | {プロジェクト名} | qarows」になる（画面名・プロジェクト名・ブランドの順）"

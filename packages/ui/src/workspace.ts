@@ -54,4 +54,14 @@ export {
   type AppNavigationPage,
   type WorkspaceProjectPage,
 } from "./lib/app-keybindings";
+export {
+  formatDocumentTitle,
+  isProjectWorkspacePath,
+  projectIdFromPathname,
+  screenLabelFromPathname,
+} from "./lib/document-title";
+export {
+  DocumentTitleSync,
+  type DocumentTitleSyncProps,
+} from "./components/document-title-sync";
 export { useAppNavigationShortcuts } from "./hooks/use-app-navigation-shortcuts";

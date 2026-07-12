@@ -1,6 +1,14 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from "react";
-import { Navigate, createBrowserRouter, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  Navigate,
+  Outlet,
+  createBrowserRouter,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { isValidSession } from "@qarows/shared";
+import { DocumentTitleSync, projectIdFromPathname } from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
@@ -36,6 +44,23 @@ function withSuspense(Component: ComponentType): ReactNode {
     <Suspense fallback={<LoadingScreen />}>
       <Component />
     </Suspense>
+  );
+}
+
+function RootLayout() {
+  const { definition, activeProjectId } = useApp();
+  const { pathname } = useLocation();
+  const routeProjectId = projectIdFromPathname(pathname);
+  const projectName =
+    routeProjectId && activeProjectId === routeProjectId
+      ? (definition?.project.name ?? null)
+      : null;
+
+  return (
+    <>
+      <DocumentTitleSync brand="qarows" projectName={projectName} />
+      <Outlet />
+    </>
   );
 }
 
@@ -203,16 +228,21 @@ function ProjectTestsEditPage() {
 }
 
 export const router = createBrowserRouter([
-  { path: "/projects", element: <ProjectsRoute /> },
-  { path: "/load", element: <LoadPage /> },
-  { path: "/p/:projectId/session", element: <ProjectSessionPage /> },
-  { path: "/p/:projectId/run", element: <ProjectRunPage /> },
-  { path: "/p/:projectId/matrix", element: <ProjectMatrixPage /> },
-  { path: "/p/:projectId/dashboard", element: <ProjectDashboardPage /> },
-  { path: "/p/:projectId/bugs", element: <ProjectBugsPage /> },
-  { path: "/p/:projectId/tests", element: <ProjectTestsEditPage /> },
-  { path: "/", element: <LandingRoute /> },
-  { path: "*", element: <Navigate to="/projects" replace /> },
+  {
+    element: <RootLayout />,
+    children: [
+      { path: "/projects", element: <ProjectsRoute /> },
+      { path: "/load", element: <LoadPage /> },
+      { path: "/p/:projectId/session", element: <ProjectSessionPage /> },
+      { path: "/p/:projectId/run", element: <ProjectRunPage /> },
+      { path: "/p/:projectId/matrix", element: <ProjectMatrixPage /> },
+      { path: "/p/:projectId/dashboard", element: <ProjectDashboardPage /> },
+      { path: "/p/:projectId/bugs", element: <ProjectBugsPage /> },
+      { path: "/p/:projectId/tests", element: <ProjectTestsEditPage /> },
+      { path: "/", element: <LandingRoute /> },
+      { path: "*", element: <Navigate to="/projects" replace /> },
+    ],
+  },
 ]);
 
 /** ルート単位 lazy import のスモークテスト用 */

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Outlet, useParams } from "react-router-dom";
+import { DocumentTitleSync } from "@qarows/ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { ProjectSyncProvider, useProjectSync } from "@/context/ProjectSyncContext";
@@ -21,26 +22,40 @@ const TestsEditPage = lazy(() =>
 );
 
 function ProjectWorkspaceShell() {
-  const { ready, syncError, connected, syncNotice } = useProjectSync();
+  const { ready, syncError, connected, syncNotice, definition } = useProjectSync();
+
+  const titleSync = (
+    <DocumentTitleSync
+      brand="qarows Team"
+      projectName={ready ? (definition?.project.name ?? null) : null}
+    />
+  );
 
   if (!ready) {
     if (syncError) {
       return (
-        <div className="flex h-svh items-center justify-center px-5 text-sm text-destructive">
-          {syncError}
-        </div>
+        <>
+          {titleSync}
+          <div className="flex h-svh items-center justify-center px-5 text-sm text-destructive">
+            {syncError}
+          </div>
+        </>
       );
     }
 
     return (
-      <LoadingScreen
-        message={connected ? "同期データを読み込み中…" : "サーバーに接続中…"}
-      />
+      <>
+        {titleSync}
+        <LoadingScreen
+          message={connected ? "同期データを読み込み中…" : "サーバーに接続中…"}
+        />
+      </>
     );
   }
 
   return (
     <RunnerWorkspaceBridge>
+      {titleSync}
       {syncNotice && (
         <div
           className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-3"
@@ -61,7 +76,7 @@ export function ProjectWorkspaceLayout() {
   if (!projectId) return <Navigate to="/projects" replace />;
 
   return (
-    <ProjectSyncProvider projectId={projectId}>
+    <ProjectSyncProvider key={projectId} projectId={projectId}>
       <ProjectWorkspaceShell />
     </ProjectSyncProvider>
   );
