@@ -11,7 +11,7 @@ Local 版と Team 版は **別アプリとして独立デプロイ・独立利�
 | **誰がデプロイ** | メンテナ（公式インスタンス） | 利用者各自（組織・個人） |
 | **誰が使う** | 誰でも（公開 URL） | **そのデプロイの Access ポリシー内のメンバーのみ** |
 | **環境** | 公開 | **closed**（各自専用・データ非共有） |
-| **ホスティング** | Cloudflare Pages（静的） | Cloudflare Pages + Workers + DO 等 |
+| **ホスティング** | Cloudflare Pages（静的） | Worker（assets）+ DO + D1 + Access |
 
 ---
 
@@ -61,13 +61,11 @@ qarows/
 - Cloudflare Pages にデプロイ
 - サーバー API 不要（IndexedDB + ファイル I/O のみ）
 
-### デプロイフロー（メンテナ向け）
+### 手順書
 
-1. `apps/v1` をビルド
-2. Cloudflare Pages にデプロイ
-3. 固定 URL を公開
+Pages 連携・ビルド設定・カスタムドメインは **別ドキュメント** にまとめる。
 
-ビルド・デプロイ用トークンは **GitHub Actions Secrets** 等で管理し、リポジトリには含めない。
+→ **[deploy-v1.md](./deploy-v1.md)**（メンテナ向け・正本）
 
 ### 利用者
 
@@ -83,34 +81,23 @@ Team 版に **公式の共通ホストはない**。fork / clone した利用者
 
 | コンポーネント | 用途 |
 |---|---|
-| Cloudflare Pages | フロントエンド |
-| Pages Functions / Workers | API |
-| Durable Objects | WebSocket 接続・状態管理 |
-| D1 等 | 永続ストレージ |
-| Cloudflare Access | 社内メール認証 |
+| Worker（`[assets]`） | フロントエンド配信 + Hono API + WebSocket |
+| Durable Objects | プロジェクト単位のリアルタイム同期 |
+| D1 | プロジェクト snapshot の永続化 |
+| Cloudflare Access | 組織内メール認証（Worker 側でも JWT 検証） |
 
-### デプロイフロー（利用者向け）
+### 手順書
 
-1. リポジトリを fork または clone
-2. 設定ファイルをコピーして編集:
-   ```bash
-   cp apps/v2/wrangler.toml.example apps/v2/wrangler.toml
-   cp apps/v2/.dev.vars.example apps/v2/.dev.vars
-   ```
-3. `wrangler.toml` に Account ID 等を記入
-4. `.dev.vars` に Access 関連シークレットを設定
-5. デプロイ:
-   ```bash
-   cd apps/v2
-   npx wrangler deploy
-   ```
-6. Cloudflare ダッシュボードで Access ポリシーを設定（許可メールドメイン等）
+ローカル開発・D1・本番デプロイ・Access（AUD / ポリシー）・トラブルシューティングは **別ドキュメント** にまとめる。
 
-### 認証
+→ **[deploy-v2.md](./deploy-v2.md)**（利用者向け・正本）
 
-- **Cloudflare Access** によるメールアドレス認証
-- 一つの会社内での利用を想定
-- 許可ドメイン・ポリシーは各自の Cloudflare ダッシュボードで設定（リポジトリには含めない）
+概要だけ:
+
+1. `wrangler.toml.example` をコピーし `account_id` / D1 を設定
+2. Access Application を作成し `ACCESS_AUD` / `ACCESS_TEAM_DOMAIN` を Worker に設定
+3. `bun run deploy:v2` でデプロイ
+4. Dashboard で Access ポリシー（許可メール / ドメイン）を設定
 
 ---
 
@@ -150,3 +137,4 @@ wrangler.toml
 | 日付 | 内容 |
 |---|---|
 | 2026-06-27 | 初版 |
+| 2026-07-12 | Team 版手順を deploy-v2.md へ集約。構成表記を現行（Worker assets）に更新 |
