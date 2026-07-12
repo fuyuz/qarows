@@ -64,16 +64,10 @@ function RootLayout() {
   );
 }
 
-function LandingRoute() {
+function ReadyGate({ children }: { children: ReactNode }) {
   const { ready } = useApp();
   if (!ready) return <LoadingScreen />;
-  return withSuspense(LandingPage);
-}
-
-function ProjectsRoute() {
-  const { ready } = useApp();
-  if (!ready) return <LoadingScreen />;
-  return withSuspense(ProjectsPage);
+  return children;
 }
 
 function RequireDefinition({ children }: { children: ReactNode }) {
@@ -169,12 +163,6 @@ function RequireSession({ children }: { children: ReactNode }) {
   return children;
 }
 
-function LoadPage() {
-  const { ready } = useApp();
-  if (!ready) return <LoadingScreen />;
-  return withSuspense(HomePage);
-}
-
 function ProjectSessionPage() {
   return (
     <RequireProjectMatch>
@@ -233,15 +221,15 @@ export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      { path: "/projects", element: <ProjectsRoute /> },
-      { path: "/load", element: <LoadPage /> },
+      { path: "/projects", element: <ReadyGate>{withSuspense(ProjectsPage)}</ReadyGate> },
+      { path: "/load", element: <ReadyGate>{withSuspense(HomePage)}</ReadyGate> },
       { path: "/p/:projectId/session", element: <ProjectSessionPage /> },
       { path: "/p/:projectId/run", element: <ProjectRunPage /> },
       { path: "/p/:projectId/matrix", element: <ProjectMatrixPage /> },
       { path: "/p/:projectId/dashboard", element: <ProjectDashboardPage /> },
       { path: "/p/:projectId/bugs", element: <ProjectBugsPage /> },
       { path: "/p/:projectId/tests", element: <ProjectTestsEditPage /> },
-      { path: "/", element: <LandingRoute /> },
+      { path: "/", element: <ReadyGate>{withSuspense(LandingPage)}</ReadyGate> },
       { path: "*", element: <Navigate to="/projects" replace /> },
     ],
   },

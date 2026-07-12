@@ -1,26 +1,25 @@
 import { useState } from "react";
 import { classifyResultsFiles, FileDropZone } from "@/components/FileDropZone";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
+  Alert,
+  AlertDescription,
+  Badge,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+  Separator,
+  cn,
+} from "@qarows/ui";
 import { appendUniqueFiles, fileKey } from "@/lib/utils";
-import { cn } from "@/lib/cn";
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);

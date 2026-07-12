@@ -137,6 +137,22 @@ export function resolveIncompleteCheckTargets(
   return sessionTargets;
 }
 
+/** 与えた env 別結果（入力直後の仮状態を含む）でセッション上の完了条件を満たすか */
+export function wouldCompleteTestCase(
+  testCase: TestCase,
+  definition: TestDefinition,
+  sessionEnvironmentIds: string[],
+  byEnv: Record<string, TestResultEntry | undefined>,
+): boolean {
+  const targets = resolveIncompleteCheckTargets(testCase, definition, sessionEnvironmentIds);
+
+  if (targets.required === "any") {
+    return targets.environmentIds.some((envId) => hasResult(byEnv[envId], testCase));
+  }
+
+  return targets.environmentIds.every((envId) => hasResult(byEnv[envId], testCase));
+}
+
 /** 真の完了条件（有効プール全体。all は全端末、any はいずれか1端末） */
 export function isTestGloballyComplete(
   testCase: TestCase,

@@ -1,13 +1,15 @@
 import { ArrowRight, ExternalLink, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { GITHUB_REPO_URL } from "@/lib/site-links";
 import { projectPath } from "@/lib/project-routes";

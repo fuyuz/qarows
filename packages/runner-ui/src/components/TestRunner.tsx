@@ -3,9 +3,9 @@ import {
   getTestCaseVersion,
   isResultEntryValid,
   nextBugId,
-  resolveIncompleteCheckTargets,
   resolveSessionTestTargets,
   testCaseNeedsRetest,
+  wouldCompleteTestCase,
   type Bug,
   type TestCase,
   type TestStatus,
@@ -282,19 +282,12 @@ export function TestRunner() {
         ...(results.results[current.id] ?? {}),
         [envId]: nextEntry,
       };
-      const completionTargets = resolveIncompleteCheckTargets(
+      const isComplete = wouldCompleteTestCase(
         current,
         definition,
         session.selectedEnvironmentIds,
+        nextByEnv,
       );
-      const isComplete =
-        completionTargets.required === "any"
-          ? completionTargets.environmentIds.some((id) =>
-              isResultEntryValid(nextByEnv[id], current),
-            )
-          : completionTargets.environmentIds.every((id) =>
-              isResultEntryValid(nextByEnv[id], current),
-            );
 
       if (isComplete) {
         const nextSlide =

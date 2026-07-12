@@ -7,7 +7,7 @@ import {
 import { ProjectDetailPanel } from "@/components/ProjectDetailPanel";
 import { ProjectImportPanel } from "@/components/ProjectImportPanel";
 import { ProjectList } from "@/components/ProjectList";
-import { RunnerCardTransition } from "@/components/RunnerCardTransition";
+import { RunnerCardTransition } from "@qarows/runner-ui";
 import { useApp } from "@/context/AppContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
 import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";

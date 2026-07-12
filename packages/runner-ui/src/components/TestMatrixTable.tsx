@@ -11,7 +11,6 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   resolveTestTargets,
   type TestCase,
-  type TestDefinition,
   type TestResults,
 } from "@qarows/shared";
 import { useRunnerWorkspace } from "../context/runner-workspace";
@@ -75,17 +74,14 @@ function pinningStyles(
 function EnvCell({
   testCase,
   envId,
-  definition,
+  isTarget,
   results,
 }: {
   testCase: TestCase;
   envId: string;
-  definition: TestDefinition;
+  isTarget: boolean;
   results: TestResults;
 }) {
-  const targets = resolveTestTargets(testCase, definition);
-  const isTarget = targets.environmentIds.includes(envId);
-
   if (!isTarget) {
     return <div className="h-full w-full bg-muted/40" />;
   }
@@ -108,6 +104,17 @@ export function TestMatrixTable({
   const { runnerFilters } = useRunnerQueryState();
   const { path } = useProjectRoutes();
   const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  /** 環境列のセルごとに再解決しないよう、対象環境をテストケース単位で先に引く */
+  const targetEnvIdsByTestCase = useMemo(() => {
+    if (!definition) return new Map<string, string[]>();
+    return new Map(
+      testCases.map((testCase) => [
+        testCase.id,
+        resolveTestTargets(testCase, definition).environmentIds,
+      ]),
+    );
+  }, [definition, testCases]);
 
   const columns = useMemo(() => {
     if (!definition) return [];
@@ -171,7 +178,7 @@ export function TestMatrixTable({
             <EnvCell
               testCase={row.original}
               envId={env.id}
-              definition={definition}
+              isTarget={targetEnvIdsByTestCase.get(row.original.id)?.includes(env.id) ?? false}
               results={results.results}
             />
           ) : null,
@@ -179,7 +186,7 @@ export function TestMatrixTable({
     );
 
     return [...metaColumns, ...envColumns];
-  }, [definition, results]);
+  }, [definition, results, targetEnvIdsByTestCase]);
 
   const table = useReactTable({
     data: testCases,

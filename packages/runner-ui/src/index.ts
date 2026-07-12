@@ -22,6 +22,7 @@ export type {
 } from "./pages/TestsEditPageLayout";
 
 export { ProgressRow, progressBucketBgClass, progressBucketTextClass } from "./components/ProgressRow";
+export { RunnerCardTransition } from "./components/RunnerCardTransition";
 
 export { useRunnerQueryState } from "./hooks/useRunnerQueryState";
 export { useProjectRoutes } from "./hooks/useProjectRoutes";
