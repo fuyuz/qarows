@@ -143,7 +143,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshProjectSummaries = useCallback(async () => {
     const summaries = await workspace.listSummaries();
     setProjectSummaries(sortProjectSummaries(summaries.map(toV1Summary)));
-  }, []);
+  }, [workspace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -180,13 +180,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unsubscribe();
     };
-  }, [applySnapshotToState, markTestUpdated, refreshProjectSummaries]);
+  }, [applySnapshotToState, markTestUpdated, refreshProjectSummaries, workspace]);
 
   const dispatch = useCallback(
     async (command: ProjectCommand) => {
       await workspace.dispatch(command);
     },
-    [],
+    [workspace],
   );
 
   const activateProject = useCallback(
@@ -200,12 +200,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await saveAppMeta({ lastOpenedProjectId: projectId });
       return true;
     },
-    [applySnapshotToState],
+    [applySnapshotToState, workspace],
   );
 
   const checkHasProject = useCallback(async (projectId: string): Promise<boolean> => {
     return workspace.hasProject(projectId);
-  }, []);
+  }, [workspace]);
 
   const loadProject = useCallback(async (yaml: string, resultsJson?: string) => {
     const parsedDefinition = parseTestsYaml(yaml);
@@ -227,7 +227,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLastUpdatedTestId(null);
     await activateProject(projectId);
     return projectId;
-  }, [activateProject, refreshProjectSummaries]);
+  }, [activateProject, refreshProjectSummaries, workspace]);
 
   const mergeResultsFromFiles = useCallback(
     async (jsons: string[]) => {
@@ -247,7 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         session: snapshot.session,
       });
     },
-    [dispatch],
+    [dispatch, workspace],
   );
 
   const mergeResultsFromFile = useCallback(
@@ -276,13 +276,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return true;
     },
-    [activateProject, refreshProjectSummaries],
+    [activateProject, refreshProjectSummaries, repository, workspace],
   );
 
   /** dispatch は安定なので、コマンドを組むだけの API はまとめて一度だけ作る */
   const commands = useMemo(
     () => ({
-      setSession: (session: SessionConfig) => dispatch({ type: "setSession", session }),
+      setSession: (nextSession: SessionConfig) =>
+        dispatch({ type: "setSession", session: nextSession }),
       updateResults: (testCaseId: string, envId: string, entry: TestResultEntry) =>
         dispatch({ type: "updateResult", testCaseId, envId, entry }),
       updateResultsBatch: (
@@ -296,8 +297,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         testCaseId: string,
         patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
       ) => dispatch({ type: "updateTestCase", testCaseId, patch }),
-      replaceDefinition: (definition: TestDefinition) =>
-        dispatch({ type: "replaceDefinition", definition }),
+      replaceDefinition: (nextDefinition: TestDefinition) =>
+        dispatch({ type: "replaceDefinition", definition: nextDefinition }),
       clearTestResult: (testCaseId: string, envId: string) =>
         dispatch({ type: "clearTestResult", testCaseId, envId }),
       clearResults: () => dispatch({ type: "clearResults" }),
@@ -317,7 +318,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await refreshProjectSummaries();
       return true;
     },
-    [refreshProjectSummaries],
+    [refreshProjectSummaries, repository],
   );
 
   const deleteProject = useCallback(
@@ -336,7 +337,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await saveAppMeta({ lastOpenedProjectId: nextLastOpened });
       }
     },
-    [clearActiveSnapshot, refreshProjectSummaries],
+    [clearActiveSnapshot, refreshProjectSummaries, workspace],
   );
 
   const value = useMemo(

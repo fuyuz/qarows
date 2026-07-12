@@ -100,21 +100,21 @@ export function ProjectSyncProvider({
   const userEmailRef = useRef<string | null>(null);
 
   const loadLocalSession = useCallback((): SessionConfig | null => {
-    const userEmail = userEmailRef.current;
+    const email = userEmailRef.current;
     const localEnvironmentIds =
-      userEmail != null ? loadLocalSelectedEnvironmentIds(projectId, userEmail) : null;
-    return buildLocalSession(userEmail, localEnvironmentIds);
+      email != null ? loadLocalSelectedEnvironmentIds(projectId, email) : null;
+    return buildLocalSession(email, localEnvironmentIds);
   }, [projectId]);
 
   const persistLocalEnvironmentIds = useCallback(
     (selectedEnvironmentIds: string[]) => {
-      const userEmail = userEmailRef.current;
-      if (userEmail == null) return;
+      const email = userEmailRef.current;
+      if (email == null) return;
       const sanitized =
         definitionRef.current != null
           ? sanitizeLocalSelectedEnvironmentIds(selectedEnvironmentIds, definitionRef.current)
           : selectedEnvironmentIds;
-      saveLocalSelectedEnvironmentIds(projectId, userEmail, sanitized);
+      saveLocalSelectedEnvironmentIds(projectId, email, sanitized);
     },
     [projectId],
   );
@@ -174,15 +174,15 @@ export function ProjectSyncProvider({
         case "snapshotReplaced": {
           setRevision(event.revision);
           applySnapshotState(event.snapshot);
-          const userEmail = userEmailRef.current;
-          if (userEmail != null) {
-            const localEnvironmentIds = loadLocalSelectedEnvironmentIds(projectId, userEmail);
+          const email = userEmailRef.current;
+          if (email != null) {
+            const localEnvironmentIds = loadLocalSelectedEnvironmentIds(projectId, email);
             if (localEnvironmentIds != null) {
               const sanitized = sanitizeLocalSelectedEnvironmentIds(
                 localEnvironmentIds,
                 event.snapshot.definition,
               );
-              saveLocalSelectedEnvironmentIds(projectId, userEmail, sanitized);
+              saveLocalSelectedEnvironmentIds(projectId, email, sanitized);
             }
           }
           setReady(true);

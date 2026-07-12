@@ -52,7 +52,7 @@ export function createApp() {
   app.route("/api/projects", projectsRoutes);
   app.route("/api/projects", createAiRoutes());
 
-  app.all("/api/*", (c) => {
+  app.all("/api/*", () => {
     throw new HTTPException(404, { message: "Not found" });
   });
 

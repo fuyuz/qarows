@@ -87,6 +87,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   const projectSummaries = useMemo(
     () => enrichSummariesWithSession(rawProjectSummaries, userEmail),
+    // sessionRevision: localStorage 側のセッション変化を再計算に反映するための意図的な依存
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
     [rawProjectSummaries, userEmail, sessionRevision],
   );
 

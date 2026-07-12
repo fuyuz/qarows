@@ -115,7 +115,6 @@ describe("applyProjectCommand", () => {
         },
       ],
     });
-    const id = definition.project.id ?? "test";
     const snapshot = makeSnapshot({
       definition,
       session: { executorName: "Bob", selectedEnvironmentIds: ["chrome"] },
@@ -144,7 +143,6 @@ describe("applyProjectCommand", () => {
 
   it("updateResultsBatch uses actor over session executorName", () => {
     const definition = makeDefinition();
-    const id = definition.project.id ?? "test";
     const snapshot = makeSnapshot({
       definition,
       session: { executorName: "Bob", selectedEnvironmentIds: ["chrome"] },

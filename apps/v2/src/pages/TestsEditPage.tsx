@@ -133,7 +133,9 @@ export function TestsEditPage() {
           expectedGeneration: generation,
         });
       } catch (err) {
-        throw new Error(err instanceof ApiError ? err.message : "定義の適用に失敗しました");
+        throw new Error(err instanceof ApiError ? err.message : "定義の適用に失敗しました", {
+          cause: err,
+        });
       }
     },
     [projectId],

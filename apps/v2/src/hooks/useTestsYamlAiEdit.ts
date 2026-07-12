@@ -62,12 +62,12 @@ export function useTestsYamlAiEdit({
     if (saved) {
       setChatMessages(saved.chatMessages);
       // Drop legacy proposals without server proposalId (cannot be applied via /ai/apply).
-      const proposal =
+      const savedProposal =
         saved.proposal && typeof saved.proposal.proposalId === "string"
           ? saved.proposal
           : null;
-      setProposal(proposal);
-      setWorkingFrom(proposal ? saved.workingFrom : "definition");
+      setProposal(savedProposal);
+      setWorkingFrom(savedProposal ? saved.workingFrom : "definition");
       setBaseGeneration(saved.baseGeneration);
     }
     void refreshGeneration();

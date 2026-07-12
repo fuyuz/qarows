@@ -1,11 +1,7 @@
 {
   "name": "qarows",
-  "private": true,
   "license": "MIT",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "private": true,
   "scripts": {
     "dev": "bun run --filter @qarows/v1 dev",
     "dev:v2": "bun run --filter @qarows/v2 dev",
@@ -19,9 +15,17 @@
     "preview": "bun run --filter @qarows/v1 preview",
     "preview:start": "bun run build:v1 && bun run preview",
     "preview:restart": "bash scripts/stop-dev.sh && bun run preview:start",
+    "lint": "oxlint",
     "typecheck": "bun run --filter @qarows/shared typecheck && bun run --filter @qarows/application typecheck && bun run --filter @qarows/ui typecheck && bun run --filter @qarows/runner-ui typecheck && bun run --filter @qarows/v1 typecheck && bun run --filter @qarows/v2 typecheck",
     "test": "bun run --filter @qarows/shared test && bun run --filter @qarows/application test && bun run --filter @qarows/ui test && bun run --filter @qarows/runner-ui test && bun run --filter @qarows/v1 test && bun run --filter @qarows/v2 test",
     "test:e2e": "bun run --filter @qarows/v1 test:e2e",
     "test:e2e:install": "bun run --filter @qarows/v1 test:e2e:install"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "oxlint": "^1.73.0"
   }
 }
