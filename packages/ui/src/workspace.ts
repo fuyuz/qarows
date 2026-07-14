@@ -1,3 +1,4 @@
+export { BrandLockup, BrandMark } from "./components/workspace/brand-lockup";
 export { LoadingScreen } from "./components/workspace/loading-screen";
 export { SessionSetupForm, type SessionSetupFormProps } from "./components/workspace/session-setup-form";
 export {

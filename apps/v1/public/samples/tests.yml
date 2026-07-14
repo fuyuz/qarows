@@ -695,7 +695,7 @@ testCases:
       major: "トップ"
       minor: "表示"
     prerequisites: "プロジェクト未読み込み、IndexedDB 空（/ を表示）"
-    description: "トップページにできること・GitHub リンク・データはローカルのみの説明が表示され、「はじめる」で /projects へ進める"
+    description: "ヘッダに qarows アイコンと名前が表示され、できること・GitHub リンク・データはローカルのみの説明があり、「はじめる」で /projects へ進める"
 
   - id: TC-061
     category:

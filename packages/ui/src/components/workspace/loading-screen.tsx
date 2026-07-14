@@ -1,3 +1,5 @@
+import { BrandLockup } from "./brand-lockup";
+
 export function LoadingScreen({
   message,
   label,
@@ -27,10 +29,7 @@ export function LoadingScreen({
       />
 
       <div className="relative flex w-full max-w-sm animate-in fade-in duration-300 flex-col items-center gap-8">
-        <div className="text-center">
-          <p className="text-lg font-bold tracking-tight">qarows</p>
-          <p className="text-xs text-muted-foreground">QA シート特化ツール</p>
-        </div>
+        <BrandLockup align="center" subtitle="QA シート特化ツール" />
 
         <div className="w-full space-y-3" role="status" aria-live="polite" aria-label={text}>
           <div

@@ -4,6 +4,7 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
+  BrandLockup,
   Button,
   Card,
   CardContent,
@@ -39,10 +40,7 @@ export function LandingPage() {
     <div className="min-h-svh bg-background">
       <header className="border-b bg-card/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
-          <div>
-            <p className="text-lg font-bold tracking-tight">qarows</p>
-            <p className="text-xs text-muted-foreground">QA シート特化ツール</p>
-          </div>
+          <BrandLockup subtitle="QA シート特化ツール" />
           <Button variant="outline" size="sm" asChild>
             <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="size-4" aria-hidden />
