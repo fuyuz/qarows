@@ -11,6 +11,7 @@ export interface RoomSnapshot {
 
 export type ClientMessage =
   | { type: "ping" }
+  | { type: "resync" }
   | {
       type: "command";
       generation: string;
@@ -28,7 +29,6 @@ export type ServerMessage =
       user: string;
       revision: number;
       appliedAt: string;
-      snapshot: RoomSnapshot;
     }
   | {
       type: "commandRejected";

@@ -14,6 +14,7 @@ export interface RoomSnapshot {
 
 export type ClientMessage =
   | { type: "ping" }
+  | { type: "resync" }
   | {
       type: "command";
       generation: string;
@@ -31,7 +32,6 @@ export type ServerMessage =
       user: string;
       revision: number;
       appliedAt: string;
-      snapshot: RoomSnapshot;
     }
   | {
       type: "commandRejected";
@@ -58,7 +58,7 @@ export function parseClientMessage(raw: string): ClientMessage | null {
 
   try {
     const data = JSON.parse(raw) as ClientMessage;
-    if (data.type === "ping") return data;
+    if (data.type === "ping" || data.type === "resync") return data;
     if (
       data.type === "command" &&
       typeof data.generation === "string" &&

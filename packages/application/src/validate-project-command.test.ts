@@ -57,7 +57,7 @@ describe("validateProjectCommand", () => {
     ).toThrow(/Unknown envId/);
   });
 
-  it("rejects duplicate bug id on addBug", () => {
+  it("allows addBug with existing id (upsert on echo replay)", () => {
     const snapshot = makeSnapshot({
       results: {
         ...createEmptyResults("test"),
@@ -69,7 +69,7 @@ describe("validateProjectCommand", () => {
         type: "addBug",
         bug: { id: "BUG-001", title: "dup", severity: "low", status: "open" },
       }),
-    ).toThrow(/already exists/);
+    ).not.toThrow();
   });
 
   it("rejects updateBug for missing bug", () => {

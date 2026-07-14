@@ -26,8 +26,6 @@ describe("parseServerMessage", () => {
   });
 
   it("parses commandApplied message", () => {
-    const definition = makeDefinition();
-    const results = createEmptyResults("test");
     const raw = JSON.stringify({
       type: "commandApplied",
       command: {
@@ -40,13 +38,6 @@ describe("parseServerMessage", () => {
       user: "qa@example.com",
       revision: 1,
       appliedAt: "2026-06-28T12:00:00.000Z",
-      snapshot: {
-        generation: "gen-1",
-        revision: 1,
-        definition,
-        results,
-        session: { executorName: "Alice", selectedEnvironmentIds: ["chrome"] },
-      },
     });
 
     const parsed = parseServerMessage(raw);
@@ -54,7 +45,7 @@ describe("parseServerMessage", () => {
     if (parsed?.type === "commandApplied") {
       expect(parsed.revision).toBe(1);
       expect(parsed.commandId).toBe("cmd-1");
-      expect(parsed.snapshot.generation).toBe("gen-1");
+      expect(parsed.appliedAt).toBe("2026-06-28T12:00:00.000Z");
     }
   });
 

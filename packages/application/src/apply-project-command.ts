@@ -170,9 +170,12 @@ export function applyProjectCommand(
     }
 
     case "addBug": {
+      // id で upsert（末尾へ移動）: Team 版で自コマンドの echo を再適用しても重複せず、
+      // サーバー適用順と bugs の並びが一致する
+      const others = snapshot.results.bugs.filter((bug) => bug.id !== command.bug.id);
       const next = withUpdatedResults(snapshot, {
         ...snapshot.results,
-        bugs: [...snapshot.results.bugs, command.bug],
+        bugs: [...others, command.bug],
       }, now);
       return { snapshot: next, affectedTestCaseId: command.bug.testCaseId ?? null };
     }

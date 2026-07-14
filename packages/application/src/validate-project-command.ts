@@ -103,9 +103,7 @@ export function validateProjectCommand(snapshot: ProjectSnapshot, command: Proje
     }
 
     case "addBug":
-      if (snapshot.results.bugs.some((bug) => bug.id === command.bug.id)) {
-        fail(`Bug id already exists: ${command.bug.id}`);
-      }
+      // 既存 id は upsert として許容（Team 版の echo 再適用・再送で同じ command が二度届く）
       assertBugReferences(definition, command.bug);
       return;
 

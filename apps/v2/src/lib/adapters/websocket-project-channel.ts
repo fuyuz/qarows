@@ -7,6 +7,7 @@ import {
   type ConnectionStatus,
   type ProjectChannel,
   type ProjectChannelHandlers,
+  type ProjectCommand,
   type ProjectSnapshot,
 } from "@qarows/application";
 import { ProjectSyncClient } from "@/lib/sync/project-sync-client";
@@ -56,7 +57,7 @@ export class WebSocketProjectChannel implements ProjectChannel {
         this.emitConnectionState();
       },
       onCommandApplied: (message) => {
-        this.applyRoomSnapshot(projectId, message.snapshot);
+        if (!this.applyServerCommand(message)) return;
         this.handlers?.onEvent?.({
           type: "commandApplied",
           command: message.command,
@@ -139,6 +140,32 @@ export class WebSocketProjectChannel implements ProjectChannel {
       });
     } catch {
       // Server remains authoritative; invalid optimistic commands are dropped locally.
+    }
+  }
+
+  /**
+   * サーバー確定順の command を snapshot に差分適用する。
+   * actor / now をサーバー値で揃えるため、自コマンドの echo でも楽観適用と同一状態に収束する。
+   * ローカル状態と噛み合わない delta は全量再同期で復旧する。
+   */
+  private applyServerCommand(message: {
+    command: ProjectCommand;
+    user: string;
+    appliedAt: string;
+    revision: number;
+  }): boolean {
+    if (!this.snapshot) return false;
+    try {
+      const { snapshot: next } = applyProjectCommand(this.snapshot, message.command, {
+        actor: message.user,
+        now: message.appliedAt,
+      });
+      this.snapshot = next;
+      this.revision = message.revision;
+      return true;
+    } catch {
+      this.client.requestResync();
+      return false;
     }
   }
 

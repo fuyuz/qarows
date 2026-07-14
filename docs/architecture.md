@@ -179,16 +179,22 @@ Team 版 のリアルタイム同期は **JSON Patch ではなく `ProjectComman
 | 方向 | メッセージ | 内容 |
 |---|---|---|
 | Client → DO | `{ type: "command", command, commandId, generation }` | 意図した操作を送信（`user` は接続時認証からサーバーが付与） |
-| DO → Client | `{ type: "snapshot", snapshot }` | 接続時の全量 |
-| DO → Client | `{ type: "commandApplied", command, revision, snapshot, ... }` | 適用後の全量 + revision |
+| Client → DO | `{ type: "resync" }` | `revision` の取りこぼし・差分適用失敗時に全量を再要求 |
+| DO → Client | `{ type: "snapshot", snapshot }` | 接続時 / resync 応答の全量 |
+| DO → Client | `{ type: "commandApplied", command, revision, user, appliedAt, ... }` | 適用された command のみ（**差分配信**。全量は含まない） |
 
 DO 側の処理:
 
 1. `commandId` で **重複排除**（再送・再接続時）
-2. `applyProjectCommand` で snapshot を更新
+2. `applyProjectCommand` で snapshot を更新（`now` は `appliedAt` に固定）
 3. `revision` をインクリメント
 4. 全接続クライアントへ `commandApplied` をブロードキャスト
 5. D1 へ persist
+
+クライアント側の処理:
+
+- 受信した `command` を `applyProjectCommand` で自分の snapshot に再適用する。`actor` / `now` にサーバーの `user` / `appliedAt` を使うため、全クライアントが同一状態に収束する（自コマンドの echo も同様に再適用）。
+- `revision` が連番から飛んだ場合・差分適用に失敗した場合は `resync` で全量スナップショットを再取得する。`revision` が既知以下の再配信は ACK としてのみ扱う。
 
 Local 版 のファイルマージルール（OK &lt; SKIP &lt; NG）は **Local 版 専用**（`mergeResults` command）。Team 版 の同時編集は server revision 付き command 適用で整合する。
 

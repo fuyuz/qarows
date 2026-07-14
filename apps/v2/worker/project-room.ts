@@ -21,6 +21,8 @@ interface StoredRoomState extends RoomSnapshot {}
 interface ProcessedCommandRecord {
   revision: number;
   user: string;
+  /** 省略はレガシー記録（appliedAt 導入前） */
+  appliedAt?: string;
   /** false = D1 永続化未完了。省略はレガシー記録（永続化済みとみなす） */
   persisted?: boolean;
 }
@@ -29,6 +31,7 @@ interface ApplyCommandResult {
   revision: number;
   duplicate: boolean;
   user: string;
+  appliedAt: string;
   persisted: boolean;
 }
 
@@ -190,6 +193,11 @@ export class ProjectRoom extends DurableObject<Env> {
       return;
     }
 
+    if (parsed.type === "resync") {
+      send(ws, { type: "snapshot", snapshot: this.publicSnapshot() });
+      return;
+    }
+
     if (parsed.generation !== this.state.generation) {
       send(ws, {
         type: "commandRejected",
@@ -241,15 +249,13 @@ export class ProjectRoom extends DurableObject<Env> {
     command: ProjectCommand,
     applied: ApplyCommandResult,
   ): Promise<void> {
-    const appliedAt = new Date().toISOString();
     const broadcast: Parameters<typeof send>[1] = {
       type: "commandApplied",
       command,
       commandId,
       user: applied.user,
       revision: applied.revision,
-      appliedAt,
-      snapshot: this.publicSnapshot(),
+      appliedAt: applied.appliedAt,
     };
 
     for (const socket of this.ctx.getWebSockets()) {
@@ -367,6 +373,7 @@ export class ProjectRoom extends DurableObject<Env> {
         revision: existing.revision,
         duplicate: true,
         user: existing.user,
+        appliedAt: existing.appliedAt ?? new Date().toISOString(),
         persisted: isCommandPersisted(existing),
       };
     }
@@ -380,7 +387,9 @@ export class ProjectRoom extends DurableObject<Env> {
       updatedAt: state.results.updatedAt,
     });
 
-    const { snapshot: next } = applyProjectCommand(snapshot, command, { actor: user });
+    // now を appliedAt に固定: クライアントが同じ actor/now で差分再適用しても同一状態になる
+    const appliedAt = new Date().toISOString();
+    const { snapshot: next } = applyProjectCommand(snapshot, command, { actor: user, now: appliedAt });
     state.revision += 1;
     state.definition = next.definition;
     state.results = next.results;
@@ -391,6 +400,7 @@ export class ProjectRoom extends DurableObject<Env> {
     processed.set(commandId, {
       revision: state.revision,
       user,
+      appliedAt,
       persisted: false,
     });
     await this.saveProcessedCommands(processed);
@@ -399,6 +409,7 @@ export class ProjectRoom extends DurableObject<Env> {
       revision: state.revision,
       duplicate: false,
       user,
+      appliedAt,
       persisted: false,
     };
   }

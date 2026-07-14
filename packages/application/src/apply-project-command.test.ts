@@ -241,6 +241,22 @@ describe("applyProjectCommand", () => {
     expect(updated.results.bugs[0]?.status).toBe("fixed");
   });
 
+  it("addBug with existing id upserts instead of duplicating (echo replay)", () => {
+    const snapshot = makeSnapshot();
+    const bug = {
+      id: "B1",
+      title: "Crash",
+      severity: "high" as const,
+      status: "open" as const,
+    };
+
+    const { snapshot: once } = applyProjectCommand(snapshot, { type: "addBug", bug }, { now: NOW });
+    const { snapshot: twice } = applyProjectCommand(once, { type: "addBug", bug }, { now: NOW });
+
+    expect(twice.results.bugs).toHaveLength(1);
+    expect(twice.results.bugs[0]?.id).toBe("B1");
+  });
+
   it("addBug does not overwrite unrelated result entries", () => {
     const snapshot = makeSnapshot({
       session: { executorName: "QA", selectedEnvironmentIds: ["chrome"] },

@@ -17,6 +17,10 @@ describe("sync-protocol", () => {
     expect(parseClientMessage(SYNC_PING_MESSAGE)).toEqual({ type: "ping" });
   });
 
+  it("parses resync", () => {
+    expect(parseClientMessage(JSON.stringify({ type: "resync" }))).toEqual({ type: "resync" });
+  });
+
   it("parses updateResult command", () => {
     const raw = JSON.stringify({
       type: "command",

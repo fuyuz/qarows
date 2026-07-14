@@ -22,7 +22,6 @@ export interface ProjectSyncHandlers {
     user: string;
     revision: number;
     appliedAt: string;
-    snapshot: RoomSnapshot;
   }) => void;
   onCommandRejected?: (message: {
     commandId: string;
@@ -59,6 +58,8 @@ export class ProjectSyncClient {
   private reconnectAttempt = 0;
   private snapshotReceived = false;
   private generation = "";
+  private revision = -1;
+  private resyncRequested = false;
   private readonly pendingCommands = new Map<string, PendingCommand>();
   private readonly outboundQueue: QueuedCommand[] = [];
   private readonly abandonedCommandIds = new Set<string>();
@@ -83,6 +84,8 @@ export class ProjectSyncClient {
     this.ws = null;
     this.snapshotReceived = false;
     this.generation = "";
+    this.revision = -1;
+    this.resyncRequested = false;
     this.outboundQueue.length = 0;
     this.abandonedCommandIds.clear();
     if (rejectPending) {
@@ -135,6 +138,8 @@ export class ProjectSyncClient {
       this.pingTimer = null;
       this.ws = null;
       this.snapshotReceived = false;
+      this.revision = -1;
+      this.resyncRequested = false;
       for (const queued of this.outboundQueue) {
         queued.inFlight = false;
       }
@@ -154,32 +159,40 @@ export class ProjectSyncClient {
         case "pong":
           return;
         case "snapshot":
-          this.applyGenerationFromSnapshot(message.snapshot);
+          this.applyServerSnapshot(message.snapshot);
           this.snapshotReceived = true;
           this.handlers?.onSnapshot(message.snapshot);
           this.flushOutboundQueue();
           return;
         case "snapshotReplaced":
-          this.applyGenerationFromSnapshot(message.snapshot);
+          this.applyServerSnapshot(message.snapshot);
           this.snapshotReceived = true;
           this.discardOutboundQueue(new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
           this.handlers?.onSnapshotReplaced(message);
           return;
         case "commandApplied": {
-          this.applyGenerationFromSnapshot(message.snapshot);
           const abandoned = this.abandonedCommandIds.has(message.commandId);
           if (abandoned) {
             this.abandonedCommandIds.delete(message.commandId);
             this.removeQueuedCommand(message.commandId);
           }
-          this.handlers?.onCommandApplied(message);
+          if (!this.resyncRequested) {
+            if (message.revision === this.revision + 1) {
+              this.revision = message.revision;
+              this.handlers?.onCommandApplied(message);
+            } else if (message.revision > this.revision + 1) {
+              // delta を取りこぼしている: 適用せず全量再同期を要求
+              this.requestResync();
+            }
+            // revision <= this.revision は適用済み delta の再配信（ACK としてのみ扱う）
+          }
           if (!abandoned) {
             this.resolvePendingCommand(message.commandId);
           }
           return;
         }
         case "commandRejected": {
-          this.applyGenerationFromSnapshot(message.snapshot);
+          this.applyServerSnapshot(message.snapshot);
           this.discardOutboundQueue(new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
           this.rejectPendingCommand(message.commandId, new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
           this.handlers?.onCommandRejected?.(message);
@@ -196,8 +209,19 @@ export class ProjectSyncClient {
     });
   }
 
-  private applyGenerationFromSnapshot(snapshot: RoomSnapshot): void {
+  private applyServerSnapshot(snapshot: RoomSnapshot): void {
     this.generation = snapshot.generation;
+    this.revision = snapshot.revision;
+    this.resyncRequested = false;
+  }
+
+  /** ローカル状態と delta が噛み合わないときに全量スナップショットを再要求する */
+  requestResync(): void {
+    if (this.resyncRequested) return;
+    // 未接続時は再接続時の snapshot で回復するため何もしない
+    if (this.sendRaw({ type: "resync" })) {
+      this.resyncRequested = true;
+    }
   }
 
   private discardOutboundQueue(rejectError: SyncSendError): void {
