@@ -162,6 +162,25 @@ describe("applyProjectCommand", () => {
     expect(next.results.results["TC-001"]?.chrome?.executedBy).toBe("qa@example.com");
   });
 
+  it("updateTestMemo sets and clears test-level memo", () => {
+    const snapshot = makeSnapshot();
+
+    const { snapshot: withMemo, affectedTestCaseId } = applyProjectCommand(
+      snapshot,
+      { type: "updateTestMemo", testCaseId: "TC-001", memo: " shared note " },
+      { now: NOW },
+    );
+    expect(affectedTestCaseId).toBe("TC-001");
+    expect(withMemo.results.memos["TC-001"]).toBe(" shared note ");
+
+    const { snapshot: cleared } = applyProjectCommand(
+      withMemo,
+      { type: "updateTestMemo", testCaseId: "TC-001", memo: "   " },
+      { now: NOW },
+    );
+    expect(cleared.results.memos["TC-001"]).toBeUndefined();
+  });
+
   it("mergeResults applies OK < SKIP < NG", () => {
     const snapshot = makeSnapshot({
       results: {
@@ -173,6 +192,7 @@ describe("applyProjectCommand", () => {
             chrome: { status: "OK", executedAt: NOW },
           },
         },
+        memos: {},
         bugs: [],
       },
     });
@@ -186,6 +206,7 @@ describe("applyProjectCommand", () => {
           chrome: { status: "NG", executedAt: NOW },
         },
       },
+      memos: {},
       bugs: [],
     };
 
@@ -206,6 +227,7 @@ describe("applyProjectCommand", () => {
         projectId: "test",
         updatedAt: NOW,
         results: { "TC-001": { chrome: { status: "OK" } } },
+        memos: { "TC-001": "note" },
         bugs: [{ id: "B1", title: "x", severity: "low", status: "open" }],
       },
     });
@@ -214,6 +236,7 @@ describe("applyProjectCommand", () => {
 
     expect(next.session).toBeNull();
     expect(next.results.results).toEqual({});
+    expect(next.results.memos).toEqual({});
     expect(next.results.bugs).toEqual([]);
   });
 
@@ -308,7 +331,12 @@ describe("applyProjectCommand parity", () => {
         type: "updateResultsBatch" as const,
         testCaseId: "TC-002",
         envIds: ["chrome"],
-        partial: { status: "NG" as const, memo: "fail" },
+        partial: { status: "NG" as const },
+      },
+      {
+        type: "updateTestMemo" as const,
+        testCaseId: "TC-002",
+        memo: "fail",
       },
     ];
 

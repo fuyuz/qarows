@@ -1,5 +1,5 @@
 import { normalizeBugSeverity, normalizeBugStatus } from "./bug";
-import type { Bug, ResultsFile, TestDefinition, TestResultEntry, TestResults } from "./types";
+import type { Bug, ResultsFile, TestDefinition, TestMemos, TestResultEntry, TestResults } from "./types";
 import { normalizeStatus } from "./status";
 import { parseIsoTimestamp, parseOptionalIsoTimestamp } from "./validate-iso-timestamp";
 
@@ -31,12 +31,12 @@ function parseResultEntry(raw: unknown, context: string): TestResultEntry {
     version = parsed === 1 ? undefined : parsed;
   }
 
+  // 旧形式のセル内 memo は無視（テストケース単位 memos へ移行済み）
   return {
     status: normalizeStatus(String(obj.status ?? "")),
     ...(version != null ? { version } : {}),
     executedAt: parseOptionalIsoTimestamp(obj.executedAt, `${context}.executedAt`),
     executedBy: obj.executedBy != null ? String(obj.executedBy) : undefined,
-    memo: obj.memo != null ? String(obj.memo) : undefined,
   };
 }
 
@@ -51,6 +51,16 @@ function parseResults(raw: unknown): TestResults {
     }
   }
   return results;
+}
+
+function parseMemos(raw: unknown): TestMemos {
+  if (typeof raw !== "object" || raw === null) return {};
+  const memos: TestMemos = {};
+  for (const [testCaseId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value !== "string") continue;
+    if (value.trim()) memos[testCaseId] = value;
+  }
+  return memos;
 }
 
 function parseEnvironmentIds(raw: unknown, context: string): string[] | undefined {
@@ -122,6 +132,12 @@ function validateResultsReferences(file: ResultsFile, definition: TestDefinition
     }
   }
 
+  for (const testCaseId of Object.keys(file.memos)) {
+    if (!testCaseIds.has(testCaseId)) {
+      throw new Error(`未定義の testCaseId: ${testCaseId} (memos)`);
+    }
+  }
+
   for (const bug of file.bugs) {
     if (bug.testCaseId != null && !testCaseIds.has(bug.testCaseId)) {
       throw new Error(`未定義の testCaseId: ${bug.testCaseId} (bug: ${bug.id})`);
@@ -169,6 +185,7 @@ export function parseResultsJson(content: string, options?: ParseResultsOptions)
     projectId,
     updatedAt,
     results: parseResults(data.results ?? {}),
+    memos: parseMemos(data.memos),
     bugs,
   };
 
@@ -185,6 +202,7 @@ export function createEmptyResults(projectId: string): ResultsFile {
     projectId,
     updatedAt: new Date().toISOString(),
     results: {},
+    memos: {},
     bugs: [],
   };
 }

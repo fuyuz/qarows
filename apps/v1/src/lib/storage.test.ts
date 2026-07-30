@@ -41,6 +41,7 @@ function sampleResults(projectId: string, updatedAt: string): ResultsFile {
         chrome: { status: "OK", executedAt: updatedAt, executedBy: "tester" },
       },
     },
+    memos: {},
     bugs: [{ id: "BUG-001", title: "Crash", severity: "high", status: "open" }],
   };
 }

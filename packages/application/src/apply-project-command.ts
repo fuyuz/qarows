@@ -109,7 +109,6 @@ export function applyProjectCommand(
       for (const envId of command.envIds) {
         caseResults[envId] = {
           status: command.partial.status,
-          memo: command.partial.memo ?? caseResults[envId]?.memo,
           executedAt: now,
           executedBy,
           ...(version > 1 ? { version } : {}),
@@ -121,6 +120,21 @@ export function applyProjectCommand(
           ...snapshot.results.results,
           [command.testCaseId]: caseResults,
         },
+      }, now);
+      return { snapshot: next, affectedTestCaseId: command.testCaseId };
+    }
+
+    case "updateTestMemo": {
+      const trimmed = command.memo.trim();
+      const nextMemos = { ...(snapshot.results.memos ?? {}) };
+      if (trimmed) {
+        nextMemos[command.testCaseId] = command.memo;
+      } else {
+        delete nextMemos[command.testCaseId];
+      }
+      const next = withUpdatedResults(snapshot, {
+        ...snapshot.results,
+        memos: nextMemos,
       }, now);
       return { snapshot: next, affectedTestCaseId: command.testCaseId };
     }

@@ -12,7 +12,7 @@ describe("definition replace preserves compatible results", () => {
     const results = createEmptyResults("test");
     results.results = {
       "TC-001": { chrome: { status: "OK" } },
-      "TC-002": { chrome: { status: "NG", memo: "still here" } },
+      "TC-002": { chrome: { status: "NG" } },
       "TC-003": { chrome: { status: "SKIP" } },
     };
 

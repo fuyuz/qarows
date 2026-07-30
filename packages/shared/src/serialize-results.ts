@@ -1,11 +1,10 @@
-import type { Bug, ResultsFile, TestResultEntry, TestResults } from "./types";
+import type { Bug, ResultsFile, TestMemos, TestResultEntry, TestResults } from "./types";
 
 function serializeResultEntry(entry: TestResultEntry): Record<string, unknown> {
   const obj: Record<string, unknown> = { status: entry.status };
   if (entry.version != null && entry.version > 1) obj.version = entry.version;
   if (entry.executedAt) obj.executedAt = entry.executedAt;
   if (entry.executedBy) obj.executedBy = entry.executedBy;
-  if (entry.memo) obj.memo = entry.memo;
   return obj;
 }
 
@@ -18,6 +17,15 @@ function serializeResults(results: TestResults): Record<string, unknown> {
       envOut[envId] = serializeResultEntry(envMap[envId]);
     }
     out[testCaseId] = envOut;
+  }
+  return out;
+}
+
+function serializeMemos(memos: TestMemos): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const testCaseId of Object.keys(memos).sort()) {
+    const value = memos[testCaseId]?.trim();
+    if (value) out[testCaseId] = memos[testCaseId];
   }
   return out;
 }
@@ -46,6 +54,7 @@ export function serializeResultsJson(file: ResultsFile): string {
     projectId: file.projectId,
     updatedAt: file.updatedAt,
     results: serializeResults(file.results),
+    memos: serializeMemos(file.memos ?? {}),
     bugs: file.bugs.map(serializeBug),
   };
   return `${JSON.stringify(payload, null, 2)}\n`;

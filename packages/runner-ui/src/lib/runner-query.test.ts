@@ -23,6 +23,7 @@ const results: ResultsFile = {
   projectId: "demo",
   updatedAt: "2026-01-01T00:00:00Z",
   results: {},
+  memos: {},
   bugs: [{ id: "BUG-001", title: "Crash", severity: "high", status: "open" }],
 };
 

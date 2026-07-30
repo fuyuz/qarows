@@ -22,8 +22,9 @@ export type ProjectCommand =
       type: "updateResultsBatch";
       testCaseId: string;
       envIds: string[];
-      partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus };
+      partial: Pick<TestResultEntry, "status"> & { status: TestStatus };
     }
+  | { type: "updateTestMemo"; testCaseId: string; memo: string }
   | { type: "clearTestResult"; testCaseId: string; envId: string }
   | { type: "clearResults" }
   | {
@@ -47,6 +48,7 @@ export function affectedTestCaseFromCommand(command: ProjectCommand): string | n
   switch (command.type) {
     case "updateResult":
     case "updateResultsBatch":
+    case "updateTestMemo":
     case "clearTestResult":
     case "updateTestCase":
       return command.testCaseId;

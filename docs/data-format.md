@@ -216,17 +216,18 @@ testCases:
       "chrome-desktop": {
         "status": "OK",
         "executedAt": "2026-06-27T10:00:00Z",
-        "executedBy": "tanaka@example.com",
-        "memo": "問題なし"
+        "executedBy": "tanaka@example.com"
       },
       "ios-safari": {
         "status": "OK",
         "version": 2,
         "executedAt": "2026-06-27T11:30:00Z",
-        "executedBy": "suzuki@example.com",
-        "memo": "v2 で再確認済み"
+        "executedBy": "suzuki@example.com"
       }
     }
+  },
+  "memos": {
+    "TC-001": "v2 で再確認済み"
   },
   "bugs": [
     {
@@ -243,6 +244,8 @@ testCases:
   ]
 }
 ```
+
+`memos` はテストケース単位の自由テキスト（環境非依存）。省略時は空オブジェクトとして扱う。旧形式の結果セル内 `memo` は読み込み時に無視する。
 
 アプリで新規起票するバグの `id` は `BUG-{6文字の英小文字・数字}`（例: `BUG-k7m2x9`）を自動採番する。並行作業での衝突を避けるため連番ではなくランダム suffix を使う。手動 import や旧データの `BUG-001` 形式もそのまま読み込める。
 
@@ -287,11 +290,9 @@ testCases:
 OK < SKIP < NG
 ```
 
-メモは version 優先の有無にかかわらず、両方残す（改行連結、`---` 区切り可）。
+### メモ（テストケース単位）
 
-### メモ
-
-両方のメモを保持する。表示時は改行で連結する。区切り線（`---`）を挟んでもよい。
+同一 `testCaseId` の `memos` が複数ファイルにある場合、両方残す（改行連結、`---` 区切り可）。
 
 ```
 問題なし

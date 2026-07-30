@@ -89,6 +89,10 @@ export function validateProjectCommand(snapshot: ProjectSnapshot, command: Proje
       assertKnownEnvironments(definition, command.envIds);
       return;
 
+    case "updateTestMemo":
+      assertKnownTestCase(definition, command.testCaseId);
+      return;
+
     case "clearTestResult":
       assertKnownTestCase(definition, command.testCaseId);
       assertKnownEnvironment(definition, command.envId);

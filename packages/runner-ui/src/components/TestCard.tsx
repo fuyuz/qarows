@@ -34,7 +34,10 @@ export interface TestCardProps extends RunnerCardNavProps {
   results: TestResults;
   envTargets: SessionTestTargets;
   memo: string;
+  memoDirty: boolean;
+  memoSaving?: boolean;
   onMemoChange: (value: string) => void;
+  onMemoSave: () => void;
   onBatch: (status: TestStatus) => void;
   onSingle: (envId: string, status: TestStatus) => void;
   onClear: (envId: string) => void;
@@ -52,12 +55,15 @@ export function TestCard({
   results,
   envTargets,
   memo,
+  memoDirty,
+  memoSaving,
   busy,
   canPrev,
   canNext,
   onPrev,
   onNext,
   onMemoChange,
+  onMemoSave,
   onBatch,
   onSingle,
   onClear,
@@ -235,14 +241,26 @@ export function TestCard({
               </Button>
             </div>
           </div>
-          <div className="px-[3px]">
+          <div className="relative px-[3px]">
             <Textarea
               id={`test-memo-${testCase.id}`}
               rows={3}
-              placeholder="任意"
+              placeholder="任意（テストケース単位）"
               value={memo}
               onChange={(e) => onMemoChange(e.target.value)}
+              className={cn(memoDirty && "pb-10")}
             />
+            {memoDirty && (
+              <Button
+                type="button"
+                size="sm"
+                className="absolute right-2 bottom-2 h-7 px-2.5 text-xs shadow-sm"
+                disabled={busy || memoSaving}
+                onClick={onMemoSave}
+              >
+                {memoSaving ? "保存中…" : "保存"}
+              </Button>
+            )}
           </div>
         </section>
       </div>

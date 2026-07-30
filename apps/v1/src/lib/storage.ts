@@ -84,12 +84,16 @@ async function migrateFromV1(): Promise<void> {
       projectId,
       updatedAt: new Date().toISOString(),
       results: {},
+      memos: {},
       bugs: [],
     } satisfies ResultsFile);
 
   const record: ProjectRecord = {
     definition: legacy.definition,
-    results,
+    results: {
+      ...results,
+      memos: results.memos ?? {},
+    },
     session: legacy.session ?? null,
     updatedAt: results.updatedAt ?? new Date().toISOString(),
   };
@@ -126,7 +130,16 @@ export async function hasProject(projectId: string): Promise<boolean> {
 export async function getProject(projectId: string): Promise<ProjectRecord | null> {
   await ensureMigrated();
   const db = await getDb();
-  return (await db.get("projects", projectId)) ?? null;
+  const record = (await db.get("projects", projectId)) ?? null;
+  if (!record) return null;
+  // 旧 IndexedDB スナップショットに memos が無い場合の正規化
+  if (record.results.memos == null) {
+    return {
+      ...record,
+      results: { ...record.results, memos: {} },
+    };
+  }
+  return record;
 }
 
 export async function saveProject(projectId: string, record: ProjectRecord): Promise<void> {

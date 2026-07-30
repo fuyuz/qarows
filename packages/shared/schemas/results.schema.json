@@ -31,6 +31,11 @@
         "additionalProperties": { "$ref": "#/$defs/testResultEntry" }
       }
     },
+    "memos": {
+      "type": "object",
+      "description": "testCaseId -> テストケース単位メモ（環境非依存）",
+      "additionalProperties": { "type": "string" }
+    },
     "bugs": {
       "type": "array",
       "items": { "$ref": "#/$defs/bug" }
@@ -56,8 +61,7 @@
           "type": "string",
           "format": "date-time"
         },
-        "executedBy": { "type": "string" },
-        "memo": { "type": "string" }
+        "executedBy": { "type": "string" }
       }
     },
     "bugSeverity": {

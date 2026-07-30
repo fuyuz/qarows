@@ -274,7 +274,7 @@ testCases:
       medium: "入力"
       minor: "結果"
     prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
-    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに OK/NG/SKIP を入力できる。メモも保存される"
+    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに OK/NG/SKIP を入力できる"
 
   - id: TC-011
     category:
@@ -1013,3 +1013,11 @@ testCases:
       minor: "プロジェクト内"
     prerequisites: "プロジェクトを開き、テスト実行画面 (/p/{projectId}/run) を表示中"
     description: "ブラウザのタブタイトルが「テスト実行 | {プロジェクト名} | qarows」になる（画面名・プロジェクト名・ブランドの順）"
+
+  - id: TC-108
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "メモ"
+    prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
+    description: "メモ欄はテストケース単位（環境非依存）。文言を変えると入力欄右下に「保存」が出る。保存すると永続化され、ステータス未入力でもメモだけ保存できる"

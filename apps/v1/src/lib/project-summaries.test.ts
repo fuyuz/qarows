@@ -26,6 +26,7 @@ describe("projectRecordToSummary", () => {
         projectId: "demo",
         updatedAt: "2026-06-28T12:00:00.000Z",
         results: {},
+        memos: {},
         bugs: [],
       },
       session: {

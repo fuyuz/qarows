@@ -28,7 +28,7 @@ describe("parseClientProjectCommand", () => {
     expect(
       parseClientProjectCommand({
         type: "mergeResults",
-        incoming: { version: 1, projectId: "x", updatedAt: "", results: {}, bugs: [] },
+        incoming: { version: 1, projectId: "x", updatedAt: "", results: {}, memos: {}, bugs: [] },
       }),
     ).toBeNull();
   });
@@ -39,7 +39,7 @@ describe("parseClientProjectCommand", () => {
       parseClientProjectCommand({
         type: "replaceSnapshot",
         definition,
-        results: { version: 1, projectId: "test", updatedAt: "", results: {}, bugs: [] },
+        results: { version: 1, projectId: "test", updatedAt: "", results: {}, memos: {}, bugs: [] },
         session: null,
       }),
     ).toBeNull();
@@ -62,15 +62,28 @@ describe("parseClientProjectCommand", () => {
     ).toBeNull();
   });
 
-  it("rejects oversized memo", () => {
+  it("rejects oversized test memo", () => {
     expect(
       parseClientProjectCommand({
-        type: "updateResultsBatch",
+        type: "updateTestMemo",
         testCaseId: "TC-001",
-        envIds: ["chrome"],
-        partial: { status: "OK", memo: "x".repeat(9000) },
+        memo: "x".repeat(9000),
       }),
     ).toBeNull();
+  });
+
+  it("accepts updateTestMemo", () => {
+    expect(
+      parseClientProjectCommand({
+        type: "updateTestMemo",
+        testCaseId: "TC-001",
+        memo: "note",
+      }),
+    ).toEqual({
+      type: "updateTestMemo",
+      testCaseId: "TC-001",
+      memo: "note",
+    });
   });
 });
 
@@ -78,7 +91,7 @@ describe("parseProjectCommand", () => {
   it("still accepts internal mergeResults shape", () => {
     const cmd = parseProjectCommand({
       type: "mergeResults",
-      incoming: { version: 1, projectId: "test", updatedAt: "", results: {}, bugs: [] },
+      incoming: { version: 1, projectId: "test", updatedAt: "", results: {}, memos: {}, bugs: [] },
     });
     expect(cmd?.type).toBe("mergeResults");
   });

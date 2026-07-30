@@ -258,7 +258,7 @@ testCases:
       medium: "入力"
       minor: "結果"
     prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
-    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに OK/NG/SKIP を入力できる。メモも保存される"
+    description: "1件ずつテストを表示し、一括 OK/NG または端末ごとに OK/NG/SKIP を入力できる"
 
   - id: TC-011
     category:
@@ -901,3 +901,11 @@ testCases:
       minor: "表示"
     prerequisites: "Team 版でプロジェクトを開き、ナビの「テスト定義」へ遷移"
     description: "テスト定義画面が空白にならず、フィルタ・端末パネル・テストケース編集カードが表示される（未適用変更時の離脱確認含む）"
+
+  - id: TC-120
+    category:
+      major: "テスト実行"
+      medium: "入力"
+      minor: "メモ"
+    prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること。別ブラウザまたは別ユーザが同じプロジェクトを開いている"
+    description: "メモ欄はテストケース単位。文言変更で右下に「保存」が出る。保存すると他ユーザの画面にもリアルタイムで同じメモが反映される"

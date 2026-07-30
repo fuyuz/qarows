@@ -1,6 +1,6 @@
 import { strongerStatus } from "./status";
 import { getResultEntryVersion } from "./test-case-version";
-import type { Bug, ResultsFile, TestResultEntry } from "./types";
+import type { Bug, ResultsFile, TestMemos, TestResultEntry } from "./types";
 
 const MEMO_SEPARATOR = "\n---\n";
 
@@ -11,6 +11,16 @@ function mergeMemos(a?: string, b?: string): string | undefined {
   if (!right) return left;
   if (left === right) return left;
   return `${left}${MEMO_SEPARATOR}${right}`;
+}
+
+function mergeTestMemos(base: TestMemos, incoming: TestMemos): TestMemos {
+  const out: TestMemos = { ...base };
+  for (const [testCaseId, memo] of Object.entries(incoming)) {
+    const merged = mergeMemos(out[testCaseId], memo);
+    if (merged) out[testCaseId] = merged;
+    else delete out[testCaseId];
+  }
+  return out;
 }
 
 function mergeEntry(a: TestResultEntry, b: TestResultEntry): TestResultEntry {
@@ -26,7 +36,6 @@ function mergeEntry(a: TestResultEntry, b: TestResultEntry): TestResultEntry {
       ...(preferVersion > 1 ? { version: preferVersion } : {}),
       executedAt: prefer.executedAt ?? other.executedAt,
       executedBy: prefer.executedBy ?? other.executedBy,
-      memo: mergeMemos(prefer.memo, other.memo),
     };
   }
 
@@ -45,7 +54,6 @@ function mergeEntry(a: TestResultEntry, b: TestResultEntry): TestResultEntry {
     version: prefer.version ?? a.version ?? b.version,
     executedAt: prefer.executedAt ?? a.executedAt ?? b.executedAt,
     executedBy: prefer.executedBy ?? a.executedBy ?? b.executedBy,
-    memo: mergeMemos(a.memo, b.memo),
   };
 }
 
@@ -81,6 +89,7 @@ export function mergeResultsFiles(base: ResultsFile, incoming: ResultsFile): Res
     projectId: base.projectId,
     updatedAt: new Date().toISOString(),
     results,
+    memos: mergeTestMemos(base.memos ?? {}, incoming.memos ?? {}),
     bugs: mergeBugs(base.bugs, incoming.bugs),
   };
 }

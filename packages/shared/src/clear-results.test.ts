@@ -15,6 +15,7 @@ const base: ResultsFile = {
       chrome: { status: "SKIP" },
     },
   },
+  memos: {},
   bugs: [],
 };
 

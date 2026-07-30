@@ -58,8 +58,9 @@ interface AppContextValue {
   updateResultsBatch: (
     testCaseId: string,
     envIds: string[],
-    partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
+    partial: Pick<TestResultEntry, "status"> & { status: TestStatus },
   ) => Promise<void>;
+  updateTestMemo: (testCaseId: string, memo: string) => Promise<void>;
   addBug: (bug: Bug) => Promise<void>;
   updateBug: (bug: Bug) => Promise<void>;
   updateTestCase: (
@@ -289,8 +290,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateResultsBatch: (
         testCaseId: string,
         envIds: string[],
-        partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
+        partial: Pick<TestResultEntry, "status"> & { status: TestStatus },
       ) => dispatch({ type: "updateResultsBatch", testCaseId, envIds, partial }),
+      updateTestMemo: (testCaseId: string, memo: string) =>
+        dispatch({ type: "updateTestMemo", testCaseId, memo }),
       addBug: (bug: Bug) => dispatch({ type: "addBug", bug }),
       updateBug: (bug: Bug) => dispatch({ type: "updateBug", bug }),
       updateTestCase: (

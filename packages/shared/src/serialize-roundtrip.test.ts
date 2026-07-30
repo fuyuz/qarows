@@ -55,9 +55,11 @@ describe("serialize roundtrip", () => {
             version: 2,
             executedAt: "2026-06-28T11:00:00.000Z",
             executedBy: "qa@example.com",
-            memo: "fine",
           },
         },
+      },
+      memos: {
+        "TC-001": "fine",
       },
       bugs: [
         {
@@ -81,8 +83,27 @@ describe("serialize roundtrip", () => {
     expect(reparsed.results["TC-001"]?.chrome).toMatchObject({
       status: "OK",
       version: 2,
-      memo: "fine",
     });
+    expect(reparsed.memos["TC-001"]).toBe("fine");
     expect(reparsed.bugs[0]?.id).toBe("BUG-k7m2x9");
+  });
+
+  it("ignores legacy cell memo without error", () => {
+    const legacy = {
+      version: 1,
+      projectId: "roundtrip",
+      updatedAt: "2026-06-28T12:00:00.000Z",
+      results: {
+        "TC-001": {
+          chrome: { status: "OK", memo: "legacy cell memo" },
+        },
+      },
+      bugs: [],
+    };
+    const definition = parseTestsYaml(sampleYaml);
+    const file = parseResultsJson(JSON.stringify(legacy), { definition });
+    expect(file.results["TC-001"]?.chrome?.status).toBe("OK");
+    expect(file.memos).toEqual({});
+    expect("memo" in (file.results["TC-001"]?.chrome ?? {})).toBe(false);
   });
 });

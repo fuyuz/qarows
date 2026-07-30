@@ -18,6 +18,10 @@ describe("reconcileResultsOnDefinitionReplace", () => {
         chrome: { status: "NG" },
       },
     };
+    results.memos = {
+      "TC-001": "keep",
+      "TC-999": "drop",
+    };
     results.bugs = [
       {
         id: "BUG-001",
@@ -43,6 +47,8 @@ describe("reconcileResultsOnDefinitionReplace", () => {
 
     expect(reconciled.results["TC-001"]?.chrome?.status).toBe("OK");
     expect(reconciled.results["TC-999"]).toBeUndefined();
+    expect(reconciled.memos["TC-001"]).toBe("keep");
+    expect(reconciled.memos["TC-999"]).toBeUndefined();
     expect(reconciled.bugs).toHaveLength(1);
     expect(reconciled.bugs[0]?.id).toBe("BUG-001");
   });

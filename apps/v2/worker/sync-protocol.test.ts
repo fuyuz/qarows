@@ -103,7 +103,7 @@ describe("sync-protocol", () => {
       commandId: "cmd-merge",
       command: {
         type: "mergeResults",
-        incoming: { version: 1, projectId: "test", updatedAt: "", results: {}, bugs: [] },
+        incoming: { version: 1, projectId: "test", updatedAt: "", results: {}, memos: {}, bugs: [] },
       },
     });
     expect(parseClientMessage(raw)).toBeNull();
@@ -132,7 +132,22 @@ describe("sync-protocol", () => {
         type: "updateResultsBatch",
         testCaseId: definition.testCases[0]!.id,
         envIds: ["chrome"],
-        partial: { status: "NG", memo: "layout broken" },
+        partial: { status: "NG" },
+      },
+    });
+    expect(parseClientMessage(raw)?.type).toBe("command");
+  });
+
+  it("accepts updateTestMemo", () => {
+    const definition = makeDefinition();
+    const raw = JSON.stringify({
+      type: "command",
+      generation: "gen-1",
+      commandId: "cmd-memo",
+      command: {
+        type: "updateTestMemo",
+        testCaseId: definition.testCases[0]!.id,
+        memo: "shared note",
       },
     });
     expect(parseClientMessage(raw)?.type).toBe("command");

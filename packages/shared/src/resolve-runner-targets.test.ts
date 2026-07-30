@@ -22,23 +22,20 @@ describe("mergeResultsFiles extras", () => {
     updatedAt: "2026-01-01T00:00:00.000Z",
     results: {
       "TC-001": {
-        chrome: { status: "OK", memo: "left" },
+        chrome: { status: "OK" },
       },
     },
+    memos: { "TC-001": "left" },
     bugs: [{ id: "BUG-001", title: "Old", severity: "low", status: "open" }],
   };
 
   it("merges memos with separator", () => {
     const incoming: ResultsFile = {
       ...base,
-      results: {
-        "TC-001": {
-          chrome: { status: "OK", memo: "right" },
-        },
-      },
+      memos: { "TC-001": "right" },
     };
     const merged = mergeResultsFiles(base, incoming);
-    expect(merged.results["TC-001"]?.chrome?.memo).toBe("left\n---\nright");
+    expect(merged.memos["TC-001"]).toBe("left\n---\nright");
   });
 
   it("merges bugs by id", () => {

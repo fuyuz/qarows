@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getTestCaseVersion,
-  isResultEntryValid,
   nextBugId,
   resolveSessionTestTargets,
   testCaseNeedsRetest,
@@ -44,6 +43,7 @@ export function TestRunner() {
     session,
     updateResults,
     updateResultsBatch,
+    updateTestMemo,
     addBug,
     updateBug,
     updateTestCase,
@@ -53,6 +53,8 @@ export function TestRunner() {
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [memo, setMemo] = useState("");
+  const [memoDirty, setMemoDirty] = useState(false);
+  const [memoSaving, setMemoSaving] = useState(false);
   const [dialogBusy, setDialogBusy] = useState(false);
   const [bugDialogOpen, setBugDialogOpen] = useState(false);
   const [bugDialogState, setBugDialogState] = useState<BugDialogOpenState | null>(null);
@@ -94,6 +96,7 @@ export function TestRunner() {
   useEffect(() => {
     setRelatedBugsDialogOpen(false);
     setTestCaseEditDialogOpen(false);
+    setMemoDirty(false);
   }, [current?.id]);
 
   useEffect(() => {
@@ -116,21 +119,36 @@ export function TestRunner() {
     void setTestId(null);
   }, [filtersSettled, maxSlide, setTestId, targets, testId]);
 
+  const savedMemo = current && results ? (results.memos?.[current.id] ?? "") : "";
+
   useEffect(() => {
-    if (!current || !results || !envTargets) {
+    if (!current) {
       setMemo("");
+      setMemoDirty(false);
       return;
     }
-    const byEnv = results.results[current.id] ?? {};
-    const existing =
-      envTargets.environmentIds
-        .map((id) => {
-          const entry = byEnv[id];
-          return isResultEntryValid(entry, current) ? entry?.memo : undefined;
-        })
-        .find((m) => m != null && m !== "") ?? "";
-    setMemo(existing);
-  }, [current, envTargets, results]);
+    if (memoDirty) return;
+    setMemo(savedMemo);
+  }, [current, memoDirty, savedMemo]);
+
+  const handleMemoChange = useCallback(
+    (value: string) => {
+      setMemo(value);
+      setMemoDirty(value !== savedMemo);
+    },
+    [savedMemo],
+  );
+
+  const handleMemoSave = useCallback(async () => {
+    if (!current || !memoDirty) return;
+    setMemoSaving(true);
+    try {
+      await updateTestMemo(current.id, memo);
+      setMemoDirty(false);
+    } finally {
+      setMemoSaving(false);
+    }
+  }, [current, memo, memoDirty, updateTestMemo]);
 
   const needsRetest = useMemo(() => {
     if (!current || !results || !session || !definition) return false;
@@ -235,7 +253,6 @@ export function TestRunner() {
       cancelPendingAdvance();
       void updateResultsBatch(current.id, envTargets.environmentIds, {
         status,
-        memo: memo.trim() || undefined,
       });
       const nextSlide =
         testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
@@ -250,7 +267,6 @@ export function TestRunner() {
       cancelPendingAdvance,
       current,
       envTargets,
-      memo,
       advanceAfterComplete,
       maybeDeferAdvanceForNg,
       targets.length,
@@ -263,11 +279,8 @@ export function TestRunner() {
     (envId: string, status: TestStatus) => {
       if (!current || !session || !envTargets || !results || !definition || testSlideIndex == null) return;
       cancelPendingAdvance();
-      const existing = results.results[current.id]?.[envId];
-      const validExisting = isResultEntryValid(existing, current) ? existing : undefined;
       void updateResults(current.id, envId, {
         status,
-        memo: memo.trim() || validExisting?.memo,
         executedAt: new Date().toISOString(),
         executedBy: session.executorName,
       });
@@ -275,7 +288,6 @@ export function TestRunner() {
       const version = getTestCaseVersion(current);
       const nextEntry = {
         status,
-        memo: memo.trim() || validExisting?.memo,
         ...(version > 1 ? { version } : {}),
       };
       const nextByEnv = {
@@ -311,7 +323,6 @@ export function TestRunner() {
       definition,
       envTargets,
       advanceAfterComplete,
-      memo,
       openBugDialog,
       results,
       session,
@@ -466,11 +477,14 @@ export function TestRunner() {
                 results={results.results}
                 envTargets={envTargets}
                 memo={memo}
+                memoDirty={memoDirty}
+                memoSaving={memoSaving}
                 canPrev={slideIndex > 0}
                 canNext={slideIndex < maxSlide}
                 onPrev={() => goToSlide(slideIndex - 1)}
                 onNext={() => goToSlide(slideIndex + 1)}
-                onMemoChange={setMemo}
+                onMemoChange={handleMemoChange}
+                onMemoSave={() => void handleMemoSave()}
                 onBatch={(status) => void applyBatch(status)}
                 onSingle={(envId, status) => void applySingle(envId, status)}
                 onClear={(envId) => void applyClear(envId)}

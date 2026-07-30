@@ -72,11 +72,13 @@ export interface TestResultEntry {
   version?: number;
   executedAt?: string;
   executedBy?: string;
-  memo?: string;
 }
 
 /** testCaseId -> environmentId -> result */
 export type TestResults = Record<string, Record<string, TestResultEntry>>;
+
+/** testCaseId -> テストケース単位メモ */
+export type TestMemos = Record<string, string>;
 
 export interface Bug {
   id: string;
@@ -100,6 +102,8 @@ export interface ResultsFile {
   projectId: string;
   updatedAt: string;
   results: TestResults;
+  /** テストケース単位メモ（環境非依存） */
+  memos: TestMemos;
   bugs: Bug[];
 }
 

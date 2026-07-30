@@ -11,6 +11,7 @@ const ALL_COMMAND_TYPES = new Set<ProjectCommand["type"]>([
   "setSession",
   "updateResult",
   "updateResultsBatch",
+  "updateTestMemo",
   "clearTestResult",
   "clearResults",
   "updateTestCase",
@@ -26,6 +27,7 @@ const CLIENT_COMMAND_TYPES = new Set<ProjectCommand["type"]>([
   "setSession",
   "updateResult",
   "updateResultsBatch",
+  "updateTestMemo",
   "clearTestResult",
   "updateTestCase",
   "addBug",
@@ -79,7 +81,6 @@ function parseTestResultEntry(value: unknown): import("@qarows/shared").TestResu
   if (typeof value.status !== "string" || !TEST_STATUSES.has(value.status)) return null;
   if (!isOptionalString(value.executedAt, MAX_SHORT_TEXT)) return null;
   if (!isOptionalString(value.executedBy, MAX_SHORT_TEXT)) return null;
-  if (!isOptionalString(value.memo, MAX_TEXT)) return null;
   if (
     value.version !== undefined &&
     (typeof value.version !== "number" || !Number.isInteger(value.version) || value.version < 1)
@@ -94,7 +95,6 @@ function parseTestResultEntry(value: unknown): import("@qarows/shared").TestResu
     ...(value.version !== undefined ? { version: value.version } : {}),
     ...(typeof value.executedAt === "string" ? { executedAt: value.executedAt } : {}),
     ...(typeof value.executedBy === "string" ? { executedBy: value.executedBy } : {}),
-    ...(typeof value.memo === "string" ? { memo: value.memo } : {}),
   };
 }
 
@@ -195,15 +195,22 @@ function parseCommandBody(value: unknown, allowedTypes: Set<ProjectCommand["type
       if (!isStringArray(value.envIds, MAX_ENV_IDS, MAX_ID_LENGTH)) return null;
       if (!isRecord(value.partial)) return null;
       if (typeof value.partial.status !== "string" || !TEST_STATUSES.has(value.partial.status)) return null;
-      if (!isOptionalString(value.partial.memo, MAX_TEXT)) return null;
       return {
         type: "updateResultsBatch",
         testCaseId: value.testCaseId,
         envIds: value.envIds,
         partial: {
           status: value.partial.status as "OK" | "SKIP" | "NG",
-          ...(typeof value.partial.memo === "string" ? { memo: value.partial.memo } : {}),
         },
+      };
+    }
+    case "updateTestMemo": {
+      if (!isNonEmptyString(value.testCaseId, MAX_ID_LENGTH)) return null;
+      if (typeof value.memo !== "string" || value.memo.length > MAX_TEXT) return null;
+      return {
+        type: "updateTestMemo",
+        testCaseId: value.testCaseId,
+        memo: value.memo,
       };
     }
     case "clearTestResult":

@@ -55,8 +55,9 @@ interface ProjectSyncContextValue {
   updateResultsBatch: (
     testCaseId: string,
     envIds: string[],
-    partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
+    partial: Pick<TestResultEntry, "status"> & { status: TestStatus },
   ) => Promise<void>;
+  updateTestMemo: (testCaseId: string, memo: string) => Promise<void>;
   addBug: (bug: Bug) => Promise<void>;
   updateBug: (bug: Bug) => Promise<void>;
   updateTestCase: (
@@ -283,7 +284,7 @@ export function ProjectSyncProvider({
     async (
       testCaseId: string,
       envIds: string[],
-      partial: Pick<TestResultEntry, "status" | "memo"> & { status: TestStatus },
+      partial: Pick<TestResultEntry, "status"> & { status: TestStatus },
     ) => {
       await dispatch({
         type: "updateResultsBatch",
@@ -291,6 +292,13 @@ export function ProjectSyncProvider({
         envIds,
         partial,
       });
+    },
+    [dispatch],
+  );
+
+  const updateTestMemo = useCallback(
+    async (testCaseId: string, memo: string) => {
+      await dispatch({ type: "updateTestMemo", testCaseId, memo });
     },
     [dispatch],
   );
@@ -344,6 +352,7 @@ export function ProjectSyncProvider({
       setSession,
       updateResults,
       updateResultsBatch,
+      updateTestMemo,
       addBug,
       updateBug,
       updateTestCase,
@@ -366,6 +375,7 @@ export function ProjectSyncProvider({
       setSession,
       updateResults,
       updateResultsBatch,
+      updateTestMemo,
       addBug,
       updateBug,
       updateTestCase,

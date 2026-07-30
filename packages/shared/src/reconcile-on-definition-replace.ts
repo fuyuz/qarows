@@ -1,5 +1,5 @@
 import { isValidSession } from "./session";
-import type { Bug, ResultsFile, SessionConfig, TestDefinition, TestResults } from "./types";
+import type { Bug, ResultsFile, SessionConfig, TestDefinition, TestMemos, TestResults } from "./types";
 
 /** tests.yml 置換時: 新定義に存在する TC/env の結果だけ残す */
 export function reconcileResultsOnDefinitionReplace(
@@ -24,6 +24,13 @@ export function reconcileResultsOnDefinitionReplace(
     }
   }
 
+  const nextMemos: TestMemos = {};
+  for (const [testCaseId, memo] of Object.entries(results.memos ?? {})) {
+    if (testCaseIds.has(testCaseId) && memo.trim()) {
+      nextMemos[testCaseId] = memo;
+    }
+  }
+
   const nextBugs: Bug[] = [];
   for (const bug of results.bugs) {
     if (bug.testCaseId != null && !testCaseIds.has(bug.testCaseId)) continue;
@@ -39,6 +46,7 @@ export function reconcileResultsOnDefinitionReplace(
     projectId,
     updatedAt: new Date().toISOString(),
     results: nextResults,
+    memos: nextMemos,
     bugs: nextBugs,
   };
 }
