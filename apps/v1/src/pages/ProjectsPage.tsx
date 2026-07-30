@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  createEmptyResults,
+  packProjectArchive,
+  projectArchiveFilename,
+  projectArchiveToBlob,
   serializeResultsJson,
   serializeTestsYaml,
 } from "@qarows/shared";
@@ -13,7 +17,7 @@ import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
 import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";
 import { sortProjectSummaries } from "@/lib/project-summaries";
 import { getProject } from "@/lib/storage";
-import { readFileAsText, downloadText } from "@/lib/utils";
+import { readFileAsText, downloadText, downloadBlob } from "@/lib/utils";
 
 function resolveDefaultSelection(
   summaries: ReturnType<typeof useApp>["projectSummaries"],
@@ -99,6 +103,16 @@ export function ProjectsPage() {
     downloadText(serializeResultsJson(record.results), "results.json", "application/json");
   }, []);
 
+  const handleExportZip = useCallback(async (targetProjectId: string) => {
+    const record = await getProject(targetProjectId);
+    if (!record) throw new Error("プロジェクトが見つかりません");
+    const archive = packProjectArchive({
+      testsYaml: serializeTestsYaml(record.definition),
+      resultsJson: serializeResultsJson(record.results ?? createEmptyResults(targetProjectId)),
+    });
+    downloadBlob(projectArchiveToBlob(archive), projectArchiveFilename(targetProjectId));
+  }, []);
+
   const handleDelete = useCallback(
     async (targetProjectId: string) => {
       await deleteProject(targetProjectId);
@@ -154,6 +168,7 @@ export function ProjectsPage() {
                         onClearResults={() => handleClearResults(selectedSummary.projectId)}
                         onExportYaml={() => handleExportYaml(selectedSummary.projectId)}
                         onExportResults={() => handleExportResults(selectedSummary.projectId)}
+                        onExportZip={() => handleExportZip(selectedSummary.projectId)}
                         onDelete={() => handleDelete(selectedSummary.projectId)}
                       />
                     ) : null}

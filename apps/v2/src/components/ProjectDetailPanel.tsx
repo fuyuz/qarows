@@ -46,6 +46,7 @@ export interface ProjectDetailPanelProps {
   onClearResults: (expectedGeneration: string) => Promise<void>;
   onExportYaml: () => Promise<void>;
   onExportResults: () => Promise<void>;
+  onExportZip: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
@@ -60,6 +61,7 @@ export function ProjectDetailPanel({
   onClearResults,
   onExportYaml,
   onExportResults,
+  onExportZip,
   onDelete,
 }: ProjectDetailPanelProps) {
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
@@ -186,6 +188,9 @@ export function ProjectDetailPanel({
               </Button>
               <Button variant="outline" onClick={() => void onExportResults()}>
                 results.json
+              </Button>
+              <Button variant="outline" onClick={() => void onExportZip()}>
+                zip
               </Button>
             </div>
 

@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { serializeResultsJson, serializeTestsYaml } from "@qarows/shared";
+import {
+  createEmptyResults,
+  packProjectArchive,
+  projectArchiveFilename,
+  projectArchiveToBlob,
+  serializeResultsJson,
+  serializeTestsYaml,
+} from "@qarows/shared";
 import { Alert, AlertDescription, LoadingScreen } from "@qarows/ui";
 import { ProjectDetailPanel } from "@/components/ProjectDetailPanel";
 import { ProjectImportPanel } from "@/components/ProjectImportPanel";
@@ -10,7 +17,7 @@ import { useProjects } from "@/context/ProjectsContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
 import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";
 import { getProject } from "@/lib/api/projects";
-import { downloadText, readFileAsText } from "@/lib/file-utils";
+import { downloadText, downloadBlob, readFileAsText } from "@/lib/file-utils";
 import { sortProjectSummaries } from "@/lib/project-summaries";
 
 function resolveDefaultSelection(
@@ -104,6 +111,16 @@ export function ProjectsPage() {
     downloadText(serializeResultsJson(data.results), "results.json", "application/json");
   }, []);
 
+  const handleExportZip = useCallback(async (targetProjectId: string) => {
+    const data = await getProject(targetProjectId);
+    if (!data) throw new Error("プロジェクトが見つかりません");
+    const archive = packProjectArchive({
+      testsYaml: serializeTestsYaml(data.definition),
+      resultsJson: serializeResultsJson(data.results ?? createEmptyResults(targetProjectId)),
+    });
+    downloadBlob(projectArchiveToBlob(archive), projectArchiveFilename(targetProjectId));
+  }, []);
+
   const handleDelete = useCallback(
     async (targetProjectId: string) => {
       await removeProject(targetProjectId);
@@ -166,6 +183,7 @@ export function ProjectsPage() {
                         }
                         onExportYaml={() => handleExportYaml(selectedSummary.id)}
                         onExportResults={() => handleExportResults(selectedSummary.id)}
+                        onExportZip={() => handleExportZip(selectedSummary.id)}
                         onDelete={() => handleDelete(selectedSummary.id)}
                       />
                     ) : null}

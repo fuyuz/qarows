@@ -16,3 +16,4 @@ export * from "./serialize-tests";
 export * from "./project-id";
 export * from "./reconcile-on-definition-replace";
 export * from "./definition-diff";
+export * from "./zip-project";

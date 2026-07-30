@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProjectIdFromDefinition, parseTestsYaml } from "@qarows/shared";
+import { expandImportFiles, getProjectIdFromDefinition, parseTestsYaml } from "@qarows/shared";
 import {
   Badge,
   Button,
@@ -41,16 +41,23 @@ export function ProjectImportPanel() {
   };
 
   const applyInitialFiles = (files: File[]) => {
-    const { tests, results, unknown } = classifyDroppedFiles(files);
-    if (tests) setTestsFile(tests);
-    if (results.length > 0) {
-      setResultsFiles((prev) => appendUniqueFiles(prev, results));
-    }
-    if (unknown.length > 0) {
-      showError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
-    } else {
-      setError(null);
-    }
+    void (async () => {
+      try {
+        const expanded = await expandImportFiles(files);
+        const { tests, results, unknown } = classifyDroppedFiles(expanded);
+        if (tests) setTestsFile(tests);
+        if (results.length > 0) {
+          setResultsFiles((prev) => appendUniqueFiles(prev, results));
+        }
+        if (unknown.length > 0) {
+          showError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
+        } else {
+          setError(null);
+        }
+      } catch (err) {
+        showError(err instanceof Error ? err.message : "ファイルの展開に失敗しました");
+      }
+    })();
   };
 
   const clearLocalFiles = () => {
@@ -162,7 +169,7 @@ export function ProjectImportPanel() {
   return (
     <>
       <ProjectImportShell
-        description="tests.yml と results.json（任意・複数可）をアップロードするか、空のプロジェクトを作成します"
+        description="tests.yml と results.json（任意・複数可）、または zip をアップロードするか、空のプロジェクトを作成します"
         error={error}
         errorShake={errorShake}
         footer={
@@ -212,8 +219,8 @@ export function ProjectImportPanel() {
       >
         <FileDropZone
           title="ファイルをここにドロップ"
-          hint="tests.yml（必須）と results.json（任意・複数）を同時にドロップできます"
-          accept=".yml,.yaml,.json,application/json"
+          hint="tests.yml（必須）と results.json（任意・複数）、または zip を同時にドロップできます"
+          accept=".yml,.yaml,.json,application/json,.zip"
           onFiles={applyInitialFiles}
         />
 

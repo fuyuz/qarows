@@ -44,6 +44,7 @@ export interface ProjectDetailPanelProps {
   onClearResults: () => Promise<void>;
   onExportYaml: () => Promise<void>;
   onExportResults: () => Promise<void>;
+  onExportZip: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
@@ -58,6 +59,7 @@ export function ProjectDetailPanel({
   onClearResults,
   onExportYaml,
   onExportResults,
+  onExportZip,
   onDelete,
 }: ProjectDetailPanelProps) {
   const [mergeFiles, setMergeFiles] = useState<File[]>([]);
@@ -150,6 +152,9 @@ export function ProjectDetailPanel({
               </Button>
               <Button variant="outline" onClick={() => void onExportResults()}>
                 results.json
+              </Button>
+              <Button variant="outline" onClick={() => void onExportZip()}>
+                zip
               </Button>
             </div>
 

@@ -1,5 +1,9 @@
 export function downloadText(content: string, filename: string, mime: string): void {
   const blob = new Blob([content], { type: mime });
+  downloadBlob(blob, filename);
+}
+
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

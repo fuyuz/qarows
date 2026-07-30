@@ -62,6 +62,10 @@ export {
 
 export function downloadText(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime });
+  downloadBlob(blob, filename);
+}
+
+export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

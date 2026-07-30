@@ -45,6 +45,7 @@ export interface WorkspaceAppNavProps {
   availablePages?: readonly WorkspaceProjectPage[];
   onExportYaml?: () => void;
   onExportResults?: () => void;
+  onExportZip?: () => void;
   /** Team 版: 同期状態（メニュー内表示。切断・再接続時は Compass 横にドット） */
   syncStatus?: WorkspaceSyncStatus;
   /** エディション固有の追加メニュー（例: Team 版 AI 編集） */
@@ -152,6 +153,7 @@ export function WorkspaceAppNav({
   availablePages,
   onExportYaml,
   onExportResults,
+  onExportZip,
   syncStatus,
   extraMenuItems,
   offsetRight,
@@ -181,6 +183,7 @@ export function WorkspaceAppNav({
 
   const canExportResults = definition != null && results != null && onExportResults != null;
   const canExportYaml = definition != null && onExportYaml != null;
+  const canExportZip = definition != null && onExportZip != null;
 
   useEffect(() => {
     setOpen(false);
@@ -321,7 +324,7 @@ export function WorkspaceAppNav({
             </>
           )}
 
-          {(canExportYaml || canExportResults) && (
+          {(canExportYaml || canExportResults || canExportZip) && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -345,6 +348,16 @@ export function WorkspaceAppNav({
                   }}
                 >
                   results.json をエクスポート
+                </DropdownMenuItem>
+              )}
+              {canExportZip && (
+                <DropdownMenuItem
+                  onSelect={() => {
+                    onExportZip?.();
+                    setOpen(false);
+                  }}
+                >
+                  プロジェクトを zip でエクスポート
                 </DropdownMenuItem>
               )}
             </>

@@ -108,6 +108,8 @@ scenarios:
     steps:
       - TC-030
       - TC-041
+      - TC-121
+      - TC-122
       - TC-057
 
   - id: multi-project
@@ -909,3 +911,19 @@ testCases:
       minor: "メモ"
     prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること。別ブラウザまたは別ユーザが同じプロジェクトを開いている"
     description: "メモ欄はテストケース単位。文言変更で右下に「保存」が出る。保存すると他ユーザの画面にもリアルタイムで同じメモが反映される"
+
+  - id: TC-121
+    category:
+      major: "エクスポート"
+      medium: "zip"
+      minor: "ダウンロード"
+    prerequisites: "tests.yml 読み込み済み"
+    description: "ナビメニューまたはプロジェクト詳細から zip をエクスポートでき、中身に tests.yml と results.json が含まれる（ファイル名は {project.id}.zip）"
+
+  - id: TC-122
+    category:
+      major: "ファイル読み込み"
+      medium: "zip"
+      minor: "インポート"
+    prerequisites: "/projects?project=_new を表示中"
+    description: "zip をドロップすると tests.yml / results.json が展開され、通常のファイル取り込みと同様に読み込める（zip 内の yml/json は拡張子で判別）"
