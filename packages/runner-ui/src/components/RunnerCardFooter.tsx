@@ -61,7 +61,7 @@ export function RunnerCardFooter({
       <Button
         variant="outline"
         size="icon"
-        className="size-9 shrink-0 rounded-lg"
+        className="h-auto w-9 shrink-0 self-stretch rounded-lg"
         disabled={!canPrev || busy}
         aria-label="前へ"
         onClick={onPrev}
@@ -81,7 +81,7 @@ export function RunnerCardFooter({
       <Button
         variant="outline"
         size="icon"
-        className="size-9 shrink-0 rounded-lg"
+        className="h-auto w-9 shrink-0 self-stretch rounded-lg"
         disabled={!canNext || busy}
         aria-label="次へ"
         onClick={onNext}
