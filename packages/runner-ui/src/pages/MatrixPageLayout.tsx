@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { useTranslation } from "@qarows/ui";
 import { RunnerFilterBar } from "../components/RunnerFilterBar";
 import { TestMatrixTable } from "../components/TestMatrixTable";
 import { useRunnerWorkspace } from "../context/runner-workspace";
@@ -7,6 +8,7 @@ import { getAllEnvironmentIds } from "../lib/run-progress";
 import { resolveMatrixTestCases } from "../lib/matrix-test-cases";
 
 export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
+  const { t } = useTranslation();
   const { definition, results, session } = useRunnerWorkspace();
   const { runnerFilters } = useRunnerQueryState();
 
@@ -31,10 +33,8 @@ export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
       <RunnerFilterBar className="shrink-0 z-10" maxWidthClass="max-w-[min(100%,1400px)]" />
       <main className="mx-auto flex min-h-0 w-full max-w-[min(100%,1400px)] flex-1 flex-col overflow-hidden px-5 py-4">
         <div className="shrink-0">
-          <h1 className="mb-1 text-lg font-bold tracking-tight">マトリクス</h1>
-          <p className="mb-3 text-xs text-muted-foreground">
-            環境列は右方向へスクロールして確認できます
-          </p>
+          <h1 className="mb-1 text-lg font-bold tracking-tight">{t("nav.matrix")}</h1>
+          <p className="mb-3 text-xs text-muted-foreground">{t("runner.matrixHint")}</p>
         </div>
         <div className="min-h-0 flex-1">
           <TestMatrixTable testCases={testCases} />

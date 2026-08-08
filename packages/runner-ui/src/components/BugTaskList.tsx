@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getRunnerTargetMode, isBugClosed, type Bug, type TestDefinition } from "@qarows/shared";
+import { getRunnerTargetMode, isBugClosed, type Bug, type TestDefinition } from "@qarows/shared";
+import { useTranslation } from "@qarows/ui";
 import { Button } from "@qarows/ui";
 import { ScrollArea } from "@qarows/ui";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@qarows/ui";
@@ -8,6 +9,7 @@ import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import { resolveFilteredBugs } from "../lib/bug-filter";
 import { getAllEnvironmentIds } from "../lib/run-progress";
 import { formatRunnerFilterTitle } from "../lib/runner-utils";
+import { useBugLabels } from "../hooks/useBugLabels";
 import { cn } from "@qarows/ui";
 
 const TASK_BAR_ANIM_MS = 320;
@@ -56,6 +58,8 @@ function BugListPanel({
   onJump: (index: number) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
+  const { statusLabels, severityLabels } = useBugLabels();
   const testCaseById = useMemo(
     () => new Map(definition.testCases.map((testCase) => [testCase.id, testCase])),
     [definition.testCases],
@@ -85,7 +89,7 @@ function BugListPanel({
   return (
     <aside
       className={cn("flex flex-col overflow-hidden rounded-xl border bg-muted/30", className)}
-      aria-label="バグ一覧"
+      aria-label={t("bug.listAria")}
     >
       <div className="shrink-0 border-b bg-card px-3.5 py-3">
         <h2 className="text-sm font-bold leading-snug">{headerTitle}</h2>
@@ -105,7 +109,7 @@ function BugListPanel({
                 className="mt-1 text-xs font-semibold text-primary"
                 onClick={onToggleDescription}
               >
-                {descriptionExpanded ? "閉じる" : "続きを読む"}
+                {descriptionExpanded ? t("runner.collapse") : t("runner.readMore")}
               </button>
             )}
           </div>
@@ -114,14 +118,14 @@ function BugListPanel({
           key={`${openCount}-${targets.length}`}
           className="mt-2 animate-in fade-in duration-200 text-xs font-semibold text-muted-foreground tabular-nums"
         >
-          <span className="text-foreground">{openCount}</span> / {targets.length} 未解決
+          {t("bug.openCount", { n: openCount, total: targets.length })}
         </p>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
         <ul className="py-1">
           {targets.length === 0 ? (
-            <li className="px-3.5 py-4 text-sm text-muted-foreground">対象バグがありません</li>
+            <li className="px-3.5 py-4 text-sm text-muted-foreground">{t("bug.noBugsInScope")}</li>
           ) : (
             targets.map((bug, index) => {
               const isActive = bugIndex === index && bugIndex >= 0;
@@ -170,7 +174,7 @@ function BugListPanel({
                       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         <span className="text-[0.72rem] font-bold text-primary">{bug.id}</span>
                         <span className="text-[0.68rem] text-muted-foreground">
-                          {BUG_STATUS_LABELS[bug.status]} · {BUG_SEVERITY_LABELS[bug.severity]}
+                          {statusLabels[bug.status]} · {severityLabels[bug.severity]}
                         </span>
                       </span>
                       <span className="mt-0.5 line-clamp-2 text-xs leading-relaxed font-medium text-foreground/90">
@@ -194,6 +198,7 @@ function BugListPanel({
 }
 
 export function BugTaskList() {
+  const { t } = useTranslation();
   const { definition, results, session } = useRunnerWorkspace();
   const { runnerFilters, bugId, setBugId, bugFilters } = useRunnerQueryState();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -243,7 +248,7 @@ export function BugTaskList() {
   };
 
   const headerTitle =
-    mode === "scenario" && scenario ? scenario.name : formatRunnerFilterTitle(definition, runnerFilters);
+    mode === "scenario" && scenario ? scenario.name : formatRunnerFilterTitle(definition, runnerFilters, t);
 
   const headerDescription =
     mode === "scenario" && scenario?.description ? scenario.description.trim() : undefined;
@@ -269,7 +274,7 @@ export function BugTaskList() {
         className="mb-2 md:hidden"
         onClick={() => setMobileOpen(true)}
       >
-        バグ一覧 ({targets.length})
+        {t("bug.list")} ({targets.length})
       </Button>
 
       <BugListPanel {...panelProps} className="hidden h-full min-h-0 w-84 shrink-0 md:flex" />
@@ -277,7 +282,7 @@ export function BugTaskList() {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-[min(100vw-1.5rem,22rem)] p-0">
           <SheetHeader className="sr-only">
-            <SheetTitle>バグ一覧</SheetTitle>
+            <SheetTitle>{t("bug.list")}</SheetTitle>
           </SheetHeader>
           <BugListPanel {...panelProps} className="h-full border-0 rounded-none bg-background" />
         </SheetContent>

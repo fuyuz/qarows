@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Outlet, useParams } from "react-router-dom";
-import { DocumentTitleSync } from "@qarows/ui";
+import { DocumentTitleSync, useTranslation } from "@qarows/ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { ProjectSyncProvider, useProjectSync } from "@/context/ProjectSyncContext";
@@ -22,6 +22,7 @@ const TestsEditPage = lazy(() =>
 );
 
 function ProjectWorkspaceShell() {
+  const { t } = useTranslation();
   const { ready, syncError, connected, syncNotice, definition } = useProjectSync();
 
   const titleSync = (
@@ -47,7 +48,7 @@ function ProjectWorkspaceShell() {
       <>
         {titleSync}
         <LoadingScreen
-          message={connected ? "同期データを読み込み中…" : "サーバーに接続中…"}
+          message={connected ? t("sync.loadingSync") : t("sync.connectingServer")}
         />
       </>
     );
@@ -83,7 +84,8 @@ export function ProjectWorkspaceLayout() {
 }
 
 function PageFallback() {
-  return <LoadingScreen message="画面を読み込み中…" />;
+  const { t } = useTranslation();
+  return <LoadingScreen message={t("sync.loadingPage")} />;
 }
 
 export function ProjectPageRouter() {

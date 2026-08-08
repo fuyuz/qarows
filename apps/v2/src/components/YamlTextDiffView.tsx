@@ -1,10 +1,11 @@
 import * as Diff from "diff";
 import { useMemo } from "react";
-import { cn } from "@qarows/ui";
+import { cn, useTranslation } from "@qarows/ui";
 
 const CONTEXT_LINES = 3;
 
 export function YamlTextDiffView({ before, after }: { before: string; after: string }) {
+  const { t } = useTranslation();
   const lines = useMemo(() => {
     const parts = Diff.diffLines(before, after);
     const rendered: { kind: "add" | "remove" | "context"; text: string }[] = [];
@@ -61,9 +62,7 @@ export function YamlTextDiffView({ before, after }: { before: string; after: str
           </div>
         ))}
       </pre>
-      <p className="border-t px-3 py-2 text-xs text-muted-foreground">
-        並び替えがある場合、削除と追加に見えることがあります。上の変更一覧も確認してください。
-      </p>
+      <p className="border-t px-3 py-2 text-xs text-muted-foreground">{t("definition.reorderHint")}</p>
     </div>
   );
 }

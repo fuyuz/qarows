@@ -1,7 +1,8 @@
 import type { Bug, BugStatus, TestCase, TestDefinition } from "@qarows/shared";
-import { BUG_SEVERITY_LABELS, BUG_STATUS_LABELS, getNextBugStatus } from "@qarows/shared";
+import { getNextBugStatus } from "@qarows/shared";
 import { Copy, Pencil } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useTranslation } from "@qarows/ui";
 import {
   RunnerCardFooter,
   testCardShellClass,
@@ -18,9 +19,10 @@ import {
   SelectValue,
 } from "@qarows/ui";
 import { formatBugMarkdown } from "../lib/format-bug-markdown";
+import { useBugLabels } from "../hooks/useBugLabels";
 import { cn } from "@qarows/ui";
 
-const BUG_STATUS_OPTIONS = Object.keys(BUG_STATUS_LABELS) as BugStatus[];
+const BUG_STATUS_OPTIONS: BugStatus[] = ["open", "in_progress", "fixed", "resolved", "wont_fix"];
 
 function severityBadgeClass(severity: Bug["severity"]): string {
   if (severity === "critical") return "border-transparent bg-red-600 text-white";
@@ -74,6 +76,8 @@ export function BugCard({
   onNavigateToTestCase?: () => void;
   busy?: boolean;
 } & RunnerCardNavProps) {
+  const { t } = useTranslation();
+  const { statusLabels, severityLabels } = useBugLabels();
   const [copied, setCopied] = useState(false);
   const nextStatus = getNextBugStatus(bug.status);
 
@@ -83,14 +87,14 @@ export function BugCard({
 
   const handleCopy = useCallback(async () => {
     try {
-      const markdown = formatBugMarkdown({ definition, bug, relatedTestCase });
+      const markdown = formatBugMarkdown({ definition, bug, relatedTestCase, t });
       await navigator.clipboard.writeText(markdown);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
-  }, [bug, definition, relatedTestCase]);
+  }, [bug, definition, relatedTestCase, t]);
 
   return (
     <article className={testCardShellClass()}>
@@ -100,10 +104,10 @@ export function BugCard({
             {bug.id}
           </Badge>
           <Badge className={severityBadgeClass(bug.severity)}>
-            {BUG_SEVERITY_LABELS[bug.severity]}
+            {severityLabels[bug.severity]}
           </Badge>
           <div className="flex min-w-36 items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">対応状況</span>
+            <span className="text-xs font-semibold text-muted-foreground">{t("bug.statusSection")}</span>
             <Select
               value={bug.status}
               disabled={busy}
@@ -115,7 +119,7 @@ export function BugCard({
               <SelectContent>
                 {BUG_STATUS_OPTIONS.map((status) => (
                   <SelectItem key={status} value={status}>
-                    {BUG_STATUS_LABELS[status]}
+                    {statusLabels[status]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -131,7 +135,7 @@ export function BugCard({
               onClick={onEdit}
             >
               <Pencil className="size-3.5" aria-hidden />
-              編集
+              {t("common.edit")}
             </Button>
             <Button
               type="button"
@@ -144,11 +148,11 @@ export function BugCard({
                   : "text-muted-foreground hover:text-foreground",
               )}
               disabled={busy}
-              aria-label={copied ? "クリップボードにコピー済み" : "Markdown をコピー"}
+              aria-label={copied ? t("runner.copyMarkdownDone") : t("runner.copyMarkdown")}
               onClick={() => void handleCopy()}
             >
               <Copy className="size-3.5" aria-hidden />
-              コピー
+              {copied ? t("common.copied") : t("common.copy")}
             </Button>
           </div>
         </div>
@@ -158,7 +162,7 @@ export function BugCard({
       <div className="min-h-0 flex-1 overflow-y-auto pt-5 pb-3">
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            関連テスト
+            {t("bug.relatedTests")}
           </h2>
           {relatedTestCase ? (
             <TestCaseHoverPreview testCase={relatedTestCase}>
@@ -166,7 +170,7 @@ export function BugCard({
                 <button
                   type="button"
                   className="inline-flex rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  title="クリックでテスト実行へ"
+                  title={t("bug.clickToRun")}
                   onClick={onNavigateToTestCase}
                 >
                   <Badge
@@ -190,13 +194,13 @@ export function BugCard({
               {bug.testCaseId}
             </Badge>
           ) : (
-            <p className="text-sm text-muted-foreground">なし</p>
+            <p className="text-sm text-muted-foreground">{t("common.none")}</p>
           )}
         </section>
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            対象端末 / 環境
+            {t("bug.targetEnvironments")}
           </h2>
           <p className="text-sm leading-relaxed text-foreground/90">{envNames || "—"}</p>
         </section>
@@ -204,17 +208,17 @@ export function BugCard({
         {bug.assignee && (
           <section className="mb-5">
             <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              担当者
+              {t("bug.assignee")}
             </h2>
             <p className="text-sm leading-relaxed text-foreground/90">{bug.assignee}</p>
           </section>
         )}
 
-        <BugField label="再現手順" value={bug.steps} />
-        <BugField label="期待" value={bug.expected} />
-        <BugField label="実際" value={bug.actual} placeholder="—" />
-        <BugField label="メモ" value={bug.memo} placeholder="—" />
-        {bug.fixNote && <BugField label="修正内容" value={bug.fixNote} />}
+        <BugField label={t("bug.reproSteps")} value={bug.steps} />
+        <BugField label={t("bug.expected")} value={bug.expected} />
+        <BugField label={t("bug.actual")} value={bug.actual} placeholder="—" />
+        <BugField label={t("runner.memo")} value={bug.memo} placeholder="—" />
+        {bug.fixNote && <BugField label={t("bug.fixNote")} value={bug.fixNote} />}
       </div>
 
       <RunnerCardFooter
@@ -232,7 +236,7 @@ export function BugCard({
             disabled={busy}
             onClick={onAdvanceStatus}
           >
-            {BUG_STATUS_LABELS[nextStatus]}にする
+            {t("bug.markAs", { status: statusLabels[nextStatus] })}
           </Button>
         )}
       </RunnerCardFooter>

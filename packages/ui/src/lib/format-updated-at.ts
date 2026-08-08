@@ -1,7 +1,7 @@
-export function formatUpdatedAtShort(iso: string): string {
+export function formatUpdatedAtShort(iso: string, localeTag = "en-US"): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString("ja-JP", {
+  return date.toLocaleString(localeTag, {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",

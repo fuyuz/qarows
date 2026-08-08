@@ -9,7 +9,15 @@ import {
   parseTestsYaml,
   serializeResultsJson,
 } from "@qarows/shared";
-import { classifyDroppedFiles, FileDropZone, ProjectImportShell, ProjectOverwriteDialog, Badge, Button } from "@qarows/ui";
+import {
+  classifyDroppedFiles,
+  FileDropZone,
+  ProjectImportShell,
+  ProjectOverwriteDialog,
+  Badge,
+  Button,
+  useTranslation,
+} from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { projectPath } from "@/lib/project-routes";
 import { readFileAsText, appendUniqueFiles, fileKey } from "@/lib/utils";
@@ -26,6 +34,7 @@ async function mergeResultsJsonStrings(yaml: string, jsons: string[]): Promise<s
 }
 
 export function ProjectImportPanel() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { loadProject, projectSummaries } = useApp();
 
@@ -58,12 +67,12 @@ export function ProjectImportPanel() {
           setResultsFiles((prev) => appendUniqueFiles(prev, results));
         }
         if (unknown.length > 0) {
-          showError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
+          showError(t("error.unsupportedFiles", { files: unknown.map((f) => f.name).join(", ") }));
         } else {
           setError(null);
         }
       } catch (err) {
-        showError(err instanceof Error ? err.message : "ファイルの展開に失敗しました");
+        showError(err instanceof Error ? err.message : t("error.extractFailed"));
       }
     })();
   };
@@ -78,13 +87,13 @@ export function ProjectImportPanel() {
     setError(null);
     try {
       const response = await fetch("/samples/tests.yml");
-      if (!response.ok) throw new Error("サンプルファイルの取得に失敗しました");
+      if (!response.ok) throw new Error(t("error.sampleFetchFailed"));
       const text = await response.text();
       const blob = new Blob([text], { type: "text/yaml" });
       setTestsFile(new File([blob], "tests.yml", { type: "text/yaml" }));
       setResultsFiles([]);
     } catch (err) {
-      showError(err instanceof Error ? err.message : "サンプルの読み込みに失敗しました");
+      showError(err instanceof Error ? err.message : t("error.sampleLoadFailed"));
     }
   };
 
@@ -121,7 +130,7 @@ export function ProjectImportPanel() {
 
       await finishImport(yaml, resultsJson);
     } catch (err) {
-      showError(err instanceof Error ? err.message : "読み込みに失敗しました");
+      showError(err instanceof Error ? err.message : t("error.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -134,7 +143,7 @@ export function ProjectImportPanel() {
     try {
       await finishImport(pendingImport.yaml, pendingImport.resultsJson);
     } catch (err) {
-      showError(err instanceof Error ? err.message : "読み込みに失敗しました");
+      showError(err instanceof Error ? err.message : t("error.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -143,28 +152,28 @@ export function ProjectImportPanel() {
   return (
     <>
       <ProjectImportShell
-        description="tests.yml と results.json（任意・複数可）、または zip を読み込みます"
+        description={t("project.importDescription")}
         error={error}
         errorShake={errorShake}
         footer={
           <>
             <Button disabled={!testsFile || loading} onClick={() => void performLoad()}>
-              {loading ? "読み込み中…" : "読み込む"}
+              {loading ? t("common.loadingAction") : t("common.load")}
             </Button>
             <Button variant="ghost" onClick={() => void loadSample()}>
-              サンプルを試す
+              {t("project.trySample")}
             </Button>
             {(testsFile || resultsFiles.length > 0) && (
               <Button variant="outline" onClick={clearLocalFiles}>
-                選択をクリア
+                {t("project.clearSelection")}
               </Button>
             )}
           </>
         }
       >
         <FileDropZone
-          title="ファイルをここにドロップ"
-          hint="tests.yml（必須）と results.json（任意・複数）、または zip を同時にドロップできます"
+          title={t("project.dropHere")}
+          hint={t("project.dropHintExtended")}
           accept=".yml,.yaml,.json,.zip"
           onFiles={applyInitialFiles}
         />
@@ -174,7 +183,7 @@ export function ProjectImportPanel() {
             {testsFile && (
               <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
                 <span className="break-all font-medium">{testsFile.name}</span>
-                <Badge>必須</Badge>
+                <Badge>{t("common.required")}</Badge>
               </li>
             )}
             {resultsFiles.map((file) => (
@@ -195,7 +204,7 @@ export function ProjectImportPanel() {
                       )
                     }
                   >
-                    削除
+                    {t("common.remove")}
                   </Button>
                 </div>
               </li>

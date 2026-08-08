@@ -19,14 +19,15 @@ import {
   DialogTitle,
   FileDropZone,
   Separator,
+  useTranslation,
 } from "@qarows/ui";
 import { getProject, type ProjectSnapshot } from "@/lib/api/projects";
 import { appendUniqueFiles, fileKey } from "@/lib/file-utils";
 
-function formatUpdatedAt(iso: string): string {
+function formatUpdatedAt(iso: string, localeTag: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString("ja-JP", {
+  return date.toLocaleString(localeTag, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -64,6 +65,7 @@ export function ProjectDetailPanel({
   onExportZip,
   onDelete,
 }: ProjectDetailPanelProps) {
+  const { t, localeTag } = useTranslation();
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [mergeFiles, setMergeFiles] = useState<File[]>([]);
   const [merging, setMerging] = useState(false);
@@ -77,22 +79,25 @@ export function ProjectDetailPanel({
   const snapshotCacheRef = useRef<Map<string, ProjectSnapshot>>(new Map());
   projectIdRef.current = projectId;
 
-  const loadSnapshot = useCallback(async (targetProjectId: string) => {
-    const cached = snapshotCacheRef.current.get(targetProjectId);
-    if (cached) {
-      setSnapshot(cached);
-    }
-    setError(null);
-    try {
-      const data = await getProject(targetProjectId);
-      if (projectIdRef.current !== targetProjectId) return;
-      snapshotCacheRef.current.set(targetProjectId, data);
-      setSnapshot(data);
-    } catch (err: unknown) {
-      if (projectIdRef.current !== targetProjectId) return;
-      setError(err instanceof Error ? err.message : "プロジェクトの取得に失敗しました");
-    }
-  }, []);
+  const loadSnapshot = useCallback(
+    async (targetProjectId: string) => {
+      const cached = snapshotCacheRef.current.get(targetProjectId);
+      if (cached) {
+        setSnapshot(cached);
+      }
+      setError(null);
+      try {
+        const data = await getProject(targetProjectId);
+        if (projectIdRef.current !== targetProjectId) return;
+        snapshotCacheRef.current.set(targetProjectId, data);
+        setSnapshot(data);
+      } catch (err: unknown) {
+        if (projectIdRef.current !== targetProjectId) return;
+        setError(err instanceof Error ? err.message : t("error.fetchProjectFailed"));
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     setSuccessMessage(null);
@@ -103,7 +108,7 @@ export function ProjectDetailPanel({
   const appendMergeFiles = (files: File[]) => {
     const { results, unknown } = classifyResultsFiles(files);
     if (unknown.length > 0) {
-      setError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
+      setError(t("error.unsupportedFiles", { files: unknown.map((f) => f.name).join(", ") }));
     } else {
       setError(null);
     }
@@ -121,10 +126,10 @@ export function ProjectDetailPanel({
       await onMerge(mergeFiles, snapshot.generation);
       const count = mergeFiles.length;
       setMergeFiles([]);
-      setSuccessMessage(`${count} 件の results.json を取り込みました`);
+      setSuccessMessage(t("project.importedResults", { n: count }));
       await loadSnapshot(projectId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "results.json の取り込みに失敗しました");
+      setError(err instanceof Error ? err.message : t("error.importResultsFailed"));
     } finally {
       setMerging(false);
     }
@@ -132,7 +137,7 @@ export function ProjectDetailPanel({
 
   const handleClear = async () => {
     if (!snapshot?.generation) {
-      setError("generation を取得できませんでした。再読み込みしてください");
+      setError(t("error.noGeneration"));
       return;
     }
     setClearing(true);
@@ -141,10 +146,10 @@ export function ProjectDetailPanel({
     try {
       await onClearResults(snapshot.generation);
       setClearDialogOpen(false);
-      setSuccessMessage("テスト結果をクリアしました");
+      setSuccessMessage(t("project.clearedResults"));
       await loadSnapshot(projectId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "テスト結果のクリアに失敗しました");
+      setError(err instanceof Error ? err.message : t("error.clearResultsFailed"));
     } finally {
       setClearing(false);
     }
@@ -157,7 +162,7 @@ export function ProjectDetailPanel({
       await onDelete();
       setDeleteDialogOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "プロジェクトの削除に失敗しました");
+      setError(err instanceof Error ? err.message : t("error.deleteProjectFailed"));
     } finally {
       setDeleting(false);
     }
@@ -173,16 +178,18 @@ export function ProjectDetailPanel({
               <CardDescription className="mt-1 font-mono text-xs">{projectId}</CardDescription>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {hasValidSession && <Badge>セッションあり</Badge>}
-              {isLastOpened && <Badge variant="secondary">前回</Badge>}
+              {hasValidSession && <Badge>{t("project.badgeSessionActive")}</Badge>}
+              {isLastOpened && <Badge variant="secondary">{t("project.badgeLastOpened")}</Badge>}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">最終更新: {formatUpdatedAt(updatedAt)}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("project.lastUpdated")} {formatUpdatedAt(updatedAt, localeTag)}
+          </p>
         </CardHeader>
         <CardContent className="min-h-0 flex-1 overflow-y-auto">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
-              <Button onClick={onContinue}>続ける</Button>
+              <Button onClick={onContinue}>{t("common.continue")}</Button>
               <Button variant="outline" onClick={() => void onExportYaml()}>
                 tests.yml
               </Button>
@@ -197,10 +204,10 @@ export function ProjectDetailPanel({
             <Separator />
 
             <div>
-              <p className="mb-2 text-sm font-medium">results.json をマージ</p>
+              <p className="mb-2 text-sm font-medium">{t("project.mergeResults")}</p>
               <FileDropZone
-                title="results.json をここにドロップ"
-                hint="複数ファイル可"
+                title={t("project.dropResults")}
+                hint={t("project.dropResultsHint")}
                 accept=".json,application/json"
                 onFiles={appendMergeFiles}
               />
@@ -221,16 +228,16 @@ export function ProjectDetailPanel({
                 disabled={mergeFiles.length === 0 || merging}
                 onClick={() => void handleMerge()}
               >
-                {merging ? "取り込み中…" : "取り込む"}
+                {merging ? t("common.importing") : t("common.import")}
               </Button>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <Button variant="destructive" size="sm" onClick={() => setClearDialogOpen(true)}>
-                結果をクリア
+                {t("project.clearResults")}
               </Button>
               <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
-                削除
+                {t("common.delete")}
               </Button>
             </div>
 
@@ -251,17 +258,15 @@ export function ProjectDetailPanel({
       <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>テスト結果をクリアしますか？</DialogTitle>
-            <DialogDescription>
-              「{name}」の実行結果、バグ、セッション設定を削除します。tests.yml の定義は残ります。
-            </DialogDescription>
+            <DialogTitle>{t("project.clearResultsTitle")}</DialogTitle>
+            <DialogDescription>{t("project.clearResultsBody", { name })}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
-              キャンセル
+              {t("common.cancel")}
             </Button>
             <Button variant="destructive" disabled={clearing} onClick={() => void handleClear()}>
-              {clearing ? "クリア中…" : "クリア"}
+              {clearing ? t("common.clearing") : t("common.clear")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -270,17 +275,17 @@ export function ProjectDetailPanel({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>プロジェクトを削除しますか？</DialogTitle>
+            <DialogTitle>{t("project.deleteTitle")}</DialogTitle>
             <DialogDescription>
-              「{name}」（id: {projectId}）の定義・結果・セッションをすべて削除します。元に戻せません。
+              {t("project.deleteBody", { name, id: projectId })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              キャンセル
+              {t("common.cancel")}
             </Button>
             <Button variant="destructive" disabled={deleting} onClick={() => void handleDelete()}>
-              {deleting ? "削除中…" : "削除"}
+              {deleting ? t("common.deleting") : t("common.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

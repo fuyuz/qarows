@@ -116,4 +116,11 @@ export {
   type AppNavigationPage,
   type DocumentTitleSyncProps,
   useAppNavigationShortcuts,
+  I18nProvider,
+  useI18n,
+  useTranslation,
+  LanguageSwitcher,
+  appNavLabel,
+  type I18nProviderProps,
+  type LanguageSwitcherProps,
 } from "./workspace";

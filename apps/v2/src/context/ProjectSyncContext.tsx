@@ -23,6 +23,7 @@ import {
   type ProjectCommand,
   type ProjectEvent,
 } from "@qarows/application";
+import { useTranslation } from "@qarows/ui";
 import { createTeamWorkspaceController } from "@/lib/adapters/create-team-workspace";
 import {
   buildLocalSession,
@@ -76,6 +77,7 @@ export function ProjectSyncProvider({
   projectId: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [connected, setConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("idle");
@@ -189,7 +191,7 @@ export function ProjectSyncProvider({
           setReady(true);
           readyRef.current = true;
           setSyncError(null);
-          setSyncNotice("tests.ymlが更新されました");
+          setSyncNotice(t("sync.yamlUpdated"));
           setLastUpdatedTestId(null);
           if (noticeClearTimerRef.current) clearTimeout(noticeClearTimerRef.current);
           noticeClearTimerRef.current = setTimeout(() => setSyncNotice(null), 8000);
@@ -232,12 +234,12 @@ export function ProjectSyncProvider({
         const activated = await workspace.controller.activateProject(projectId);
         if (cancelled) return;
         if (!activated) {
-          setSyncError("プロジェクトが見つかりません");
+          setSyncError(t("project.notFound"));
         }
       } catch (err) {
         if (cancelled) return;
         setSyncError(
-          err instanceof Error ? err.message : "プロジェクトの読み込みに失敗しました",
+          err instanceof Error ? err.message : t("error.loadProjectFailed"),
         );
       }
     })();
@@ -248,7 +250,7 @@ export function ProjectSyncProvider({
       workspace.controller.deactivateProject();
       workspaceRef.current = null;
     };
-  }, [applySnapshotState, markTestUpdated, projectId, pulseSyncIndicator]);
+  }, [applySnapshotState, markTestUpdated, projectId, pulseSyncIndicator, t]);
 
   const dispatch = useCallback(async (command: ProjectCommand) => {
     const workspace = workspaceRef.current;

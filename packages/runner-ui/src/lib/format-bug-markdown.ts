@@ -1,20 +1,25 @@
 import {
-  BUG_SEVERITY_LABELS,
-  BUG_STATUS_LABELS,
+  bugSeverityLabels,
+  bugStatusLabels,
   type Bug,
   type TestCase,
   type TestDefinition,
+  type TranslateFn,
 } from "@qarows/shared";
 
 export function formatBugMarkdown({
   definition,
   bug,
   relatedTestCase,
+  t,
 }: {
   definition: TestDefinition;
   bug: Bug;
   relatedTestCase?: TestCase;
+  t: TranslateFn;
 }): string {
+  const statusLabels = bugStatusLabels(t);
+  const severityLabels = bugSeverityLabels(t);
   const projectId = definition.project.id ?? definition.project.name;
   const envNameById = new Map(definition.environments.map((env) => [env.id, env.name]));
   const envNames = (bug.environmentIds ?? []).map((id) => envNameById.get(id) ?? id);
@@ -28,8 +33,8 @@ export function formatBugMarkdown({
     bug.title,
     "",
     "## Status",
-    `- Status: ${bug.status} (${BUG_STATUS_LABELS[bug.status]})`,
-    `- Severity: ${bug.severity} (${BUG_SEVERITY_LABELS[bug.severity]})`,
+    `- Status: ${bug.status} (${statusLabels[bug.status]})`,
+    `- Severity: ${bug.severity} (${severityLabels[bug.severity]})`,
   ];
 
   if (bug.assignee) {

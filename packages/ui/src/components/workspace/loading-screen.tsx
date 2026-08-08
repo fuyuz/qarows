@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n/context";
 import { BrandLockup } from "./brand-lockup";
 
 export function LoadingScreen({
@@ -9,7 +10,8 @@ export function LoadingScreen({
   /** @deprecated Use `message` */
   label?: string;
 }) {
-  const text = message ?? label ?? "読み込み中…";
+  const { t } = useTranslation();
+  const text = message ?? label ?? t("common.loading");
 
   return (
     <main
@@ -29,7 +31,7 @@ export function LoadingScreen({
       />
 
       <div className="relative flex w-full max-w-sm animate-in fade-in duration-300 flex-col items-center gap-8">
-        <BrandLockup align="center" subtitle="QA シート特化ツール" />
+        <BrandLockup align="center" subtitle={t("common.brandSubtitle")} />
 
         <div className="w-full space-y-3" role="status" aria-live="polite" aria-label={text}>
           <div

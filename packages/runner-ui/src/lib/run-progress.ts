@@ -3,9 +3,11 @@ import {
   isTestIncomplete,
   resolveIncompleteCheckTargets,
   aggregateValidTestStatus,
+  type Locale,
   type TestDefinition,
   type TestResults,
   type TestStatus,
+  type TranslateFn,
 } from "@qarows/shared";
 
 export type ProgressBucket = TestStatus | "incomplete";
@@ -88,12 +90,18 @@ export function computeRunProgressForTestCases(
 /** プログレスバー上の表示順 */
 export const PROGRESS_SEGMENT_ORDER: ProgressBucket[] = ["OK", "SKIP", "NG", "incomplete"];
 
-export const PROGRESS_SEGMENT_LABELS: Record<ProgressBucket, string> = {
-  OK: "OK",
-  NG: "NG",
-  SKIP: "SKIP",
-  incomplete: "未実施",
-};
+export function progressSegmentLabels(t: TranslateFn): Record<ProgressBucket, string> {
+  return {
+    OK: "OK",
+    NG: "NG",
+    SKIP: "SKIP",
+    incomplete: t("runner.notRun"),
+  };
+}
+
+function sortLocaleTag(locale?: Locale | string): string {
+  return locale === "en" ? "en" : "ja";
+}
 
 export function getAllEnvironmentIds(definition: TestDefinition): string[] {
   return definition.environments.map((env) => env.id);
@@ -108,6 +116,7 @@ export function computeCategoryProgress(
   definition: TestDefinition,
   environmentIds: string[],
   results: TestResults,
+  locale?: Locale | string,
 ): CategoryProgressRow[] {
   const byMajor = new Map<string, Array<{ id: string }>>();
 
@@ -118,8 +127,9 @@ export function computeCategoryProgress(
     byMajor.set(testCase.category.major, list);
   }
 
+  const localeTag = sortLocaleTag(locale);
   return [...byMajor.entries()]
-    .sort(([a], [b]) => a.localeCompare(b, "ja"))
+    .sort(([a], [b]) => a.localeCompare(b, localeTag))
     .map(([major, cases]) => ({
       major,
       stats: computeRunProgressForTestCases(cases, definition, environmentIds, results),

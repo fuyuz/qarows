@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useTranslation } from "@qarows/ui";
 import {
-  PROGRESS_SEGMENT_LABELS,
+  progressSegmentLabels,
   PROGRESS_SEGMENT_ORDER,
   type ProgressBucket,
   type RunProgressStats,
@@ -25,11 +26,11 @@ function bucketClass(bucket: ProgressBucket): string {
   return progressBucketBgClass(bucket);
 }
 
-export function progressSummary(stats: RunProgressStats): string {
-  if (stats.total === 0) return "0 件";
+export function progressSummary(stats: RunProgressStats, t: ReturnType<typeof useTranslation>["t"]): string {
+  if (stats.total === 0) return t("common.zeroItems");
   const remaining = stats.total - stats.completed;
-  const base = `${stats.completed} / ${stats.total} 完了`;
-  return remaining > 0 ? `${base}（残り ${remaining}）` : base;
+  const base = t("common.countDone", { done: stats.completed, total: stats.total });
+  return remaining > 0 ? `${base}${t("common.countLeftParen", { n: remaining })}` : base;
 }
 
 export function ProgressTrack({
@@ -39,6 +40,7 @@ export function ProgressTrack({
   onHoverBucket,
   onHoverTrack,
   className,
+  summaryText,
 }: {
   stats: RunProgressStats;
   labelId?: string;
@@ -46,6 +48,7 @@ export function ProgressTrack({
   onHoverBucket?: (bucket: ProgressBucket, anchorX: number) => void;
   onHoverTrack?: (anchorX: number) => void;
   className?: string;
+  summaryText?: string;
 }) {
   if (stats.total === 0) {
     return (
@@ -71,7 +74,7 @@ export function ProgressTrack({
       aria-valuenow={stats.completed}
       aria-valuemin={0}
       aria-valuemax={stats.total}
-      aria-label={progressSummary(stats)}
+      aria-label={summaryText}
     >
       {PROGRESS_SEGMENT_ORDER.map((key) => {
         const widthPct = (stats.buckets[key] / stats.total) * 100;
@@ -110,9 +113,12 @@ export function ProgressRow({
   stats: RunProgressStats;
   showTooltip?: boolean;
 }) {
+  const { t } = useTranslation();
+  const segmentLabels = progressSegmentLabels(t);
   const [hover, setHover] = useState<{ bucket: ProgressBucket | null; anchorX: number } | null>(
     null,
   );
+  const summary = progressSummary(stats, t);
 
   return (
     <div className="flex flex-col gap-1">
@@ -127,7 +133,10 @@ export function ProgressRow({
           <span className="text-foreground">{stats.completed}</span>
           <span className="text-muted-foreground"> / {stats.total}</span>
           {stats.total - stats.completed > 0 && (
-            <span className="text-primary"> 残り {stats.total - stats.completed}</span>
+            <span className="text-primary">
+              {" "}
+              {t("common.countLeft", { n: stats.total - stats.completed })}
+            </span>
           )}
         </span>
       </div>
@@ -139,16 +148,20 @@ export function ProgressRow({
           >
             {hover.bucket != null && (
               <span className="font-semibold">
-                {PROGRESS_SEGMENT_LABELS[hover.bucket]} {stats.buckets[hover.bucket]}件
+                {t("runner.progressBucketCount", {
+                  label: segmentLabels[hover.bucket],
+                  n: stats.buckets[hover.bucket],
+                })}
               </span>
             )}
-            <span className="text-[0.68rem] text-stone-300">{progressSummary(stats)}</span>
+            <span className="text-[0.68rem] text-stone-300">{summary}</span>
           </div>
         )}
         <ProgressTrack
           stats={stats}
           labelId={id}
           hoveredBucket={hover?.bucket ?? null}
+          summaryText={summary}
           onHoverBucket={(bucket, anchorX) => setHover({ bucket, anchorX })}
           onHoverTrack={(anchorX) => setHover({ bucket: null, anchorX })}
         />

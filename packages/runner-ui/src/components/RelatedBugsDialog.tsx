@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@qarows/ui";
+import { useTranslation } from "@qarows/ui";
 import { isRunnerTypingTarget } from "../lib/runner-keybindings";
 import { useProjectRoutes } from "../hooks/useProjectRoutes";
 import { cn } from "@qarows/ui";
@@ -57,6 +58,7 @@ export function RelatedBugsDialog({
   onSave: (bug: Bug) => void | Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState<BugDialogDraft>(() =>
     bugs[0] != null ? bugToDraft(bugs[0]) : emptyRelatedBugDraft(),
@@ -163,9 +165,9 @@ export function RelatedBugsDialog({
         <DialogHeader className="shrink-0 border-b px-6 py-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <DialogTitle>関連するバグ</DialogTitle>
+              <DialogTitle>{t("bug.relatedTitle")}</DialogTitle>
               <DialogDescription>
-                {testCase.id} に紐づく起票済みバグ（{bugs.length} 件）
+                {t("bug.relatedCount", { id: testCase.id, n: bugs.length })}
               </DialogDescription>
             </div>
             {hasMultiple && (
@@ -175,7 +177,7 @@ export function RelatedBugsDialog({
                   variant="outline"
                   size="icon"
                   className="size-8"
-                  aria-label="前のバグ"
+                  aria-label={t("bug.prevBug")}
                   disabled={busy}
                   onClick={goPrev}
                 >
@@ -189,7 +191,7 @@ export function RelatedBugsDialog({
                   variant="outline"
                   size="icon"
                   className="size-8"
-                  aria-label="次のバグ"
+                  aria-label={t("bug.nextBug")}
                   disabled={busy}
                   onClick={goNext}
                 >
@@ -199,12 +201,7 @@ export function RelatedBugsDialog({
             )}
           </div>
           {hasMultiple && (
-            <p className="text-xs text-muted-foreground">
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-sans text-[0.7rem]">h</kbd>
-              {" / "}
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-sans text-[0.7rem]">l</kbd>
-              {" で切り替え"}
-            </p>
+            <p className="text-xs text-muted-foreground">{t("bug.switchHl")}</p>
           )}
         </DialogHeader>
 
@@ -231,7 +228,7 @@ export function RelatedBugsDialog({
         <DialogFooter className="shrink-0 border-t px-6 py-4">
           <div className="flex w-full justify-end gap-2">
             <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
-              閉じる
+              {t("common.close")}
             </Button>
             <Button
               type="button"
@@ -239,7 +236,7 @@ export function RelatedBugsDialog({
               className={cn(busy && "opacity-70")}
               onClick={() => void handleSave()}
             >
-              保存
+              {t("common.save")}
             </Button>
           </div>
         </DialogFooter>

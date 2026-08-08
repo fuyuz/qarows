@@ -17,6 +17,7 @@ import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useProjectRoutes } from "../hooks/useProjectRoutes";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import { StatusBadge } from "@qarows/ui";
+import { useTranslation } from "@qarows/ui";
 import { canJumpToRunner } from "../lib/jump-to-runner";
 import { cn } from "@qarows/ui";
 
@@ -99,6 +100,7 @@ export function TestMatrixTable({
 }: {
   testCases: TestCase[];
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { definition, results, session } = useRunnerWorkspace();
   const { runnerFilters } = useRunnerQueryState();
@@ -132,13 +134,13 @@ export function TestMatrixTable({
       }),
       helper.accessor((row) => row.category.major, {
         id: "major",
-        header: "大項目",
+        header: t("runner.majorCol"),
         size: COLUMN_SIZES.major,
         cell: (info) => <span className="text-xs">{info.getValue()}</span>,
       }),
       helper.accessor((row) => row.category.medium ?? "", {
         id: "medium",
-        header: "中項目",
+        header: t("runner.mediumCol"),
         size: COLUMN_SIZES.medium,
         cell: (info) => (
           <span className="text-xs text-muted-foreground">{info.getValue() || "—"}</span>
@@ -146,7 +148,7 @@ export function TestMatrixTable({
       }),
       helper.accessor((row) => row.category.minor ?? "", {
         id: "minor",
-        header: "小項目",
+        header: t("runner.minorCol"),
         size: COLUMN_SIZES.minor,
         cell: (info) => (
           <span className="text-xs text-muted-foreground">{info.getValue() || "—"}</span>
@@ -154,7 +156,7 @@ export function TestMatrixTable({
       }),
       helper.accessor("description", {
         id: "description",
-        header: "確認内容",
+        header: t("runner.steps"),
         size: COLUMN_SIZES.description,
         cell: (info) => (
           <span className="block max-w-[160px] truncate text-xs" title={info.getValue()}>
@@ -186,7 +188,7 @@ export function TestMatrixTable({
     );
 
     return [...metaColumns, ...envColumns];
-  }, [definition, results, targetEnvIdsByTestCase]);
+  }, [definition, results, t, targetEnvIdsByTestCase]);
 
   const table = useReactTable({
     data: testCases,
@@ -225,7 +227,7 @@ export function TestMatrixTable({
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border bg-card py-12 text-center text-sm text-muted-foreground">
-        該当するテストがありません
+        {t("runner.noMatchingTests")}
       </div>
     );
   }
@@ -302,10 +304,10 @@ export function TestMatrixTable({
                 }}
                 title={
                   jumpable
-                    ? "クリックでテスト実行へ"
+                    ? t("runner.clickToRun")
                     : session
-                      ? "セッションの対象外"
-                      : "セッション設定が必要"
+                      ? t("runner.outOfSession")
+                      : t("runner.sessionRequired")
                 }
               >
                 {row.getVisibleCells().map((cell) => (

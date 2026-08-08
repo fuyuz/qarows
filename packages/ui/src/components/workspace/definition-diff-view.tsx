@@ -2,20 +2,23 @@ import type { DefinitionDiff } from "@qarows/shared";
 import { definitionDiffSummary } from "@qarows/shared";
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/cn";
+import { useTranslation } from "../../i18n/context";
 
 export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
+  const { t } = useTranslation();
+
   if (!diff.hasChanges) {
-    return <p className="text-sm text-muted-foreground">変更はありません。</p>;
+    return <p className="text-sm text-muted-foreground">{t("definition.noDiff")}</p>;
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm font-medium">{definitionDiffSummary(diff)}</p>
+      <p className="text-sm font-medium">{definitionDiffSummary(diff, t)}</p>
 
       {diff.project.length > 0 && (
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            プロジェクト
+            {t("definition.project")}
           </h3>
           {diff.project.map((change) => (
             <FieldChangeRow key={change.field} change={change} />
@@ -28,12 +31,12 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
         diff.environments.modified.length > 0) && (
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            端末 / 環境
+            {t("definition.environments")}
           </h3>
           {diff.environments.added.map((env) => (
             <div key={env.id} className="rounded-md border border-green-200 bg-green-50/80 px-3 py-2 text-sm">
               <Badge variant="secondary" className="mr-2 bg-green-100 text-green-900">
-                追加
+                {t("definition.added")}
               </Badge>
               {env.id} — {env.name}
             </div>
@@ -44,7 +47,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-red-200 bg-red-50/80 px-3 py-2 text-sm line-through"
             >
               <Badge variant="secondary" className="mr-2 bg-red-100 text-red-900">
-                削除
+                {t("definition.removed")}
               </Badge>
               {id}
             </div>
@@ -55,7 +58,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm"
             >
               <Badge variant="secondary" className="mr-2 bg-amber-100 text-amber-950">
-                変更
+                {t("definition.changed")}
               </Badge>
               {env.id}
               {env.fields.map((field) => (
@@ -71,7 +74,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
         diff.testCases.modified.length > 0) && (
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            テストケース
+            {t("definition.testCases")}
           </h3>
           {diff.testCases.added.map((tc) => (
             <div
@@ -79,7 +82,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-green-200 bg-green-50/80 px-3 py-2 text-sm"
             >
               <Badge variant="secondary" className="mr-2 bg-green-100 text-green-900">
-                追加
+                {t("definition.added")}
               </Badge>
               <span className="font-medium">{tc.id}</span>
               <p className="mt-1 text-muted-foreground">{tc.description}</p>
@@ -91,7 +94,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-red-200 bg-red-50/80 px-3 py-2 text-sm line-through"
             >
               <Badge variant="secondary" className="mr-2 bg-red-100 text-red-900">
-                削除
+                {t("definition.removed")}
               </Badge>
               {id}
             </div>
@@ -102,7 +105,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm"
             >
               <Badge variant="secondary" className="mr-2 bg-amber-100 text-amber-950">
-                変更
+                {t("definition.changed")}
               </Badge>
               <span className="font-medium">{tc.id}</span>
               {tc.fields.map((field) => (
@@ -118,7 +121,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
         diff.scenarios.modified.length > 0) && (
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            シナリオ
+            {t("definition.scenarios")}
           </h3>
           {diff.scenarios.added.map((scenario) => (
             <div
@@ -126,7 +129,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-green-200 bg-green-50/80 px-3 py-2 text-sm"
             >
               <Badge variant="secondary" className="mr-2 bg-green-100 text-green-900">
-                追加
+                {t("definition.added")}
               </Badge>
               {scenario.id} — {scenario.name}
               <p className="mt-1 text-xs text-muted-foreground">
@@ -140,7 +143,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-red-200 bg-red-50/80 px-3 py-2 text-sm line-through"
             >
               <Badge variant="secondary" className="mr-2 bg-red-100 text-red-900">
-                削除
+                {t("definition.removed")}
               </Badge>
               {id}
             </div>
@@ -151,7 +154,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
               className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2 text-sm"
             >
               <Badge variant="secondary" className="mr-2 bg-amber-100 text-amber-950">
-                変更
+                {t("definition.changed")}
               </Badge>
               <span className="font-medium">{scenario.id}</span>
               {scenario.fields.map((field) => (
@@ -164,7 +167,7 @@ export function DefinitionDiffView({ diff }: { diff: DefinitionDiff }) {
 
       {diff.categoryTargets ? (
         <section className="space-y-1 text-sm text-muted-foreground">
-          <p>categoryTargets に変更があります</p>
+          <p>{t("definition.categoryTargetsChanged")}</p>
         </section>
       ) : null}
     </div>

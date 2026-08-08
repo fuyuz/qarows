@@ -47,6 +47,7 @@ export {
   APP_NAV_KEYBINDINGS,
   APP_NAV_LABELS,
   APP_NAV_PAGES,
+  appNavLabel,
   formatAppNavShortcut,
   formatAppNavShortcutForPage,
   isKeyboardTypingTarget,
@@ -66,3 +67,11 @@ export {
   type DocumentTitleSyncProps,
 } from "./components/document-title-sync";
 export { useAppNavigationShortcuts } from "./hooks/use-app-navigation-shortcuts";
+export {
+  I18nProvider,
+  useI18n,
+  useTranslation,
+  LanguageSwitcher,
+  type I18nProviderProps,
+  type LanguageSwitcherProps,
+} from "./i18n";

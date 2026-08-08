@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "@qarows/ui";
 import { RunnerCardFooter, testCardShellClass, type RunnerCardNavProps } from "./RunnerCardFooter";
 import { Badge } from "@qarows/ui";
 import { Button } from "@qarows/ui";
@@ -8,6 +9,7 @@ export function RunnerCompleteCard({
   testCount,
   ...navProps
 }: { testCount: number } & RunnerCardNavProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { path } = useProjectRoutes();
 
@@ -16,29 +18,27 @@ export function RunnerCompleteCard({
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         <header className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b pb-3.5">
           <Badge className="border-transparent bg-green-100 font-bold text-green-800 hover:bg-green-100">
-            完了
+            {t("runner.completeTitle")}
           </Badge>
-          <span className="text-sm text-muted-foreground">スコープ完了</span>
+          <span className="text-sm text-muted-foreground">{t("runner.scopeComplete")}</span>
         </header>
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            入力完了
+            {t("runner.inputComplete")}
           </h2>
           <p className="text-base leading-relaxed font-medium">
             {testCount > 0
-              ? `表示中の ${testCount} 件すべてに結果を記録しました。`
-              : "対象のテストはありませんでした。"}
+              ? t("runner.allRecorded", { n: testCount })
+              : t("runner.noTestsInScope")}
           </p>
         </section>
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            次の操作
+            {t("runner.nextSteps")}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            結果は自動保存されています。上部のフィルタを変えて続けるか、セッション設定からエクスポートできます。
-          </p>
+          <p className="text-sm text-muted-foreground">{t("runner.completeNextStepsBody")}</p>
         </section>
 
         <section className="flex flex-wrap gap-2">
@@ -49,7 +49,7 @@ export function RunnerCompleteCard({
             className="font-semibold"
             onClick={() => navigate(path("session"))}
           >
-            セッション設定へ
+            {t("runner.goToSession")}
           </Button>
         </section>
       </div>

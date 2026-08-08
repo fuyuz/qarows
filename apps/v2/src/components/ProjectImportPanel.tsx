@@ -10,6 +10,7 @@ import {
   Label,
   ProjectImportShell,
   ProjectOverwriteDialog,
+  useTranslation,
 } from "@qarows/ui";
 import { useProjects } from "@/context/ProjectsContext";
 import { ApiError } from "@/lib/api/client";
@@ -17,6 +18,7 @@ import { projectPath } from "@/lib/project-routes";
 import { appendUniqueFiles, fileKey, readFileAsText } from "@/lib/file-utils";
 
 export function ProjectImportPanel() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { importProject, createNamedProject, projectSummaries } = useProjects();
 
@@ -50,12 +52,12 @@ export function ProjectImportPanel() {
           setResultsFiles((prev) => appendUniqueFiles(prev, results));
         }
         if (unknown.length > 0) {
-          showError(`未対応のファイル: ${unknown.map((f) => f.name).join(", ")}`);
+          showError(t("error.unsupportedFiles", { files: unknown.map((f) => f.name).join(", ") }));
         } else {
           setError(null);
         }
       } catch (err) {
-        showError(err instanceof Error ? err.message : "ファイルの展開に失敗しました");
+        showError(err instanceof Error ? err.message : t("error.extractFailed"));
       }
     })();
   };
@@ -70,12 +72,12 @@ export function ProjectImportPanel() {
     setError(null);
     try {
       const response = await fetch("/samples/tests.yml");
-      if (!response.ok) throw new Error("サンプルファイルの取得に失敗しました");
+      if (!response.ok) throw new Error(t("error.sampleFetchFailed"));
       const text = await response.text();
       const blob = new Blob([text], { type: "text/yaml" });
       setTestsFile(new File([blob], "tests.yml", { type: "text/yaml" }));
     } catch (err) {
-      showError(err instanceof Error ? err.message : "サンプルの読み込みに失敗しました");
+      showError(err instanceof Error ? err.message : t("error.sampleLoadFailed"));
     }
   };
 
@@ -121,9 +123,9 @@ export function ProjectImportPanel() {
       await finishImport(yaml, resultsJsonList);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        showError("同じ id のプロジェクトが既に存在します");
+        showError(t("project.duplicateId"));
       } else {
-        showError(err instanceof Error ? err.message : "読み込みに失敗しました");
+        showError(err instanceof Error ? err.message : t("error.loadFailed"));
       }
     } finally {
       setLoading(false);
@@ -141,7 +143,7 @@ export function ProjectImportPanel() {
         pendingImport.projectId,
       );
     } catch (err) {
-      showError(err instanceof Error ? err.message : "読み込みに失敗しました");
+      showError(err instanceof Error ? err.message : t("error.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -150,7 +152,7 @@ export function ProjectImportPanel() {
   const handleCreateEmpty = async () => {
     const name = projectName.trim();
     if (!name) {
-      showError("プロジェクト名を入力してください");
+      showError(t("error.enterProjectName"));
       return;
     }
     setLoading(true);
@@ -160,7 +162,7 @@ export function ProjectImportPanel() {
       setProjectName("");
       navigate(projectPath(projectId, "session"));
     } catch (err) {
-      showError(err instanceof Error ? err.message : "プロジェクトの作成に失敗しました");
+      showError(err instanceof Error ? err.message : t("error.createProjectFailed"));
     } finally {
       setLoading(false);
     }
@@ -169,20 +171,20 @@ export function ProjectImportPanel() {
   return (
     <>
       <ProjectImportShell
-        description="tests.yml と results.json（任意・複数可）、または zip をアップロードするか、空のプロジェクトを作成します"
+        description={t("project.importDescriptionTeam")}
         error={error}
         errorShake={errorShake}
         footer={
           <>
             <Button disabled={!testsFile || loading} onClick={() => void performLoad()}>
-              {loading ? "読み込み中…" : "読み込む"}
+              {loading ? t("common.loadingAction") : t("common.load")}
             </Button>
             <Button variant="ghost" onClick={() => void loadSample()}>
-              サンプルを試す
+              {t("project.trySample")}
             </Button>
             {(testsFile || resultsFiles.length > 0) && (
               <Button variant="outline" onClick={clearLocalFiles}>
-                選択をクリア
+                {t("project.clearSelection")}
               </Button>
             )}
           </>
@@ -190,16 +192,14 @@ export function ProjectImportPanel() {
         extra={
           <div className="mt-8 rounded-lg border bg-muted/20 px-4 py-4">
             <Label htmlFor="empty-project-name" className="text-sm font-medium">
-              空のプロジェクト
+              {t("project.emptyProject")}
             </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              最小構成の tests.yml をサーバー側で生成します
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("project.emptyProjectHint")}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Input
                 id="empty-project-name"
                 value={projectName}
-                placeholder="プロジェクト名"
+                placeholder={t("project.projectNamePlaceholder")}
                 onChange={(event) => setProjectName(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") void handleCreateEmpty();
@@ -211,15 +211,15 @@ export function ProjectImportPanel() {
                 disabled={loading || !projectName.trim()}
                 onClick={() => void handleCreateEmpty()}
               >
-                作成
+                {t("project.createEmpty")}
               </Button>
             </div>
           </div>
         }
       >
         <FileDropZone
-          title="ファイルをここにドロップ"
-          hint="tests.yml（必須）と results.json（任意・複数）、または zip を同時にドロップできます"
+          title={t("project.dropHere")}
+          hint={t("project.dropHintExtended")}
           accept=".yml,.yaml,.json,application/json,.zip"
           onFiles={applyInitialFiles}
         />
@@ -229,7 +229,7 @@ export function ProjectImportPanel() {
             {testsFile && (
               <li className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-sm">
                 <span className="break-all font-medium">{testsFile.name}</span>
-                <Badge>必須</Badge>
+                <Badge>{t("common.required")}</Badge>
               </li>
             )}
             {resultsFiles.map((file) => (

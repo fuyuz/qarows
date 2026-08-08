@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TestCase, TestScenario } from "@qarows/shared";
+import { useTranslation } from "@qarows/ui";
 import {
   Button,
   Input,
@@ -31,6 +32,7 @@ export function DefinitionScenariosPanel({
   onRemove: (scenarioId: string) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [newId, setNewId] = useState("");
   const [newName, setNewName] = useState("");
@@ -48,16 +50,16 @@ export function DefinitionScenariosPanel({
   const handleAdd = () => {
     const id = newId.trim();
     if (!id) {
-      setIdError("ID を入力してください");
+      setIdError(t("definition.errIdRequired"));
       return;
     }
     if (scenarios.some((s) => s.id === id)) {
-      setIdError(`ID「${id}」は既に使われています`);
+      setIdError(t("definition.errIdDuplicate", { id }));
       return;
     }
     const stepId = newStepId.trim() || testCaseIds[0];
     if (!stepId) {
-      setIdError("ステップに追加するテストケースがありません");
+      setIdError(t("definition.noStepsToAdd"));
       return;
     }
     onAdd({
@@ -99,13 +101,13 @@ export function DefinitionScenariosPanel({
         aria-expanded={open}
       >
         {open ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
-        <span>シナリオ</span>
-        <span className="text-xs font-normal text-muted-foreground">{scenarios.length} 件</span>
+        <span>{t("definition.scenarioTitle")}</span>
+        <span className="text-xs font-normal text-muted-foreground">{t("common.count", { n: scenarios.length })}</span>
       </button>
       {open ? (
         <div className="space-y-4 border-t border-border/60 px-4 py-3">
           {scenarios.length === 0 ? (
-            <p className="text-sm text-muted-foreground">シナリオはまだありません</p>
+            <p className="text-sm text-muted-foreground">{t("definition.noScenarios")}</p>
           ) : (
             scenarios.map((scenario) => (
               <ScenarioEditor
@@ -125,7 +127,7 @@ export function DefinitionScenariosPanel({
           )}
 
           <div className="space-y-2 border-t border-dashed border-border/60 pt-3">
-            <p className="text-xs font-medium text-muted-foreground">シナリオを追加</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("definition.addScenario")}</p>
             <div className="flex flex-wrap items-end gap-2">
               <div className="grid min-w-[8rem] flex-1 gap-1">
                 <Label className="text-xs text-muted-foreground" htmlFor="definition-scenario-new-id">
@@ -150,11 +152,11 @@ export function DefinitionScenariosPanel({
                 />
               </div>
               <div className="grid min-w-[10rem] flex-[2] gap-1">
-                <Label className="text-xs text-muted-foreground">名前</Label>
+                <Label className="text-xs text-muted-foreground">{t("definition.scenarioName")}</Label>
                 <Input
                   value={newName}
                   className="h-8"
-                  placeholder="スモーク"
+                  placeholder={t("definition.smokePlaceholder")}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -165,14 +167,14 @@ export function DefinitionScenariosPanel({
                 />
               </div>
               <div className="grid min-w-[12rem] flex-[2] gap-1">
-                <Label className="text-xs text-muted-foreground">最初のステップ</Label>
+                <Label className="text-xs text-muted-foreground">{t("definition.firstStep")}</Label>
                 <Select
                   value={newStepId || testCaseIds[0] || ""}
                   onValueChange={setNewStepId}
                   disabled={testCaseIds.length === 0}
                 >
                   <SelectTrigger className="h-8">
-                    <SelectValue placeholder="テストケース" />
+                    <SelectValue placeholder={t("definition.selectTestCase")} />
                   </SelectTrigger>
                   <SelectContent>
                     {testCaseIds.map((id) => (
@@ -192,7 +194,7 @@ export function DefinitionScenariosPanel({
                 disabled={!newId.trim() || testCaseIds.length === 0}
               >
                 <Plus className="mr-1 size-3.5" />
-                追加
+                {t("common.add")}
               </Button>
             </div>
             {idError ? <p className="text-sm text-destructive">{idError}</p> : null}
@@ -226,6 +228,7 @@ function ScenarioEditor({
   onRemoveStep: (scenario: TestScenario, index: number) => void;
   onAddStep: (scenario: TestScenario, stepId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [idDraft, setIdDraft] = useState(scenario.id);
   const [addStepId, setAddStepId] = useState("");
   const [idError, setIdError] = useState<string | null>(null);
@@ -243,7 +246,7 @@ function ScenarioEditor({
       return;
     }
     if (siblingIds.includes(next)) {
-      setIdError(`ID「${next}」は既に使われています`);
+      setIdError(t("definition.errIdDuplicate", { id: next }));
       setIdDraft(scenario.id);
       return;
     }
@@ -278,7 +281,7 @@ function ScenarioEditor({
           {idError ? <p className="text-xs text-destructive">{idError}</p> : null}
         </div>
         <div className="grid min-w-[10rem] flex-[2] gap-1">
-          <Label className="text-xs text-muted-foreground">名前</Label>
+          <Label className="text-xs text-muted-foreground">{t("definition.scenarioName")}</Label>
           <Input
             value={scenario.name}
             className="h-8"
@@ -291,22 +294,22 @@ function ScenarioEditor({
           variant="ghost"
           className="size-8 shrink-0 text-muted-foreground"
           onClick={() => {
-            if (window.confirm(`シナリオ「${scenario.name}」を削除しますか？`)) {
+            if (window.confirm(t("definition.deleteScenarioConfirm", { name: scenario.name }))) {
               onRemove(scenario.id);
             }
           }}
-          aria-label={`${scenario.name} を削除`}
+          aria-label={t("definition.deleteEnvAria", { name: scenario.name })}
         >
           <Trash2 className="size-4" />
         </Button>
       </div>
 
       <div className="grid gap-1">
-        <Label className="text-xs text-muted-foreground">説明（任意）</Label>
+        <Label className="text-xs text-muted-foreground">{t("definition.descriptionOptional")}</Label>
         <Textarea
           value={scenario.description ?? ""}
           className="min-h-[4rem] text-sm"
-          placeholder="このシナリオの目的"
+          placeholder={t("definition.scenarioPurposePlaceholder")}
           onChange={(e) =>
             onUpdate(scenario.id, {
               description: e.target.value.length > 0 ? e.target.value : undefined,
@@ -316,7 +319,7 @@ function ScenarioEditor({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">ステップ（テストケース ID）</Label>
+        <Label className="text-xs text-muted-foreground">{t("definition.stepsLabel")}</Label>
         <ol className="space-y-1.5">
           {scenario.steps.map((stepId, index) => {
             const missing = !testCaseIds.includes(stepId);
@@ -333,9 +336,9 @@ function ScenarioEditor({
                     "min-w-0 flex-1 truncate text-sm",
                     missing && "text-destructive",
                   )}
-                  title={missing ? `未知の ID: ${stepId}` : tcLabel(stepId)}
+                  title={missing ? t("definition.unknownId", { id: stepId }) : tcLabel(stepId)}
                 >
-                  {missing ? `${stepId}（未定義）` : tcLabel(stepId)}
+                  {missing ? t("definition.undefinedId", { id: stepId }) : tcLabel(stepId)}
                 </span>
                 <Button
                   type="button"
@@ -344,7 +347,7 @@ function ScenarioEditor({
                   className="size-7 shrink-0"
                   disabled={index === 0}
                   onClick={() => onMoveStep(scenario, index, -1)}
-                  aria-label="上へ"
+                  aria-label={t("definition.moveUp")}
                 >
                   <ChevronUp className="size-3.5" />
                 </Button>
@@ -355,7 +358,7 @@ function ScenarioEditor({
                   className="size-7 shrink-0"
                   disabled={index >= scenario.steps.length - 1}
                   onClick={() => onMoveStep(scenario, index, 1)}
-                  aria-label="下へ"
+                  aria-label={t("definition.moveDown")}
                 >
                   <ChevronDown className="size-3.5" />
                 </Button>
@@ -366,7 +369,7 @@ function ScenarioEditor({
                   className="size-7 shrink-0 text-muted-foreground"
                   disabled={scenario.steps.length <= 1}
                   onClick={() => onRemoveStep(scenario, index)}
-                  aria-label="ステップを削除"
+                  aria-label={t("definition.removeStep")}
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
@@ -382,7 +385,7 @@ function ScenarioEditor({
             disabled={testCaseIds.length === 0}
           >
             <SelectTrigger className="h-8 min-w-[12rem] flex-1">
-              <SelectValue placeholder="テストケースを追加" />
+              <SelectValue placeholder={t("definition.addTestCase")} />
             </SelectTrigger>
             <SelectContent>
               {(availableToAdd.length > 0 ? availableToAdd : testCaseIds).map((id) => (
@@ -404,7 +407,7 @@ function ScenarioEditor({
             }}
           >
             <Plus className="mr-1 size-3.5" />
-            ステップ追加
+            {t("definition.addStep")}
           </Button>
         </div>
       </div>

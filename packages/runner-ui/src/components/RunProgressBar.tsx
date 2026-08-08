@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "@qarows/ui";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import { ProgressRow } from "./ProgressRow";
@@ -10,6 +11,7 @@ import { resolveRunnerTargets } from "../lib/runner-targets";
 import { formatRunnerFilterTitle } from "../lib/runner-utils";
 
 export function RunProgressBar() {
+  const { t } = useTranslation();
   const { definition, results, session } = useRunnerWorkspace();
   const { runnerFilters } = useRunnerQueryState();
 
@@ -44,15 +46,15 @@ export function RunProgressBar() {
 
   if (!definition || !session || overall.total === 0) return null;
 
-  const filterTitle = formatRunnerFilterTitle(definition, runnerFilters);
+  const filterTitle = formatRunnerFilterTitle(definition, runnerFilters, t);
 
   return (
     <footer
       className="fixed inset-x-0 bottom-0 z-20 flex flex-col gap-1.5 border-t bg-card px-5 py-2 shadow-[0_-2px_10px_rgb(0_0_0/6%)]"
-      aria-label="テスト進捗"
+      aria-label={t("runner.testProgress")}
     >
       <ProgressRow id="run-progress-filter" title={filterTitle} stats={filtered} />
-      <ProgressRow id="run-progress-overall" title="全体" stats={overall} />
+      <ProgressRow id="run-progress-overall" title={t("common.overall")} stats={overall} />
     </footer>
   );
 }

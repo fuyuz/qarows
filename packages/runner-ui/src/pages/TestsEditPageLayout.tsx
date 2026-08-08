@@ -17,6 +17,7 @@ import {
   SheetTitle,
   cn,
 } from "@qarows/ui";
+import { useTranslation } from "@qarows/ui";
 import { useDefinitionDraft } from "../hooks/useDefinitionDraft";
 import {
   DefinitionEditFilterBar,
@@ -57,6 +58,7 @@ export function TestsEditPageLayout({
   onDraftImportConsumed?: () => void;
   onDraftStateChange?: (state: TestsEditDraftState) => void;
 }) {
+  const { t } = useTranslation();
   const draftApi = useDefinitionDraft(definition, { syncKey });
   const [filters, setFilters] = useDefinitionEditFilters();
   const [compact, setCompact] = useState(false);
@@ -85,7 +87,7 @@ export function TestsEditPageLayout({
 
   useEffect(() => {
     if (blocker.state !== "blocked") return;
-    const ok = window.confirm("未適用の変更があります。破棄して移動しますか？");
+    const ok = window.confirm(t("definition.confirmLeave"));
     if (ok) {
       discard();
       blocker.proceed();
@@ -114,7 +116,7 @@ export function TestsEditPageLayout({
       markApplied(normalized);
       setDiffOpen(false);
     } catch (error) {
-      setApplyError(error instanceof Error ? error.message : "適用に失敗しました");
+      setApplyError(error instanceof Error ? error.message : t("definition.applyFailed"));
     } finally {
       setApplying(false);
     }
@@ -122,7 +124,7 @@ export function TestsEditPageLayout({
 
   const handleDiscard = useCallback(() => {
     if (!hasChanges) return;
-    if (!window.confirm("未適用の変更をすべて破棄しますか？")) return;
+    if (!window.confirm(t("definition.confirmDiscardAll"))) return;
     discard();
     setApplyError(null);
   }, [discard, hasChanges]);
@@ -154,10 +156,8 @@ export function TestsEditPageLayout({
       <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto px-5 py-4 pb-28">
         {!compact ? (
           <div className="mb-4 shrink-0">
-            <h1 className="mb-1 text-lg font-bold tracking-tight">テスト定義</h1>
-            <p className="text-xs text-muted-foreground">
-              変更は一時状態として保持されます。Apply するまで保存済み定義には反映されません。
-            </p>
+            <h1 className="mb-1 text-lg font-bold tracking-tight">{t("definition.title")}</h1>
+            <p className="text-xs text-muted-foreground">{t("definition.draftHint")}</p>
           </div>
         ) : null}
 
@@ -191,7 +191,7 @@ export function TestsEditPageLayout({
         <div className={cn("flex flex-col", compact ? "gap-2" : "gap-4")}>
           {filtered.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              条件に一致するテストケースがありません
+              {t("definition.noMatching")}
             </p>
           ) : (
             filtered.map((tc) => (
@@ -220,7 +220,7 @@ export function TestsEditPageLayout({
       >
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2">
           <p className="mr-auto text-sm text-muted-foreground">
-            {hasChanges ? changeSummary : "未適用の変更はありません"}
+            {hasChanges ? changeSummary : t("definition.noChanges")}
           </p>
           <Button
             type="button"
@@ -229,7 +229,7 @@ export function TestsEditPageLayout({
             disabled={!hasChanges || !diff}
             onClick={() => setDiffOpen(true)}
           >
-            Diff
+            {t("common.diff")}
           </Button>
           <Button
             type="button"
@@ -238,7 +238,7 @@ export function TestsEditPageLayout({
             disabled={!hasChanges || applying}
             onClick={handleDiscard}
           >
-            Discard
+            {t("common.discard")}
           </Button>
           <Button
             type="button"
@@ -246,7 +246,7 @@ export function TestsEditPageLayout({
             disabled={!hasChanges || applying}
             onClick={() => void handleApply()}
           >
-            {applying ? "適用中…" : "Apply"}
+            {applying ? t("common.applying") : t("common.apply")}
           </Button>
         </div>
       </div>
@@ -254,8 +254,8 @@ export function TestsEditPageLayout({
       <Sheet open={diffOpen} onOpenChange={setDiffOpen}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>変更差分</SheetTitle>
-            <SheetDescription>Apply すると保存済みのテスト定義に反映されます。</SheetDescription>
+            <SheetTitle>{t("definition.changeDiff")}</SheetTitle>
+            <SheetDescription>{t("definition.applyHint")}</SheetDescription>
           </SheetHeader>
           <div className="mt-4 px-1 pb-6">
             {diff ? <DefinitionDiffView diff={diff} /> : null}

@@ -1,4 +1,5 @@
 import type { ResultsFile, SessionConfig, TestDefinition } from "@qarows/shared";
+import { createI18n, detectLocale } from "@qarows/shared";
 import type { ProjectCommand } from "@qarows/application";
 
 export interface RoomSnapshot {
@@ -59,4 +60,9 @@ export class SyncSendError extends Error {
   }
 }
 
-export const SNAPSHOT_REPLACED_MESSAGE = "tests.ymlが置換されました";
+export function getSnapshotReplacedMessage(): string {
+  return createI18n(detectLocale()).t("sync.yamlReplaced");
+}
+
+/** @deprecated Use getSnapshotReplacedMessage() for locale-aware text */
+export const SNAPSHOT_REPLACED_MESSAGE = getSnapshotReplacedMessage();

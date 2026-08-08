@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { isBugClosed } from "@qarows/shared";
+import { useTranslation } from "@qarows/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@qarows/ui";
 import { CategoryStatsLegend, CategoryStatsTable } from "../components/CategoryStatsTable";
 import { ProgressRow } from "../components/ProgressRow";
@@ -18,6 +19,7 @@ function countOpenBugs(bugs: { status: Parameters<typeof isBugClosed>[0] }[]): n
 }
 
 export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
+  const { t, locale } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { definition, results, session } = useRunnerWorkspace();
@@ -42,9 +44,9 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
     const envIds = getAllEnvironmentIds(definition);
     return {
       overallStats: computeRunProgress(definition, envIds, results.results),
-      categoryRows: computeCategoryProgress(definition, envIds, results.results),
+      categoryRows: computeCategoryProgress(definition, envIds, results.results, locale),
     };
-  }, [definition, results]);
+  }, [definition, locale, results]);
 
   const handleMajorCategoryClick = useCallback(
     (major: string) => {
@@ -73,13 +75,13 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
     <div className="flex min-h-svh flex-col">
       {nav}
       <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-6">
-        <h1 className="mb-6 text-lg font-bold tracking-tight">ダッシュボード</h1>
+        <h1 className="mb-6 text-lg font-bold tracking-tight">{t("nav.dashboard")}</h1>
 
         <section className="mb-8 grid gap-4 sm:grid-cols-2">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground">
-                プロジェクト
+                {t("definition.project")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
@@ -93,12 +95,12 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
                 </p>
               )}
               <p>
-                <span className="text-muted-foreground">テストケース:</span>{" "}
-                {definition.testCases.length} 件
+                <span className="text-muted-foreground">{t("runner.testCasesLabel")}</span>{" "}
+                {t("common.count", { n: definition.testCases.length })}
               </p>
               <p>
-                <span className="text-muted-foreground">環境:</span> {definition.environments.length}{" "}
-                （{envNames}）
+                <span className="text-muted-foreground">{t("runner.environmentsLabel")}</span>{" "}
+                {definition.environments.length} （{envNames}）
               </p>
             </CardContent>
           </Card>
@@ -106,32 +108,33 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground">
-                バグ・セッション
+                {t("runner.bugsSession")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <p>
-                <span className="text-muted-foreground">バグ:</span> {results.bugs.length} 件
+                <span className="text-muted-foreground">{t("runner.bugsLabel")}</span>{" "}
+                {t("common.count", { n: results.bugs.length })}
                 {results.bugs.length > 0 && (
                   <span className="text-muted-foreground">
-                    （未解決 {countOpenBugs(results.bugs)} 件）
+                    {t("runner.openCount", { n: countOpenBugs(results.bugs) })}
                   </span>
                 )}
               </p>
               {session ? (
                 <>
                   <p>
-                    <span className="text-muted-foreground">実施者:</span> {session.executorName}
+                    <span className="text-muted-foreground">{t("runner.executorLabel")}</span> {session.executorName}
                   </p>
                   <p>
-                    <span className="text-muted-foreground">選択環境:</span> {sessionEnvNames}
+                    <span className="text-muted-foreground">{t("runner.selectedEnvs")}</span> {sessionEnvNames}
                   </p>
                 </>
               ) : (
                 <p>
-                  <span className="text-muted-foreground">セッション:</span>{" "}
+                  <span className="text-muted-foreground">{t("runner.sessionLabel")}</span>{" "}
                   <Link to={path("session")} className="font-semibold text-primary hover:underline">
-                    未設定 — セッション設定へ
+                    {t("session.notSet")}
                   </Link>
                 </p>
               )}
@@ -140,15 +143,15 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-3 text-xs font-semibold text-muted-foreground">全体進捗（全環境）</h2>
+          <h2 className="mb-3 text-xs font-semibold text-muted-foreground">{t("runner.overallProgress")}</h2>
           <div className="rounded-xl border bg-card px-4 py-3 shadow-sm">
-            <ProgressRow id="dashboard-overall" title="全体" stats={overallStats} />
+            <ProgressRow id="dashboard-overall" title={t("common.overall")} stats={overallStats} />
           </div>
         </section>
 
         <section>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-            <h2 className="text-xs font-semibold text-muted-foreground">大項目別</h2>
+            <h2 className="text-xs font-semibold text-muted-foreground">{t("runner.byMajor")}</h2>
             <CategoryStatsLegend />
           </div>
           <CategoryStatsTable rows={categoryRows} onMajorClick={handleMajorCategoryClick} />

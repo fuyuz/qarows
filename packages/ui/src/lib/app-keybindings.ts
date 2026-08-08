@@ -21,6 +21,11 @@ export const APP_NAV_KEYBINDINGS: Record<AppNavigationPage, string> = {
   projects: "p",
 };
 
+export function appNavLabel(page: AppNavigationPage, t: (key: string) => string): string {
+  return t(`nav.${page}`);
+}
+
+/** @deprecated Use appNavLabel(page, t) */
 export const APP_NAV_LABELS: Record<AppNavigationPage, string> = {
   run: "テスト実行",
   session: "セッション設定",

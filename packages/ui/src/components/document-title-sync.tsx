@@ -5,6 +5,7 @@ import {
   isProjectWorkspacePath,
   screenLabelFromPathname,
 } from "../lib/document-title";
+import { useTranslation } from "../i18n/context";
 
 export interface DocumentTitleSyncProps {
   brand: string;
@@ -20,17 +21,18 @@ export function DocumentTitleSync({
   enabled = true,
 }: DocumentTitleSyncProps) {
   const { pathname } = useLocation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!enabled) return;
-    const screen = screenLabelFromPathname(pathname);
+    const screen = screenLabelFromPathname(pathname, t);
     const includeProject = isProjectWorkspacePath(pathname);
     document.title = formatDocumentTitle({
       brand,
       screen,
       projectName: includeProject ? projectName : null,
     });
-  }, [brand, enabled, pathname, projectName]);
+  }, [brand, enabled, pathname, projectName, t]);
 
   return null;
 }

@@ -1,6 +1,8 @@
+import type { ComponentProps } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../i18n/context";
 import { SessionSetupForm } from "./session-setup-form";
 
 const environments = [
@@ -8,19 +10,25 @@ const environments = [
   { id: "firefox", name: "Firefox" },
 ];
 
+function renderForm(props: ComponentProps<typeof SessionSetupForm>) {
+  return render(
+    <I18nProvider initialLocale="ja">
+      <SessionSetupForm {...props} />
+    </I18nProvider>,
+  );
+}
+
 describe("SessionSetupForm", () => {
   it("shows validation error when submitting without required fields", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
 
-    render(
-      <SessionSetupForm
-        projectName="Demo"
-        environments={environments}
-        disableSubmitUntilValid={false}
-        onSubmit={onSubmit}
-      />,
-    );
+    renderForm({
+      projectName: "Demo",
+      environments,
+      disableSubmitUntilValid: false,
+      onSubmit,
+    });
 
     await user.click(screen.getByRole("button", { name: "テスト実行を開始" }));
 
@@ -32,14 +40,12 @@ describe("SessionSetupForm", () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
-    render(
-      <SessionSetupForm
-        projectName="Demo"
-        environments={environments}
-        fixedExecutorName="qa@example.com"
-        onSubmit={onSubmit}
-      />,
-    );
+    renderForm({
+      projectName: "Demo",
+      environments,
+      fixedExecutorName: "qa@example.com",
+      onSubmit,
+    });
 
     await user.click(screen.getAllByRole("checkbox")[0]!);
     await user.click(screen.getByRole("button", { name: "テスト実行を開始" }));
@@ -56,13 +62,11 @@ describe("SessionSetupForm", () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
-    render(
-      <SessionSetupForm
-        projectName="Demo"
-        environments={environments}
-        onSubmit={onSubmit}
-      />,
-    );
+    renderForm({
+      projectName: "Demo",
+      environments,
+      onSubmit,
+    });
 
     await user.type(screen.getByLabelText(/実施者名/), "  tanaka  ");
     await user.click(screen.getAllByRole("checkbox")[0]!);
@@ -80,15 +84,13 @@ describe("SessionSetupForm", () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockRejectedValue(new Error("保存に失敗"));
 
-    render(
-      <SessionSetupForm
-        projectName="Demo"
-        environments={environments}
-        initialExecutorName="qa"
-        initialSelectedEnvIds={["chrome"]}
-        onSubmit={onSubmit}
-      />,
-    );
+    renderForm({
+      projectName: "Demo",
+      environments,
+      initialExecutorName: "qa",
+      initialSelectedEnvIds: ["chrome"],
+      onSubmit,
+    });
 
     await user.click(screen.getByRole("button", { name: "テスト実行を開始" }));
 
@@ -96,14 +98,12 @@ describe("SessionSetupForm", () => {
   });
 
   it("disables submit until valid when disableSubmitUntilValid is true", () => {
-    render(
-      <SessionSetupForm
-        projectName="Demo"
-        environments={environments}
-        disableSubmitUntilValid
-        onSubmit={vi.fn()}
-      />,
-    );
+    renderForm({
+      projectName: "Demo",
+      environments,
+      disableSubmitUntilValid: true,
+      onSubmit: vi.fn(),
+    });
 
     expect(screen.getByRole("button", { name: "テスト実行を開始" })).toBeDisabled();
   });

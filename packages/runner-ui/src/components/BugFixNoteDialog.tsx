@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "@qarows/ui";
 import { Button } from "@qarows/ui";
 import {
   Dialog,
@@ -26,6 +27,7 @@ export function BugFixNoteDialog({
   onConfirm: (fixNote: string) => void | Promise<void>;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [note, setNote] = useState(initialNote);
 
   useEffect(() => {
@@ -43,29 +45,29 @@ export function BugFixNoteDialog({
     >
       <DialogContent className="sm:max-w-lg" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>修正内容</DialogTitle>
+          <DialogTitle>{t("bug.fixNoteTitle")}</DialogTitle>
           <DialogDescription>
-            {bugId} を修正済みにします。修正内容を記録できます（任意）。
+            {t("bug.fixNoteBody", { id: bugId })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-2 py-1">
-          <Label htmlFor="bug-fix-note">修正内容</Label>
+          <Label htmlFor="bug-fix-note">{t("bug.fixNote")}</Label>
           <Textarea
             id="bug-fix-note"
             rows={4}
             value={note}
-            placeholder="例: ボタンの min-width を調整"
+            placeholder={t("bug.fixNotePlaceholder")}
             onChange={(e) => setNote(e.target.value)}
           />
         </div>
 
         <DialogFooter>
           <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
-            キャンセル
+            {t("common.cancel")}
           </Button>
           <Button type="button" disabled={busy} onClick={() => void onConfirm(note)}>
-            修正済みにする
+            {t("bug.markFixed")}
           </Button>
         </DialogFooter>
       </DialogContent>

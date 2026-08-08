@@ -5,7 +5,7 @@ import {
   type TestsEditDraftImport,
   type TestsEditDraftState,
 } from "@qarows/runner-ui";
-import { Button, cn } from "@qarows/ui";
+import { Button, cn, useTranslation } from "@qarows/ui";
 import { Sparkles } from "lucide-react";
 import { AppNav } from "@/components/AppNav";
 import { TestsYamlAiChatPanel } from "@/components/TestsYamlAiChatPanel";
@@ -69,6 +69,7 @@ function loadAiPanelWidth(): number {
 }
 
 export function TestsEditPage() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const { definition, revision, syncNotice } = useProjectSync();
   const { aiEnabled, loaded: aiLoaded } = useAiFeatures();
@@ -123,29 +124,27 @@ export function TestsEditPage() {
 
   const onApply = useCallback(
     async (next: TestDefinition) => {
-      if (!projectId) throw new Error("projectId がありません");
+      if (!projectId) throw new Error(t("error.noProjectId"));
       const snapshot = await getProject(projectId);
       const generation = snapshot.generation;
-      if (!generation) throw new Error("generation を取得できませんでした");
+      if (!generation) throw new Error(t("error.noGeneration"));
       try {
         await applyDefinitionEdit(projectId, {
           testsYaml: serializeTestsYaml(next),
           expectedGeneration: generation,
         });
       } catch (err) {
-        throw new Error(err instanceof ApiError ? err.message : "定義の適用に失敗しました", {
+        throw new Error(err instanceof ApiError ? err.message : t("error.applyDefinitionFailed"), {
           cause: err,
         });
       }
     },
-    [projectId],
+    [projectId, t],
   );
 
   const handleLoadProposalIntoDraft = useCallback(() => {
     if (draftState.hasChanges) {
-      const ok = window.confirm(
-        "編集画面に未適用の変更があります。AI の編集案で上書きしますか？",
-      );
+      const ok = window.confirm(t("ai.overwriteConfirm"));
       if (!ok) return;
     }
     const accepted = ai.acceptProposalIntoDraft();
@@ -155,7 +154,7 @@ export function TestsEditPage() {
     setDraftImport({ definition: accepted, token });
     // Optimistic: next AI turn can use post-diff YAML before draftImport useEffect lands.
     setDraftState({ hasChanges: true, draft: accepted });
-  }, [ai, draftState.hasChanges, importToken]);
+  }, [ai, draftState.hasChanges, importToken, t]);
 
   const handleResizePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -205,7 +204,7 @@ export function TestsEditPage() {
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="AI パネルの幅を変更"
+          aria-label={t("ai.resizeAria")}
           aria-valuemin={panelMinWidth}
           aria-valuemax={panelMaxWidth}
           aria-valuenow={aiPanelWidth}
@@ -231,13 +230,11 @@ export function TestsEditPage() {
         />
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold">AI アシスタント</h2>
-            <p className="truncate text-xs text-muted-foreground">
-              質問・編集指示 → 編集画面に反映 → Apply
-            </p>
+            <h2 className="text-sm font-semibold">{t("ai.assistant")}</h2>
+            <p className="truncate text-xs text-muted-foreground">{t("ai.flowHint")}</p>
           </div>
           <Button type="button" size="sm" variant="ghost" onClick={() => setAiOpen(false)}>
-            閉じる
+            {t("common.close")}
           </Button>
         </div>
         {syncNotice ? <p className="text-xs text-amber-800">{syncNotice}</p> : null}
@@ -262,7 +259,7 @@ export function TestsEditPage() {
             successMessage={ai.successMessage}
             errorMessage={ai.errorMessage}
             revisions={ai.revisions}
-            applyLabel="編集画面に反映"
+            applyLabel={t("ai.reflectToEditor")}
             onApply={handleLoadProposalIntoDraft}
             onDiscard={ai.handleDiscardProposal}
             onRestore={(revisionId) => void ai.handleRestore(revisionId)}

@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ListFilterIcon } from "lucide-react";
 import {
-  BUG_SEVERITY_LABELS,
-  BUG_STATUS_LABELS,
   getRunnerTargetMode,
   type BugSeverity,
   type BugStatus,
   type RunnerFilters,
 } from "@qarows/shared";
+import { useTranslation } from "@qarows/ui";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import {
@@ -30,6 +29,7 @@ import {
 } from "@qarows/ui";
 import { RunnerCardTransition } from "./RunnerCardTransition";
 import { BUG_SEVERITY_VALUES, BUG_STATUS_VALUES, type BugFilters } from "../lib/bug-query";
+import { useBugLabels } from "../hooks/useBugLabels";
 import {
   getMajorCategories,
   getMediumCategories,
@@ -41,12 +41,12 @@ const ALL = "__all__";
 type RunnerMode = "filter" | "scenario";
 
 const RUNNER_SCOPE_FILTER_OPTIONS = [
-  { key: "onlyIncomplete", label: "未実施のみ" },
-  { key: "onlyWithBugs", label: "バグを含む" },
-  { key: "onlyWithNg", label: "NGを含む" },
+  { key: "onlyIncomplete", labelKey: "runner.incompleteOnly" },
+  { key: "onlyWithBugs", labelKey: "runner.withBugs" },
+  { key: "onlyWithNg", labelKey: "runner.withNg" },
 ] as const satisfies ReadonlyArray<{
   key: keyof Pick<RunnerFilters, "onlyIncomplete" | "onlyWithBugs" | "onlyWithNg">;
-  label: string;
+  labelKey: string;
 }>;
 
 const modeSwitchButtonClass = cn(
@@ -65,6 +65,7 @@ function RunnerModeSwitch({
   onScenario: () => void;
   hasScenarios: boolean;
 }) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLButtonElement>(null);
   const scenarioRef = useRef<HTMLButtonElement>(null);
@@ -93,14 +94,14 @@ function RunnerModeSwitch({
   }, [syncIndicator]);
 
   const modeOptions = [
-    { mode: "filter", label: "フィルタ", ref: filterRef, onClick: onFilter, disabled: false, title: undefined },
+    { mode: "filter", label: t("runner.filter"), ref: filterRef, onClick: onFilter, disabled: false, title: undefined },
     {
       mode: "scenario",
-      label: "シナリオ",
+      label: t("runner.scenario"),
       ref: scenarioRef,
       onClick: onScenario,
       disabled: !hasScenarios,
-      title: hasScenarios ? undefined : "tests.yml に scenarios がありません",
+      title: hasScenarios ? undefined : t("runner.noScenarios"),
     },
   ] as const;
 
@@ -108,7 +109,7 @@ function RunnerModeSwitch({
     <div
       ref={containerRef}
       role="group"
-      aria-label="対象の選び方"
+      aria-label={t("runner.targetModeAria")}
       className="relative inline-flex gap-1 rounded-lg border border-input bg-muted/80 p-1 shadow-xs"
     >
       {indicator && (
@@ -233,6 +234,7 @@ function RunnerScopeFilterDialog({
   runnerFilters: RunnerFilters;
   setRunnerFilters: (filters: RunnerFilters) => void;
 }) {
+  const { t } = useTranslation();
   const activeCount = RUNNER_SCOPE_FILTER_OPTIONS.filter(({ key }) => runnerFilters[key]).length;
   const active = activeCount > 0;
 
@@ -257,28 +259,26 @@ function RunnerScopeFilterDialog({
 
   return (
     <Dialog>
-      <FilterDialogTriggerButton ariaLabel="テストを絞り込み" activeCount={activeCount} />
+      <FilterDialogTriggerButton ariaLabel={t("runner.filterTestsAria")} activeCount={activeCount} />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>テストの絞り込み</DialogTitle>
-          <DialogDescription>
-            複数選択できます。未選択の項目は絞り込みません。
-          </DialogDescription>
+          <DialogTitle>{t("runner.filterTests")}</DialogTitle>
+          <DialogDescription>{t("runner.filterHint")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2.5">
-          {RUNNER_SCOPE_FILTER_OPTIONS.map(({ key, label }) => (
+          {RUNNER_SCOPE_FILTER_OPTIONS.map(({ key, labelKey }) => (
             <FilterCheckItem
               key={key}
               checked={runnerFilters[key]}
               onCheckedChange={(checked) => toggleScopeFilter(key, checked)}
             >
-              {label}
+              {t(labelKey)}
             </FilterCheckItem>
           ))}
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" disabled={!active} onClick={clearScopeFilters}>
-            すべてクリア
+            {t("runner.clearAll")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -297,38 +297,38 @@ function BugFilterDialog({
   toggleBugStatus: (value: BugStatus) => void;
   onClear: () => void;
 }) {
+  const { t } = useTranslation();
+  const { statusLabels, severityLabels } = useBugLabels();
   const active = bugFilters.priorities.length > 0 || bugFilters.statuses.length > 0;
   const activeCount = bugFilters.priorities.length + bugFilters.statuses.length;
 
   return (
     <Dialog>
-      <FilterDialogTriggerButton ariaLabel="バグを絞り込み" activeCount={activeCount} />
+      <FilterDialogTriggerButton ariaLabel={t("runner.filterBugsAria")} activeCount={activeCount} />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>バグの絞り込み</DialogTitle>
-          <DialogDescription>
-            重要度・ステータスを複数選択できます。未選択の項目はすべて表示されます。
-          </DialogDescription>
+          <DialogTitle>{t("runner.filterBugs")}</DialogTitle>
+          <DialogDescription>{t("runner.bugFilterHint")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
           <FilterCheckGroup
-            label="重要度"
+            label={t("runner.severity")}
             options={BUG_SEVERITY_VALUES}
-            labels={BUG_SEVERITY_LABELS}
+            labels={severityLabels}
             selected={bugFilters.priorities}
             onToggle={toggleBugPriority}
           />
           <FilterCheckGroup
-            label="ステータス"
+            label={t("runner.status")}
             options={BUG_STATUS_VALUES}
-            labels={BUG_STATUS_LABELS}
+            labels={statusLabels}
             selected={bugFilters.statuses}
             onToggle={toggleBugStatus}
           />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" disabled={!active} onClick={onClear}>
-            すべてクリア
+            {t("runner.clearAll")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -357,7 +357,7 @@ function CategorySelect({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>すべて</SelectItem>
+          <SelectItem value={ALL}>{t("common.all")}</SelectItem>
           {options.map((option) => (
             <SelectItem key={option} value={option}>
               {option}
@@ -378,6 +378,7 @@ export function RunnerFilterBar({
   maxWidthClass?: string;
   variant?: "runner" | "bugs";
 }) {
+  const { t, locale } = useTranslation();
   const { definition } = useRunnerWorkspace();
   const { runnerFilters, setRunnerFilters, bugFilters, toggleBugPriority, toggleBugStatus, setQuery } =
     useRunnerQueryState();
@@ -387,14 +388,14 @@ export function RunnerFilterBar({
   const hasScenarios = scenarios.length > 0;
 
   const majorCategories = useMemo(
-    () => (definition ? getMajorCategories(definition) : []),
-    [definition],
+    () => (definition ? getMajorCategories(definition, locale) : []),
+    [definition, locale],
   );
 
   const mediumCategories = useMemo(
     () =>
-      definition ? getMediumCategories(definition, runnerFilters.majorCategoryFilter) : [],
-    [definition, runnerFilters.majorCategoryFilter],
+      definition ? getMediumCategories(definition, runnerFilters.majorCategoryFilter, locale) : [],
+    [definition, locale, runnerFilters.majorCategoryFilter],
   );
 
   const minorCategories = useMemo(
@@ -404,9 +405,10 @@ export function RunnerFilterBar({
             definition,
             runnerFilters.majorCategoryFilter,
             runnerFilters.mediumCategoryFilter,
+            locale,
           )
         : [],
-    [definition, runnerFilters.majorCategoryFilter, runnerFilters.mediumCategoryFilter],
+    [definition, locale, runnerFilters.majorCategoryFilter, runnerFilters.mediumCategoryFilter],
   );
 
   if (!definition) return null;
@@ -508,20 +510,20 @@ export function RunnerFilterBar({
               {filterMode ? (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <CategorySelect
-                    label="大分類"
+                    label={t("runner.major")}
                     value={runnerFilters.majorCategoryFilter}
                     options={majorCategories}
                     onValueChange={updateMajorFilter}
                   />
                   <CategorySelect
-                    label="中分類"
+                    label={t("runner.medium")}
                     value={runnerFilters.mediumCategoryFilter}
                     options={mediumCategories}
                     onValueChange={updateMediumFilter}
                     disabled={mediumCategories.length === 0}
                   />
                   <CategorySelect
-                    label="小分類"
+                    label={t("runner.minor")}
                     value={runnerFilters.minorCategoryFilter}
                     options={minorCategories}
                     onValueChange={updateMinorFilter}
@@ -530,7 +532,7 @@ export function RunnerFilterBar({
                 </div>
               ) : (
                 <div className="flex min-w-40 flex-1 items-center gap-2">
-                  <Label className="shrink-0 text-sm font-semibold">シナリオ</Label>
+                  <Label className="shrink-0 text-sm font-semibold">{t("runner.scenario")}</Label>
                   <Select
                     value={runnerFilters.scenarioId ?? scenarios[0]?.id ?? ""}
                     onValueChange={(value) =>

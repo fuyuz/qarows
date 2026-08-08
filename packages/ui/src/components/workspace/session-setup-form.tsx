@@ -5,6 +5,7 @@ import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { cn } from "../../lib/cn";
+import { useTranslation } from "../../i18n/context";
 
 export interface SessionSetupFormProps {
   projectName: string;
@@ -32,11 +33,12 @@ export function SessionSetupForm({
   onSubmit,
   syncError,
   disableSubmitUntilValid = true,
-  idleSubmitLabel = "テスト実行を開始",
-  submittingSubmitLabel = "開始中…",
+  idleSubmitLabel,
+  submittingSubmitLabel,
   showEmptyEnvHint = true,
   fixedExecutorName,
 }: SessionSetupFormProps) {
+  const { t } = useTranslation();
   const [executorName, setExecutorName] = useState(fixedExecutorName ?? initialExecutorName);
   const [selectedEnvIds, setSelectedEnvIds] = useState<string[]>(initialSelectedEnvIds);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,8 @@ export function SessionSetupForm({
 
   const resolvedExecutorName = (fixedExecutorName ?? executorName).trim();
   const canStart = resolvedExecutorName.length > 0 && selectedEnvIds.length > 0;
+  const resolvedIdleSubmitLabel = idleSubmitLabel ?? t("session.startRun");
+  const resolvedSubmittingLabel = submittingSubmitLabel ?? t("session.starting");
 
   const toggleEnv = (envId: string) => {
     setSelectedEnvIds((prev) =>
@@ -62,11 +66,11 @@ export function SessionSetupForm({
   const handleStart = async () => {
     if (!canStart) {
       if (!resolvedExecutorName) {
-        setError("実施者名を入力してください");
+        setError(t("session.errExecutor"));
         setShakeExecutor(true);
         setTimeout(() => setShakeExecutor(false), 350);
       } else if (selectedEnvIds.length === 0) {
-        setError("端末/環境を1つ以上選択してください");
+        setError(t("session.errEnvs"));
         setShakeEnvs(true);
         setTimeout(() => setShakeEnvs(false), 350);
       }
@@ -80,7 +84,7 @@ export function SessionSetupForm({
         selectedEnvironmentIds: selectedEnvIds,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "セッション開始に失敗しました");
+      setError(err instanceof Error ? err.message : t("session.errStartFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -89,9 +93,9 @@ export function SessionSetupForm({
   return (
     <>
       <header className="mb-8">
-        <h1 className="mb-1 text-3xl font-bold tracking-tight">セッション設定</h1>
+        <h1 className="mb-1 text-3xl font-bold tracking-tight">{t("session.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          プロジェクト: {projectName} — 今回の作業対象を選んでください
+          {t("session.subtitle", { name: projectName })}
         </p>
       </header>
 
@@ -103,8 +107,8 @@ export function SessionSetupForm({
 
       <section className="mb-6">
         <Label htmlFor={fixedExecutorName ? undefined : "executor-name"} className="mb-1.5 block">
-          実施者{fixedExecutorName ? "" : "名"}{" "}
-          <span className="text-xs font-semibold text-destructive">必須</span>
+          {fixedExecutorName ? t("session.executor") : t("session.executorName")}{" "}
+          <span className="text-xs font-semibold text-destructive">{t("common.required")}</span>
         </Label>
         {fixedExecutorName ? (
           <p
@@ -118,7 +122,7 @@ export function SessionSetupForm({
             id="executor-name"
             type="text"
             required
-            placeholder="例: tanaka"
+            placeholder={t("session.executorPlaceholder")}
             value={executorName}
             className={cn(shakeExecutor && "animate-ui-shake border-destructive ring-destructive/20")}
             onChange={(event) => {
@@ -132,11 +136,13 @@ export function SessionSetupForm({
       <section className="mb-6">
         <div className="mb-2.5 flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold">
-            端末 / 環境{" "}
-            <span className="text-xs font-semibold text-destructive">必須・1つ以上</span>
+            {t("session.environments")}{" "}
+            <span className="text-xs font-semibold text-destructive">
+              {t("session.requiredOneOrMore")}
+            </span>
           </h2>
           <Button type="button" variant="ghost" size="sm" onClick={selectAllEnvs}>
-            すべて選択
+            {t("session.selectAll")}
           </Button>
         </div>
         <ul className={cn("flex flex-col gap-1.5", shakeEnvs && "animate-ui-shake")}>
@@ -153,7 +159,7 @@ export function SessionSetupForm({
           ))}
         </ul>
         {showEmptyEnvHint && selectedEnvIds.length === 0 && (
-          <p className="mt-2 text-sm text-amber-700">端末/環境を1つ以上選んでください</p>
+          <p className="mt-2 text-sm text-amber-700">{t("session.selectOneEnv")}</p>
         )}
       </section>
 
@@ -169,7 +175,7 @@ export function SessionSetupForm({
           className={cn(canStart && !submitting && "shadow-sm")}
           onClick={() => void handleStart()}
         >
-          {submitting ? submittingSubmitLabel : idleSubmitLabel}
+          {submitting ? resolvedSubmittingLabel : resolvedIdleSubmitLabel}
         </Button>
       </footer>
     </>

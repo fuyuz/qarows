@@ -1,10 +1,11 @@
 import { Navigate, useNavigate } from "react-router-dom";
-import { SessionSetupForm } from "@qarows/ui";
+import { SessionSetupForm, useTranslation } from "@qarows/ui";
 import { AppNav } from "@/components/AppNav";
 import { useProjectSync } from "@/context/ProjectSyncContext";
 import { useProjectRoutes } from "@/hooks/useProjectRoutes";
 
 export function SessionPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { definition, session, syncError, setSession, userEmail } = useProjectSync();
   const { path } = useProjectRoutes();
@@ -21,7 +22,7 @@ export function SessionPage() {
           initialSelectedEnvIds={session?.selectedEnvironmentIds}
           fixedExecutorName={userEmail ?? undefined}
           syncError={syncError}
-          submittingSubmitLabel="保存中…"
+          submittingSubmitLabel={t("common.saving")}
           onSubmit={async ({ selectedEnvironmentIds }) => {
             await setSession(selectedEnvironmentIds);
             navigate(path("run"));

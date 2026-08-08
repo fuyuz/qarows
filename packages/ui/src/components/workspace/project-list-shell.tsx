@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
+import { useTranslation } from "../../i18n/context";
 import { ProjectListPanel, type ProjectListPanelProps } from "./project-list-panel";
 
 export type ProjectListShellProps = Omit<ProjectListPanelProps, "className">;
 
 export function ProjectListShell(panelProps: ProjectListShellProps) {
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const listCount = panelProps.summaries.length + 1;
 
@@ -25,7 +27,7 @@ export function ProjectListShell(panelProps: ProjectListShellProps) {
         className="mb-2 md:hidden"
         onClick={() => setMobileOpen(true)}
       >
-        プロジェクト ({listCount})
+        {t("project.listWithCount", { n: listCount })}
       </Button>
 
       <ProjectListPanel
@@ -36,7 +38,7 @@ export function ProjectListShell(panelProps: ProjectListShellProps) {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-[min(100vw-1.5rem,22rem)] p-0">
           <SheetHeader className="sr-only">
-            <SheetTitle>プロジェクト一覧</SheetTitle>
+            <SheetTitle>{t("project.listSheetTitle")}</SheetTitle>
           </SheetHeader>
           <ProjectListPanel
             {...sharedPanelProps}

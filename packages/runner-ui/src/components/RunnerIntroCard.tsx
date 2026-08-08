@@ -1,9 +1,12 @@
 import { formatRunnerKeys, RUNNER_KEYBINDINGS } from "../lib/runner-keybindings";
+import { useTranslation } from "@qarows/ui";
 import { Kbd } from "@qarows/ui";
 import { RunnerCardFooter, testCardShellClass, type RunnerCardNavProps } from "./RunnerCardFooter";
 import { Badge } from "@qarows/ui";
 
 export function RunnerIntroCard(props: RunnerCardNavProps) {
+  const { t } = useTranslation();
+
   return (
     <article className={testCardShellClass()}>
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
@@ -11,51 +14,51 @@ export function RunnerIntroCard(props: RunnerCardNavProps) {
           <Badge variant="secondary" className="font-bold">
             START
           </Badge>
-          <span className="text-sm text-muted-foreground">使い方</span>
+          <span className="text-sm text-muted-foreground">{t("runner.introTitle")}</span>
         </header>
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            テストの進め方
+            {t("runner.introHeading")}
           </h2>
           <p className="text-base leading-relaxed font-medium">
-            1件ずつ確認内容を読み、対象端末ごとに結果を入力します。「はじめる」か{" "}
-            <Kbd>{formatRunnerKeys(RUNNER_KEYBINDINGS.next)}</Kbd> で次へ進んでください。
+            {t("runner.introHowToBody", {
+              nextKeys: formatRunnerKeys(RUNNER_KEYBINDINGS.next),
+            })}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            <Kbd>{formatRunnerKeys(RUNNER_KEYBINDINGS.ok)}</Kbd> などの一括入力は、表示中の全端末に同じ結果を記録します。
+            {t("runner.introBatchKeysHint", {
+              okKeys: formatRunnerKeys(RUNNER_KEYBINDINGS.ok),
+            })}
           </p>
         </section>
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            結果の入力
+            {t("runner.introResults")}
           </h2>
           <ul className="mb-3 flex flex-col gap-2">
             <li className="flex items-center gap-2.5 text-sm">
               <Kbd>{formatRunnerKeys(RUNNER_KEYBINDINGS.ok)}</Kbd>
-              <span>一括 OK</span>
+              <span>{t("runner.batchOk")}</span>
             </li>
             <li className="flex items-center gap-2.5 text-sm">
               <Kbd>{formatRunnerKeys(RUNNER_KEYBINDINGS.ng)}</Kbd>
-              <span>一括 NG</span>
+              <span>{t("runner.batchNg")}</span>
             </li>
             <li className="flex items-center gap-2.5 text-sm">
               <Kbd>{formatRunnerKeys(RUNNER_KEYBINDINGS.skip)}</Kbd>
-              <span>一括 SKIP</span>
+              <span>{t("runner.batchSkip")}</span>
             </li>
           </ul>
-          <p className="text-sm text-muted-foreground">ボタンから端末ごとに入力することもできます。</p>
+          <p className="text-sm text-muted-foreground">{t("runner.introPerDeviceHint")}</p>
         </section>
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            その他
+            {t("runner.introOther")}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            画面右下の <strong className="text-foreground">?</strong>{" "}
-            にショートカット一覧があります。メモ入力中はキーボード操作は無効です。
-          </p>
+          <p className="text-sm text-muted-foreground">{t("runner.introShortcutsHint")}</p>
         </section>
       </div>
 

@@ -8,6 +8,7 @@ import { resolveRunnerTargets } from "../lib/runner-targets";
 import { Button } from "@qarows/ui";
 import { ScrollArea } from "@qarows/ui";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@qarows/ui";
+import { useTranslation } from "@qarows/ui";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import { formatRunnerFilterTitle } from "../lib/runner-utils";
@@ -71,6 +72,7 @@ function TaskListPanel({
   onJump: (index: number) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const prevRunnerIndexRef = useRef(runnerIndex);
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
   const [barPhase, setBarPhase] = useState<Record<number, "enter" | "exit">>({});
@@ -94,7 +96,7 @@ function TaskListPanel({
   }, [runnerIndex, targets.length]);
 
   return (
-    <aside className={cn("flex flex-col overflow-hidden rounded-xl border bg-muted/30", className)} aria-label="テスト一覧">
+    <aside className={cn("flex flex-col overflow-hidden rounded-xl border bg-muted/30", className)} aria-label={t("runner.testListAria")}>
       <div className="shrink-0 border-b bg-card px-3.5 py-3">
         <h2 className="text-sm font-bold leading-snug">{headerTitle}</h2>
         {headerDescription && (
@@ -113,7 +115,7 @@ function TaskListPanel({
                 className="mt-1 text-xs font-semibold text-primary"
                 onClick={onToggleDescription}
               >
-                {descriptionExpanded ? "閉じる" : "続きを読む"}
+                {descriptionExpanded ? t("runner.collapse") : t("runner.readMore")}
               </button>
             )}
           </div>
@@ -122,14 +124,14 @@ function TaskListPanel({
           key={`${completedCount}-${targets.length}`}
           className="mt-2 animate-in fade-in duration-200 text-xs font-semibold text-muted-foreground tabular-nums"
         >
-          <span className="text-foreground">{completedCount}</span> / {targets.length} 完了
+          {t("common.countDone", { done: completedCount, total: targets.length })}
         </p>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
         <ul className="py-1">
           {targets.length === 0 ? (
-            <li className="px-3.5 py-4 text-sm text-muted-foreground">対象テストがありません</li>
+            <li className="px-3.5 py-4 text-sm text-muted-foreground">{t("runner.noTests")}</li>
           ) : (
             targets.map((testCase, index) => {
               const status = getTestCaseAggregateStatus(
@@ -211,6 +213,7 @@ function TaskListPanel({
 }
 
 export function RunnerTaskList() {
+  const { t } = useTranslation();
   const { definition, results, session, lastUpdatedTestId } = useRunnerWorkspace();
   const { runnerFilters, testId, setTestId } = useRunnerQueryState();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -255,7 +258,7 @@ export function RunnerTaskList() {
   };
 
   const headerTitle =
-    mode === "scenario" && scenario ? scenario.name : formatRunnerFilterTitle(definition, runnerFilters);
+    mode === "scenario" && scenario ? scenario.name : formatRunnerFilterTitle(definition, runnerFilters, t);
 
   const headerDescription =
     mode === "scenario" && scenario?.description ? scenario.description.trim() : undefined;
@@ -284,7 +287,7 @@ export function RunnerTaskList() {
         className="mb-2 md:hidden"
         onClick={() => setMobileOpen(true)}
       >
-        テスト一覧 ({targets.length})
+        {t("runner.testListWithCount", { n: targets.length })}
       </Button>
 
       <TaskListPanel
@@ -295,7 +298,7 @@ export function RunnerTaskList() {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-[min(100vw-1.5rem,22rem)] p-0">
           <SheetHeader className="sr-only">
-            <SheetTitle>テスト一覧</SheetTitle>
+            <SheetTitle>{t("runner.testList")}</SheetTitle>
           </SheetHeader>
           <TaskListPanel {...panelProps} className="h-full border-0 rounded-none bg-background" />
         </SheetContent>

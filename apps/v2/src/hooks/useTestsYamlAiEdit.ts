@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { serializeTestsYaml, type TestDefinition } from "@qarows/shared";
+import { createI18n, detectLocale, serializeTestsYaml, type TestDefinition } from "@qarows/shared";
 import { ApiError } from "@/lib/api/client";
 import { getProject } from "@/lib/api/projects";
 import {
@@ -86,6 +86,7 @@ export function useTestsYamlAiEdit({
 
   const handleSend = useCallback(async () => {
     if (!enabled || !projectId || !definition || !input.trim() || busy) return;
+    const { t } = createI18n(detectLocale());
     const message = input.trim();
     setInput("");
     setErrorMessage(null);
@@ -115,9 +116,12 @@ export function useTestsYamlAiEdit({
         setWorkingFrom("proposal");
       }
     } catch (err) {
-      const text = err instanceof ApiError ? err.message : "AI リクエストに失敗しました";
+      const text = err instanceof ApiError ? err.message : t("ai.requestFailed");
       setErrorMessage(text);
-      setChatMessages((prev) => [...prev, { role: "assistant", content: `エラー: ${text}` }]);
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: t("ai.errorPrefix", { text }) },
+      ]);
     } finally {
       setBusy(false);
     }
@@ -146,21 +150,22 @@ export function useTestsYamlAiEdit({
   const handleRestore = useCallback(
     async (revisionId: string) => {
       if (!enabled || !projectId) return;
+      const { t } = createI18n(detectLocale());
       setBusy(true);
       setErrorMessage(null);
       setSuccessMessage(null);
       setLastIntent(null);
       try {
         const generation = (await refreshGeneration()) ?? baseGeneration;
-        if (!generation) throw new Error("generation を取得できませんでした");
+        if (!generation) throw new Error(t("error.noGenerationShort"));
         await restoreDefinitionRevision(projectId, revisionId, generation);
         setProposal(null);
         setWorkingFrom("definition");
-        setSuccessMessage("以前の tests.yml に復元しました。");
+        setSuccessMessage(t("ai.restoredYaml"));
         await refreshGeneration();
         await loadRevisions();
       } catch (err) {
-        setErrorMessage(err instanceof ApiError ? err.message : "復元に失敗しました");
+        setErrorMessage(err instanceof ApiError ? err.message : t("ai.restoreFailed"));
       } finally {
         setBusy(false);
       }
@@ -170,15 +175,16 @@ export function useTestsYamlAiEdit({
 
   const acceptProposalIntoDraft = useCallback(() => {
     if (!enabled || !proposal) return null;
+    const { t } = createI18n(detectLocale());
     const accepted = proposal.proposedDefinition;
     setProposal(null);
     setWorkingFrom("definition");
     // Clear so the "diff を生成できませんでした" alert does not appear after a successful reflect.
     setLastIntent(null);
-    setSuccessMessage("編集案を編集画面に反映しました。内容を確認して Apply してください。");
+    setSuccessMessage(t("ai.reflectedReview"));
     setChatMessages((prev) => [
       ...prev,
-      { role: "assistant", content: "編集案を編集画面に反映しました。Apply で保存できます。" },
+      { role: "assistant", content: t("ai.reflectedApply") },
     ]);
     return accepted;
   }, [enabled, proposal]);

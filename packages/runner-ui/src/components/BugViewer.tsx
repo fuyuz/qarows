@@ -13,16 +13,16 @@ import { resolveFilteredBugs } from "../lib/bug-filter";
 import { canJumpToRunner } from "../lib/jump-to-runner";
 import { getAllEnvironmentIds } from "../lib/run-progress";
 import { isRunnerNextKey, isRunnerPrevKey, isRunnerTypingTarget } from "../lib/runner-keybindings";
+import { useTranslation } from "@qarows/ui";
 import { testCardShellClass } from "./RunnerCardFooter";
 
 function BugEmptyCard() {
+  const { t } = useTranslation();
   return (
     <article className={testCardShellClass()}>
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-10 text-center">
-        <p className="text-base font-semibold text-foreground">表示するバグがありません</p>
-        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          フィルタ条件に一致するバグがないか、まだバグが起票されていません。左の一覧から選択するか、フィルタを変更してください。
-        </p>
+        <p className="text-base font-semibold text-foreground">{t("bug.noBugsToShow")}</p>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">{t("bug.noBugsHint")}</p>
       </div>
     </article>
   );

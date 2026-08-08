@@ -75,6 +75,6 @@ describe("computeDefinitionDiff", () => {
     const diff = computeDefinitionDiff(before, after);
     expect(diff.scenarios.modified).toHaveLength(1);
     expect(diff.scenarios.modified[0]?.fields[0]?.field).toBe("steps");
-    expect(definitionDiffSummary(diff)).toContain("シナリオ 変更 1");
+    expect(definitionDiffSummary(diff)).toContain("1 scenario changed");
   });
 });

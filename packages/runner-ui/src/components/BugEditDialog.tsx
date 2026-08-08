@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@qarows/ui";
+import { useTranslation } from "@qarows/ui";
 import { cn } from "@qarows/ui";
 import { useProjectRoutes } from "../hooks/useProjectRoutes";
 
@@ -38,6 +39,7 @@ export function BugEditDialog({
   onSave: (bug: Bug) => void | Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<BugDialogDraft>(() => bugToDraft(bug));
   const [titleError, setTitleError] = useState(false);
   const navigate = useNavigate();
@@ -73,7 +75,7 @@ export function BugEditDialog({
     >
       <DialogContent className="flex min-w-0 max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
         <DialogHeader className="shrink-0 border-b px-6 py-4">
-          <DialogTitle>バグを編集</DialogTitle>
+          <DialogTitle>{t("bug.edit")}</DialogTitle>
           <DialogDescription>
             <button
               type="button"
@@ -85,7 +87,7 @@ export function BugEditDialog({
             >
               {bug.id}
             </button>
-            {" の内容を編集します。"}
+            {t("bug.editBodySuffix")}
           </DialogDescription>
         </DialogHeader>
 
@@ -105,7 +107,7 @@ export function BugEditDialog({
         <DialogFooter className="shrink-0 border-t px-6 py-4">
           <div className="flex w-full justify-end gap-2">
             <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
-              キャンセル
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -113,7 +115,7 @@ export function BugEditDialog({
               className={cn(busy && "opacity-70")}
               onClick={() => void handleSave()}
             >
-              保存
+              {t("common.save")}
             </Button>
           </div>
         </DialogFooter>

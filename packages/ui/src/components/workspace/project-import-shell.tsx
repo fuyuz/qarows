@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
+import { useTranslation } from "../../i18n/context";
 import { Alert, AlertDescription } from "../ui/alert";
 import {
   Card,
@@ -21,7 +22,7 @@ export interface ProjectImportShellProps {
 }
 
 export function ProjectImportShell({
-  title = "新規作成",
+  title,
   description,
   error,
   errorShake = false,
@@ -29,10 +30,13 @@ export function ProjectImportShell({
   footer,
   extra,
 }: ProjectImportShellProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("project.new");
+
   return (
     <Card className="flex h-full min-h-0 flex-col overflow-hidden">
       <CardHeader className="shrink-0 pb-3">
-        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardTitle className="text-lg">{resolvedTitle}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-y-auto">

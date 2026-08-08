@@ -2,6 +2,7 @@ import type { SessionTestTargets, TestCase, TestDefinition, TestResults, TestSta
 import { isResultEntryValid } from "@qarows/shared";
 import { Bug, ClipboardList, Copy, Pencil } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useTranslation } from "@qarows/ui";
 import { RUNNER_KEYBINDINGS } from "../lib/runner-keybindings";
 import { Kbd } from "@qarows/ui";
 import {
@@ -74,6 +75,7 @@ export function TestCard({
   onEditTestCase,
   onCopyTestCase,
 }: TestCardProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -96,7 +98,7 @@ export function TestCard({
             </Badge>
             {needsRetest && (
               <Badge variant="destructive" className="text-[0.65rem] font-bold">
-                要再テスト
+                {t("runner.retestNeeded")}
               </Badge>
             )}
             <span className="text-sm text-muted-foreground">{formatCategory(testCase)}</span>
@@ -111,7 +113,7 @@ export function TestCard({
               onClick={onEditTestCase}
             >
               <Pencil className="size-3.5" aria-hidden />
-              編集
+              {t("common.edit")}
             </Button>
             <Button
               type="button"
@@ -124,11 +126,11 @@ export function TestCard({
                   : "text-muted-foreground hover:text-foreground",
               )}
               disabled={busy}
-              aria-label={copied ? "クリップボードにコピー済み" : "Markdown をコピー"}
+              aria-label={copied ? t("runner.copyMarkdownDone") : t("runner.copyMarkdown")}
               onClick={() => void handleCopy()}
             >
               <Copy className="size-3.5" aria-hidden />
-              コピー
+              {copied ? t("common.copied") : t("common.copy")}
             </Button>
           </div>
         </div>
@@ -138,7 +140,7 @@ export function TestCard({
         {testCase.prerequisites && (
           <section className="mb-5">
             <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              前提条件
+              {t("runner.prerequisites")}
             </h2>
             <p className="text-sm leading-relaxed text-foreground/90">{testCase.prerequisites}</p>
           </section>
@@ -146,14 +148,14 @@ export function TestCard({
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            確認内容
+            {t("runner.steps")}
           </h2>
           <p className="text-lg leading-relaxed font-semibold text-foreground">{testCase.description}</p>
         </section>
 
         <section className="mb-5">
           <h2 className="mb-1.5 flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            対象端末
+            {t("runner.targetDevices")}
             <Badge variant="outline" className="text-[0.65rem] font-bold lowercase">
               {envTargets.required === "any" ? "any" : "all"}
             </Badge>
@@ -185,7 +187,7 @@ export function TestCard({
                       disabled={busy || !isValid}
                       onClick={() => onClear(envId)}
                     >
-                      クリア
+                      {t("common.clear")}
                     </Button>
                   </div>
                   <div className="flex gap-1.5">
@@ -212,7 +214,7 @@ export function TestCard({
         <section className="mb-5">
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase" htmlFor={`test-memo-${testCase.id}`}>
-              メモ
+              {t("runner.memo")}
             </label>
             <div className="flex items-center gap-1">
               {relatedBugCount > 0 && (
@@ -225,7 +227,7 @@ export function TestCard({
                   onClick={onViewRelatedBugs}
                 >
                   <ClipboardList className="size-3.5" aria-hidden />
-                  バグ ({relatedBugCount})
+                  {t("runner.bugsCount", { n: relatedBugCount })}
                 </Button>
               )}
               <Button
@@ -237,7 +239,7 @@ export function TestCard({
                 onClick={onOpenBug}
               >
                 <Bug className="size-3.5" aria-hidden />
-                バグ報告
+                {t("runner.reportBug")}
               </Button>
             </div>
           </div>
@@ -245,7 +247,7 @@ export function TestCard({
             <Textarea
               id={`test-memo-${testCase.id}`}
               rows={3}
-              placeholder="任意（テストケース単位）"
+              placeholder={t("runner.memoPlaceholder")}
               value={memo}
               onChange={(e) => onMemoChange(e.target.value)}
               className={cn(memoDirty && "pb-10")}
@@ -258,7 +260,7 @@ export function TestCard({
                 disabled={busy || memoSaving}
                 onClick={onMemoSave}
               >
-                {memoSaving ? "保存中…" : "保存"}
+                {memoSaving ? t("common.saving") : t("common.save")}
               </Button>
             )}
           </div>
@@ -278,7 +280,7 @@ export function TestCard({
           disabled={busy}
           onClick={() => onBatch("OK")}
         >
-          一括 OK <Kbd className="ml-1 border-white/30 bg-white/20 text-inherit">{RUNNER_KEYBINDINGS.ok[0]}</Kbd>
+          {t("runner.batchOk")} <Kbd className="ml-1 border-white/30 bg-white/20 text-inherit">{RUNNER_KEYBINDINGS.ok[0]}</Kbd>
         </Button>
         <Button
           variant="ng"
@@ -286,7 +288,7 @@ export function TestCard({
           disabled={busy}
           onClick={() => onBatch("NG")}
         >
-          一括 NG <Kbd className="ml-1 border-white/30 bg-white/20 text-inherit">{RUNNER_KEYBINDINGS.ng[0]}</Kbd>
+          {t("runner.batchNg")} <Kbd className="ml-1 border-white/30 bg-white/20 text-inherit">{RUNNER_KEYBINDINGS.ng[0]}</Kbd>
         </Button>
       </RunnerCardFooter>
     </article>

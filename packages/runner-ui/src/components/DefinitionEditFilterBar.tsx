@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { TestCase, TestDefinition } from "@qarows/shared";
+import { useTranslation } from "@qarows/ui";
 import {
   Button,
   Checkbox,
@@ -57,17 +58,18 @@ export function DefinitionEditFilterBar({
   onCompactChange: (compact: boolean) => void;
   className?: string;
 }) {
-  const majors = useMemo(() => getMajorCategories(definition), [definition]);
+  const { t, locale } = useTranslation();
+  const majors = useMemo(() => getMajorCategories(definition, locale), [definition, locale]);
   const mediums = useMemo(
-    () => (filters.major ? getMediumCategories(definition, filters.major) : []),
-    [definition, filters.major],
+    () => (filters.major ? getMediumCategories(definition, filters.major, locale) : []),
+    [definition, filters.major, locale],
   );
   const minors = useMemo(
     () =>
       filters.major && filters.medium
-        ? getMinorCategories(definition, filters.major, filters.medium)
+        ? getMinorCategories(definition, filters.major, filters.medium, locale)
         : [],
-    [definition, filters.major, filters.medium],
+    [definition, filters.major, filters.medium, locale],
   );
 
   return (
@@ -80,7 +82,7 @@ export function DefinitionEditFilterBar({
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
         <div className="flex flex-wrap items-end gap-2">
           <div className="grid min-w-[8rem] flex-1 gap-1">
-            <Label className="text-xs text-muted-foreground">大分類</Label>
+            <Label className="text-xs text-muted-foreground">{t("runner.major")}</Label>
             <Select
               value={filters.major ?? ALL}
               onValueChange={(value) =>
@@ -93,10 +95,10 @@ export function DefinitionEditFilterBar({
               }
             >
               <SelectTrigger className="h-8">
-                <SelectValue placeholder="すべて" />
+                <SelectValue placeholder={t("common.all")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>すべて</SelectItem>
+                <SelectItem value={ALL}>{t("common.all")}</SelectItem>
                 {majors.map((major) => (
                   <SelectItem key={major} value={major}>
                     {major}
@@ -106,7 +108,7 @@ export function DefinitionEditFilterBar({
             </Select>
           </div>
           <div className="grid min-w-[8rem] flex-1 gap-1">
-            <Label className="text-xs text-muted-foreground">中分類</Label>
+            <Label className="text-xs text-muted-foreground">{t("runner.medium")}</Label>
             <Select
               value={filters.medium ?? ALL}
               disabled={!filters.major}
@@ -119,10 +121,10 @@ export function DefinitionEditFilterBar({
               }
             >
               <SelectTrigger className="h-8">
-                <SelectValue placeholder="すべて" />
+                <SelectValue placeholder={t("common.all")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>すべて</SelectItem>
+                <SelectItem value={ALL}>{t("common.all")}</SelectItem>
                 {mediums.map((medium) => (
                   <SelectItem key={medium} value={medium}>
                     {medium}
@@ -132,7 +134,7 @@ export function DefinitionEditFilterBar({
             </Select>
           </div>
           <div className="grid min-w-[8rem] flex-1 gap-1">
-            <Label className="text-xs text-muted-foreground">小分類</Label>
+            <Label className="text-xs text-muted-foreground">{t("runner.minor")}</Label>
             <Select
               value={filters.minor ?? ALL}
               disabled={!filters.medium}
@@ -144,10 +146,10 @@ export function DefinitionEditFilterBar({
               }
             >
               <SelectTrigger className="h-8">
-                <SelectValue placeholder="すべて" />
+                <SelectValue placeholder={t("common.all")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>すべて</SelectItem>
+                <SelectItem value={ALL}>{t("common.all")}</SelectItem>
                 {minors.map((minor) => (
                   <SelectItem key={minor} value={minor}>
                     {minor}
@@ -161,7 +163,7 @@ export function DefinitionEditFilterBar({
           <Input
             value={filters.query}
             onChange={(e) => onChange({ ...filters, query: e.target.value })}
-            placeholder="ID・確認内容・前提条件で検索"
+            placeholder={t("definition.searchPlaceholder")}
             className="h-8 min-w-[12rem] flex-1"
           />
           <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
@@ -169,13 +171,13 @@ export function DefinitionEditFilterBar({
               checked={compact}
               onCheckedChange={(checked) => onCompactChange(checked === true)}
             />
-            コンパクト
+            {t("definition.compact")}
           </label>
           <p className="text-xs text-muted-foreground whitespace-nowrap">
-            {filteredCount} / {definition.testCases.length} 件
+            {filteredCount} / {definition.testCases.length}
           </p>
           <Button type="button" size="sm" variant="outline" onClick={onAddTestCase}>
-            ケース追加
+            {t("definition.addCase")}
           </Button>
         </div>
       </div>

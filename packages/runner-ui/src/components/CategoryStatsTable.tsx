@@ -1,8 +1,10 @@
 import {
   formatRate,
+  progressSegmentLabels,
   type CategoryProgressRow,
   PROGRESS_SEGMENT_ORDER,
 } from "../lib/run-progress";
+import { useTranslation } from "@qarows/ui";
 import {
   ProgressTrack,
   progressBucketBgClass,
@@ -19,9 +21,11 @@ export function CategoryStatsTable({
   rows: CategoryProgressRow[];
   onMajorClick?: (major: string) => void;
 }) {
+  const { t } = useTranslation();
+
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">大項目のデータがありません</p>
+      <p className="text-sm text-muted-foreground">{t("runner.noMajorData")}</p>
     );
   }
 
@@ -30,24 +34,24 @@ export function CategoryStatsTable({
       <table className="w-full min-w-[640px] border-collapse text-left text-sm">
         <thead>
           <tr className="border-b bg-card">
-            <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">大項目</th>
+            <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground">{t("runner.majorCol")}</th>
             <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
-              件数
+              {t("runner.countCol")}
             </th>
             <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
-              OK率
+              {t("runner.okRate")}
             </th>
             <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
-              NG率
+              {t("runner.ngRate")}
             </th>
             <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
-              SKIP率
+              {t("runner.skipRate")}
             </th>
             <th className="px-3 py-2.5 text-xs font-semibold text-muted-foreground tabular-nums">
-              未実施率
+              {t("runner.notRunRate")}
             </th>
             <th className="min-w-[120px] px-3 py-2.5 text-xs font-semibold text-muted-foreground">
-              内訳
+              {t("runner.breakdown")}
             </th>
           </tr>
         </thead>
@@ -72,7 +76,7 @@ export function CategoryStatsTable({
                     }
                   : undefined
               }
-              title={onMajorClick ? "クリックでテスト実行へ（大項目で絞り込み）" : undefined}
+              title={onMajorClick ? t("runner.clickMajorFilter") : undefined}
             >
               <td
                 className={cn(
@@ -106,12 +110,15 @@ export function CategoryStatsTable({
 }
 
 export function CategoryStatsLegend() {
+  const { t } = useTranslation();
+  const segmentLabels = progressSegmentLabels(t);
+
   return (
     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
       {PROGRESS_SEGMENT_ORDER.map((bucket) => (
         <span key={bucket} className="flex items-center gap-1.5">
           <span className={cn("size-2 rounded-full", progressBucketBgClass(bucket))} />
-          {bucket === "incomplete" ? "未実施" : bucket}
+          {segmentLabels[bucket]}
         </span>
       ))}
     </div>

@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "rea
 import { Plus } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { formatUpdatedAtShort } from "../../lib/format-updated-at";
+import { useTranslation } from "../../i18n/context";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import { type ProjectListItem, sortProjectListItems } from "./project-list-item";
@@ -36,6 +37,7 @@ export function ProjectListPanel({
   showSessionBadge = true,
   className,
 }: ProjectListPanelProps) {
+  const { t, localeTag } = useTranslation();
   const sortedSummaries = useMemo(() => sortProjectListItems(summaries), [summaries]);
   const activeIndex = useMemo(() => {
     if (selectedId === newProjectSelectionId) return NEW_ROW_INDEX;
@@ -81,12 +83,12 @@ export function ProjectListPanel({
   return (
     <aside
       className={cn("flex flex-col overflow-hidden rounded-xl border bg-muted/30", className)}
-      aria-label="プロジェクト一覧"
+      aria-label={t("project.listAria")}
     >
       <div className="shrink-0 border-b bg-card px-3.5 py-3">
-        <h2 className="text-sm font-bold leading-snug">プロジェクト</h2>
+        <h2 className="text-sm font-bold leading-snug">{t("project.title")}</h2>
         <p className="mt-2 text-xs font-semibold text-muted-foreground tabular-nums">
-          {summaries.length} 件登録済み
+          {t("common.countRegistered", { n: summaries.length })}
         </p>
       </div>
 
@@ -117,9 +119,9 @@ export function ProjectListPanel({
             >
               <Plus className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
               <span className="min-w-0">
-                <span className="text-xs font-bold text-foreground">新規作成</span>
+                <span className="text-xs font-bold text-foreground">{t("project.new")}</span>
                 <span className="mt-0.5 block text-[0.68rem] leading-relaxed text-muted-foreground">
-                  tests.yml を追加
+                  {t("project.addYaml")}
                 </span>
               </span>
             </button>
@@ -167,16 +169,16 @@ export function ProjectListPanel({
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1">
                       {showSessionBadge && summary.hasValidSession && (
-                        <Badge className="h-4 px-1.5 text-[0.6rem]">セッション</Badge>
+                        <Badge className="h-4 px-1.5 text-[0.6rem]">{t("project.badgeSession")}</Badge>
                       )}
                       {isLastOpened && (
                         <Badge variant="secondary" className="h-4 px-1.5 text-[0.6rem]">
-                          前回
+                          {t("project.badgeLastOpened")}
                         </Badge>
                       )}
                     </span>
                     <span className="mt-1 block text-[0.65rem] text-muted-foreground">
-                      {formatUpdatedAtShort(summary.updatedAt)}
+                      {formatUpdatedAtShort(summary.updatedAt, localeTag)}
                     </span>
                   </span>
                 </button>

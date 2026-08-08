@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
+import { useTranslation } from "../../i18n/context";
 
 export interface ProjectOverwriteDialogProps {
   open: boolean;
@@ -27,26 +28,26 @@ export function ProjectOverwriteDialog({
   onConfirm,
   onCancel,
 }: ProjectOverwriteDialogProps) {
+  const { t } = useTranslation();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>既存プロジェクトを上書きしますか？</DialogTitle>
+          <DialogTitle>{t("project.overwriteTitle")}</DialogTitle>
           <DialogDescription asChild>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>
-                「{projectName}」（id: {projectId}）は既に登録されています。
-              </p>
-              <p>tests.yml を読み込むと、定義・結果・セッションがすべて置き換わります。</p>
+              <p>{t("project.overwriteBody", { name: projectName, id: projectId })}</p>
+              <p>{t("project.overwriteWarning")}</p>
             </div>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
-            キャンセル
+            {t("common.cancel")}
           </Button>
           <Button variant="destructive" disabled={loading} onClick={onConfirm}>
-            {loading ? "読み込み中…" : "上書きする"}
+            {loading ? t("common.loadingAction") : t("common.overwrite")}
           </Button>
         </DialogFooter>
       </DialogContent>

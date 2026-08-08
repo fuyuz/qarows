@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Button, cn, Textarea } from "@qarows/ui";
+import { Button, cn, Textarea, useTranslation } from "@qarows/ui";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { AiChatMessage } from "@/lib/api/ai";
 
@@ -22,6 +22,7 @@ export function TestsYamlAiChatPanel({
   onSend: () => void;
   onReset: () => void;
 }) {
+  const { t } = useTranslation();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,8 +33,8 @@ export function TestsYamlAiChatPanel({
   const Chevron = expanded ? ChevronDown : ChevronRight;
   const summary =
     messages.length === 0
-      ? "質問・編集指示"
-      : `${messages.length} 件のメッセージ`;
+      ? t("ai.askOrEdit")
+      : t("ai.messageCount", { n: messages.length });
 
   return (
     <div
@@ -50,14 +51,14 @@ export function TestsYamlAiChatPanel({
           onClick={onExpand}
         >
           <Chevron className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="text-sm font-semibold">会話</span>
+          <span className="text-sm font-semibold">{t("ai.chat")}</span>
           {!expanded ? (
             <span className="truncate text-xs text-muted-foreground">{summary}</span>
           ) : null}
         </button>
         {expanded ? (
           <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={onReset}>
-            リセット
+            {t("ai.reset")}
           </Button>
         ) : null}
       </div>
@@ -66,9 +67,7 @@ export function TestsYamlAiChatPanel({
         <>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {messages.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                テストケースについて質問したり、tests.yml の編集を指示できます。
-              </p>
+              <p className="text-sm text-muted-foreground">{t("ai.chatHint")}</p>
             ) : null}
             {messages.map((message, index) => (
               <div
@@ -83,7 +82,7 @@ export function TestsYamlAiChatPanel({
                 {message.content}
               </div>
             ))}
-            {busy ? <p className="text-sm text-muted-foreground">考え中…</p> : null}
+            {busy ? <p className="text-sm text-muted-foreground">{t("ai.thinking")}</p> : null}
             <div ref={bottomRef} />
           </div>
 
@@ -92,7 +91,7 @@ export function TestsYamlAiChatPanel({
               value={input}
               rows={3}
               disabled={busy}
-              placeholder="テストケースについて質問、または編集を指示…"
+              placeholder={t("ai.inputPlaceholder")}
               onChange={(event) => onInputChange(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -103,7 +102,7 @@ export function TestsYamlAiChatPanel({
             />
             <div className="flex justify-end">
               <Button type="button" disabled={busy || !input.trim()} onClick={onSend}>
-                送信
+                {t("ai.send")}
               </Button>
             </div>
           </div>

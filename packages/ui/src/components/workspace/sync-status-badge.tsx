@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { createTranslator, messageCatalogs, type TranslateFn } from "@qarows/shared";
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/cn";
+import { useTranslation } from "../../i18n/context";
 
 export type ConnectionStatus = "idle" | "connecting" | "connected" | "reconnecting" | "disconnected";
 
@@ -20,16 +22,25 @@ export function resolveConnectionStatus(
   return connectionStatus ?? (connected ? "connected" : "disconnected");
 }
 
-export function connectionStatusLabel(status: ConnectionStatus, connected: boolean): string {
+function detailSuffix(t: TranslateFn, key: string, params?: Record<string, string | number>): string {
+  return t(key, params).replace(/^…/, "");
+}
+
+export function connectionStatusLabel(
+  status: ConnectionStatus,
+  connected: boolean,
+  t?: TranslateFn,
+): string {
+  const tr = t ?? createTranslator("ja", messageCatalogs);
   switch (status) {
     case "connected":
-      return "同期中";
+      return tr("sync.syncing");
     case "reconnecting":
-      return "再接続中";
+      return tr("sync.reconnecting");
     case "connecting":
-      return "接続中";
+      return tr("sync.connecting");
     default:
-      return connected ? "同期中" : "切断";
+      return connected ? tr("sync.syncing") : tr("sync.disconnected");
   }
 }
 
@@ -41,25 +52,26 @@ function connectionStatusTooltip(
   status: ConnectionStatus,
   connected: boolean,
   pendingCommands: number,
+  t: TranslateFn,
 ): string {
-  const label = connectionStatusLabel(status, connected);
+  const label = connectionStatusLabel(status, connected, t);
   if (isHealthyConnection(status, connected)) {
     if (pendingCommands > 0) {
-      return `${label} — 変更を保存しています`;
+      return `${label} — ${detailSuffix(t, "sync.detailSaving")}`;
     }
-    return `${label} — サーバーとリアルタイム同期しています`;
+    return `${label} — ${detailSuffix(t, "sync.detailSynced")}`;
   }
   if (status === "connecting") {
-    return `${label} — サーバーに接続しています`;
+    return `${label} — ${detailSuffix(t, "sync.detailConnecting")}`;
   }
   if (status === "reconnecting") {
-    return `${label} — サーバーとの接続を再試行しています`;
+    return `${label} — ${detailSuffix(t, "sync.detailReconnecting")}`;
   }
   if (status === "disconnected" || !connected) {
     if (pendingCommands > 0) {
-      return `${label} — 未送信の変更が ${pendingCommands} 件あります`;
+      return `${label} — ${detailSuffix(t, "sync.detailUnsent", { n: pendingCommands })}`;
     }
-    return `${label} — サーバーとの接続がありません`;
+    return `${label} — ${detailSuffix(t, "sync.detailDisconnected")}`;
   }
   return label;
 }
@@ -82,8 +94,9 @@ export function SyncConnectionIndicator({
   pendingCommands = 0,
   syncPulseKey = 0,
 }: Pick<WorkspaceSyncStatus, "connected" | "connectionStatus" | "pendingCommands" | "syncPulseKey">) {
+  const { t } = useTranslation();
   const status = resolveConnectionStatus(connected, connectionStatus);
-  const tooltip = connectionStatusTooltip(status, connected, pendingCommands);
+  const tooltip = connectionStatusTooltip(status, connected, pendingCommands, t);
   const healthy = isHealthyConnection(status, connected);
   const [flashing, setFlashing] = useState(false);
   const lastPulseKeyRef = useRef(syncPulseKey);
@@ -124,19 +137,20 @@ export function SyncStatusMenuSection({
   pendingCommands = 0,
   revision,
 }: WorkspaceSyncStatus) {
+  const { t } = useTranslation();
   const status = resolveConnectionStatus(connected, connectionStatus);
   const online = status === "connected";
 
   return (
     <div className="px-2 py-1.5">
-      <p className="mb-1.5 text-xs uppercase tracking-wide text-muted-foreground">同期</p>
+      <p className="mb-1.5 text-xs uppercase tracking-wide text-muted-foreground">{t("sync.title")}</p>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <Badge variant={online ? "default" : "secondary"}>
-          {connectionStatusLabel(status, connected)}
+          {connectionStatusLabel(status, connected, t)}
         </Badge>
         {pendingCommands > 0 && (
           <Badge variant="outline">
-            {online ? "保存中" : `未送信 ${pendingCommands} 件`}
+            {online ? t("sync.saving") : t("sync.unsent", { n: pendingCommands })}
           </Badge>
         )}
         {revision != null && (
@@ -156,17 +170,18 @@ export function SyncStatusBadge({
   pendingCommands = 0,
   revision,
 }: WorkspaceSyncStatus) {
+  const { t } = useTranslation();
   const status = resolveConnectionStatus(connected, connectionStatus);
   const online = status === "connected";
 
   return (
     <div className="flex items-center gap-2 text-xs">
       <Badge variant={online ? "default" : "secondary"}>
-        {connectionStatusLabel(status, connected)}
+        {connectionStatusLabel(status, connected, t)}
       </Badge>
       {pendingCommands > 0 && (
         <Badge variant="outline">
-          {online ? "保存中" : `未送信 ${pendingCommands} 件`}
+          {online ? t("sync.saving") : t("sync.unsent", { n: pendingCommands })}
         </Badge>
       )}
       {revision != null && (

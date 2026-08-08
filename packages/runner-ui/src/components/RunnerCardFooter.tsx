@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "@qarows/ui";
 import { Button } from "@qarows/ui";
 import { cn } from "@qarows/ui";
 
@@ -25,6 +26,8 @@ export function RunnerCardFooter({
   children,
   mode = "test",
 }: RunnerCardFooterProps) {
+  const { t } = useTranslation();
+
   if (mode === "intro") {
     return (
       <footer className="mt-auto shrink-0 border-t px-0 pb-5 pt-3.5">
@@ -34,7 +37,7 @@ export function RunnerCardFooter({
             disabled={!canNext || busy}
             onClick={onNext}
           >
-            はじめる
+            {t("common.start")}
           </Button>
         </div>
       </footer>
@@ -50,7 +53,7 @@ export function RunnerCardFooter({
           disabled={!canPrev || busy}
           onClick={onPrev}
         >
-          戻る
+          {t("common.back")}
         </Button>
       </footer>
     );
@@ -63,7 +66,7 @@ export function RunnerCardFooter({
         size="icon"
         className="h-auto w-9 shrink-0 self-stretch rounded-lg"
         disabled={!canPrev || busy}
-        aria-label="前へ"
+        aria-label={t("runner.prevAria")}
         onClick={onPrev}
       >
         <ChevronLeft className="size-5" />
@@ -83,7 +86,7 @@ export function RunnerCardFooter({
         size="icon"
         className="h-auto w-9 shrink-0 self-stretch rounded-lg"
         disabled={!canNext || busy}
-        aria-label="次へ"
+        aria-label={t("runner.nextAria")}
         onClick={onNext}
       >
         <ChevronRight className="size-5" />

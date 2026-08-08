@@ -5,6 +5,7 @@ import {
   AlertDescription,
   Button,
   cn,
+  useTranslation,
 } from "@qarows/ui";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { DefinitionDiffView } from "@/components/DefinitionDiffView";
@@ -24,7 +25,7 @@ export function TestsYamlAiProposalPanel({
   onApply,
   onDiscard,
   onRestore,
-  applyLabel = "適用",
+  applyLabel,
 }: {
   proposal: AiProposal | null;
   editIntentWithoutProposal?: boolean;
@@ -40,17 +41,18 @@ export function TestsYamlAiProposalPanel({
   onRestore: (revisionId: string) => void;
   applyLabel?: string;
 }) {
+  const { t, localeTag } = useTranslation();
   const [yamlDiffOpen, setYamlDiffOpen] = useState(false);
   const baseYaml = serializeTestsYaml(baseDefinition);
 
   const Chevron = expanded ? ChevronDown : ChevronRight;
   const summary = proposal
-    ? "編集案あり"
+    ? t("ai.proposalReady")
     : editIntentWithoutProposal
-      ? "生成失敗"
+      ? t("ai.generationFailed")
       : successMessage
-        ? "反映済み"
-        : "待機中";
+        ? t("ai.reflected")
+        : t("ai.idle");
 
   return (
     <div
@@ -67,7 +69,7 @@ export function TestsYamlAiProposalPanel({
           onClick={onExpand}
         >
           <Chevron className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="text-sm font-semibold">編集案</span>
+          <span className="text-sm font-semibold">{t("ai.proposal")}</span>
           {!expanded ? (
             <span
               className={cn(
@@ -81,7 +83,7 @@ export function TestsYamlAiProposalPanel({
             </span>
           ) : proposal?.modelUsed ? (
             <span className="truncate text-xs text-muted-foreground">
-              モデル: {proposal.modelUsed}
+              {t("ai.model")} {proposal.modelUsed}
             </span>
           ) : null}
         </button>
@@ -110,7 +112,7 @@ export function TestsYamlAiProposalPanel({
                     className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                     onClick={() => setYamlDiffOpen((open) => !open)}
                   >
-                    {yamlDiffOpen ? "YAML 全文 diff を隠す" : "YAML 全文 diff を表示"}
+                    {yamlDiffOpen ? t("ai.hideFullDiff") : t("ai.showFullDiff")}
                   </button>
                   {yamlDiffOpen ? (
                     <div className="mt-2">
@@ -121,21 +123,16 @@ export function TestsYamlAiProposalPanel({
               </>
             ) : editIntentWithoutProposal ? (
               <Alert variant="destructive">
-                <AlertDescription>
-                  編集した旨の応答はありますが、編集案（diff）を生成できませんでした。会話欄の補足を確認し、追加する
-                  TC の内容を具体的に指定して再試行してください。
-                </AlertDescription>
+                <AlertDescription>{t("ai.generationFailedHint")}</AlertDescription>
               </Alert>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                質問だけでも OK です。編集指示を送ると、ここに tests.yml の変更案が表示されます。
-              </p>
+              <p className="text-sm text-muted-foreground">{t("ai.proposalHint")}</p>
             )}
 
             {revisions.length > 0 ? (
               <section className="space-y-2 border-t pt-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  履歴（元に戻す）
+                  {t("ai.history")}
                 </h3>
                 <ul className="space-y-2">
                   {revisions.map((revision) => (
@@ -146,7 +143,7 @@ export function TestsYamlAiProposalPanel({
                       <div className="min-w-0">
                         <p className="font-medium">{revision.source}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(revision.createdAt).toLocaleString("ja-JP")}
+                          {new Date(revision.createdAt).toLocaleString(localeTag)}
                           {revision.createdBy ? ` · ${revision.createdBy}` : ""}
                         </p>
                         {revision.instruction ? (
@@ -162,7 +159,7 @@ export function TestsYamlAiProposalPanel({
                         disabled={busy}
                         onClick={() => onRestore(revision.id)}
                       >
-                        復元
+                        {t("ai.restore")}
                       </Button>
                     </li>
                   ))}
@@ -174,10 +171,10 @@ export function TestsYamlAiProposalPanel({
           {proposal ? (
             <div className="flex justify-end gap-2 border-t px-4 py-3">
               <Button type="button" variant="outline" disabled={busy} onClick={onDiscard}>
-                破棄
+                {t("common.discard")}
               </Button>
               <Button type="button" disabled={busy || !proposal.diff.hasChanges} onClick={onApply}>
-                {applyLabel}
+                {applyLabel ?? t("common.apply")}
               </Button>
             </div>
           ) : null}

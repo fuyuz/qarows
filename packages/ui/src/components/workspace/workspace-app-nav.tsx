@@ -4,11 +4,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { isValidSession, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
 import { useAppNavigationShortcuts } from "../../hooks/use-app-navigation-shortcuts";
 import {
+  appNavLabel,
   formatAppNavShortcutForPage,
   type AppNavigationPage,
   type WorkspaceProjectPage,
 } from "../../lib/app-keybindings";
 import { cn } from "../../lib/cn";
+import { useTranslation } from "../../i18n/context";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -66,16 +68,6 @@ const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
   "tests",
 ];
 
-const VIEW_PAGE_LABELS: Record<"dashboard" | "bugs" | "matrix", string> = {
-  dashboard: "ダッシュボード",
-  bugs: "バグ",
-  matrix: "マトリクス",
-};
-
-const EDIT_PAGE_LABELS: Record<"tests", string> = {
-  tests: "テスト定義",
-};
-
 function availablePageSet(pages?: readonly WorkspaceProjectPage[]): Set<WorkspaceProjectPage> {
   return new Set(pages ?? DEFAULT_AVAILABLE_PAGES);
 }
@@ -87,28 +79,29 @@ function workflowLinks(
   page: NavContextPage,
   session: SessionConfig | null,
   availablePages: Set<WorkspaceProjectPage>,
+  t: (key: string) => string,
 ): NavLinkItem[] {
   const items: NavLinkItem[] = [
-    { label: "トップ", to: "/" },
-    { label: "プロジェクト一覧", to: "/projects", page: "projects" },
+    { label: t("nav.home"), to: "/" },
+    { label: appNavLabel("projects", t), to: "/projects", page: "projects" },
   ];
 
   const canSession = availablePages.has("session");
   const canRun = availablePages.has("run");
 
   if (page === "run" && canSession) {
-    items.push({ label: "セッション設定", to: path("session"), page: "session" });
+    items.push({ label: appNavLabel("session", t), to: path("session"), page: "session" });
   } else if (page === "session" && canRun && session && isValidSession(session)) {
-    items.push({ label: "テスト実行", to: path("run"), page: "run" });
+    items.push({ label: appNavLabel("run", t), to: path("run"), page: "run" });
   } else if (
     (page === "matrix" || page === "dashboard" || page === "bugs" || page === "tests") &&
     availablePages.has(page)
   ) {
     if (canSession) {
-      items.push({ label: "セッション設定", to: path("session"), page: "session" });
+      items.push({ label: appNavLabel("session", t), to: path("session"), page: "session" });
     }
     if (canRun && session && isValidSession(session)) {
-      items.push({ label: "テスト実行", to: path("run"), page: "run" });
+      items.push({ label: appNavLabel("run", t), to: path("run"), page: "run" });
     }
   }
 
@@ -118,10 +111,11 @@ function workflowLinks(
 function viewLinks(
   path: WorkspaceAppNavProps["path"],
   availablePages: Set<WorkspaceProjectPage>,
+  t: (key: string) => string,
 ): NavLinkItem[] {
   return (["dashboard", "bugs", "matrix"] as const).flatMap((page) =>
     availablePages.has(page)
-      ? [{ label: VIEW_PAGE_LABELS[page], to: path(page), page }]
+      ? [{ label: appNavLabel(page, t), to: path(page), page }]
       : [],
   );
 }
@@ -129,10 +123,11 @@ function viewLinks(
 function editLinks(
   path: WorkspaceAppNavProps["path"],
   availablePages: Set<WorkspaceProjectPage>,
+  t: (key: string) => string,
 ): NavLinkItem[] {
   return (["tests"] as const).flatMap((page) =>
     availablePages.has(page)
-      ? [{ label: EDIT_PAGE_LABELS[page], to: path(page), page }]
+      ? [{ label: appNavLabel(page, t), to: path(page), page }]
       : [],
   );
 }
@@ -160,6 +155,7 @@ export function WorkspaceAppNav({
 }: WorkspaceAppNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -167,18 +163,18 @@ export function WorkspaceAppNav({
   const page = currentProjectPage(location.pathname);
 
   const workflow = useMemo(
-    () => (definition ? workflowLinks(path, page, session, pageSet) : []),
-    [definition, page, path, session, pageSet],
+    () => (definition ? workflowLinks(path, page, session, pageSet, t) : []),
+    [definition, page, path, session, pageSet, t],
   );
 
   const browseLinks = useMemo(
-    () => (definition ? viewLinks(path, pageSet) : []),
-    [definition, path, pageSet],
+    () => (definition ? viewLinks(path, pageSet, t) : []),
+    [definition, path, pageSet, t],
   );
 
   const editLinksList = useMemo(
-    () => (definition ? editLinks(path, pageSet) : []),
-    [definition, path, pageSet],
+    () => (definition ? editLinks(path, pageSet, t) : []),
+    [definition, path, pageSet, t],
   );
 
   const canExportResults = definition != null && results != null && onExportResults != null;
@@ -230,7 +226,7 @@ export function WorkspaceAppNav({
             variant="outline"
             size="icon"
             className="size-9 rounded-full shadow-sm"
-            aria-label="ナビゲーション"
+            aria-label={t("nav.navigation")}
           >
             <Compass className="size-4.5" />
           </Button>
@@ -245,7 +241,7 @@ export function WorkspaceAppNav({
           {hasWorkflow && (
             <>
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                移動
+                {t("nav.go")}
               </DropdownMenuLabel>
               {workflow.map((link) => (
                 <DropdownMenuItem
@@ -268,7 +264,7 @@ export function WorkspaceAppNav({
           {hasBrowse && (
             <>
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                閲覧
+                {t("nav.view")}
               </DropdownMenuLabel>
               {browseLinks.map((link) => (
                 <DropdownMenuItem
@@ -292,7 +288,7 @@ export function WorkspaceAppNav({
             <>
               {(hasWorkflow || hasBrowse) && <DropdownMenuSeparator />}
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                編集
+                {t("nav.edit")}
               </DropdownMenuLabel>
               {editLinksList.map((link) => (
                 <DropdownMenuItem
@@ -328,7 +324,7 @@ export function WorkspaceAppNav({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-                データ
+                {t("nav.data")}
               </DropdownMenuLabel>
               {canExportYaml && (
                 <DropdownMenuItem
@@ -337,7 +333,7 @@ export function WorkspaceAppNav({
                     setOpen(false);
                   }}
                 >
-                  tests.yml をエクスポート
+                  {t("nav.exportYaml")}
                 </DropdownMenuItem>
               )}
               {canExportResults && (
@@ -347,7 +343,7 @@ export function WorkspaceAppNav({
                     setOpen(false);
                   }}
                 >
-                  results.json をエクスポート
+                  {t("nav.exportResults")}
                 </DropdownMenuItem>
               )}
               {canExportZip && (
@@ -357,7 +353,7 @@ export function WorkspaceAppNav({
                     setOpen(false);
                   }}
                 >
-                  プロジェクトを zip でエクスポート
+                  {t("nav.exportZip")}
                 </DropdownMenuItem>
               )}
             </>

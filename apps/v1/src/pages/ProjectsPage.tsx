@@ -12,6 +12,7 @@ import { ProjectDetailPanel } from "@/components/ProjectDetailPanel";
 import { ProjectImportPanel } from "@/components/ProjectImportPanel";
 import { ProjectList } from "@/components/ProjectList";
 import { RunnerCardTransition } from "@qarows/runner-ui";
+import { useTranslation } from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
 import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";
@@ -31,6 +32,7 @@ function resolveDefaultSelection(
 }
 
 export function ProjectsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     ready,
@@ -93,25 +95,25 @@ export function ProjectsPage() {
 
   const handleExportYaml = useCallback(async (targetProjectId: string) => {
     const record = await getProject(targetProjectId);
-    if (!record) throw new Error("プロジェクトが見つかりません");
+    if (!record) throw new Error(t("project.notFound"));
     downloadText(serializeTestsYaml(record.definition), "tests.yml", "text/yaml");
-  }, []);
+  }, [t]);
 
   const handleExportResults = useCallback(async (targetProjectId: string) => {
     const record = await getProject(targetProjectId);
-    if (!record) throw new Error("プロジェクトが見つかりません");
+    if (!record) throw new Error(t("project.notFound"));
     downloadText(serializeResultsJson(record.results), "results.json", "application/json");
-  }, []);
+  }, [t]);
 
   const handleExportZip = useCallback(async (targetProjectId: string) => {
     const record = await getProject(targetProjectId);
-    if (!record) throw new Error("プロジェクトが見つかりません");
+    if (!record) throw new Error(t("project.notFound"));
     const archive = packProjectArchive({
       testsYaml: serializeTestsYaml(record.definition),
       resultsJson: serializeResultsJson(record.results ?? createEmptyResults(targetProjectId)),
     });
     downloadBlob(projectArchiveToBlob(archive), projectArchiveFilename(targetProjectId));
-  }, []);
+  }, [t]);
 
   const handleDelete = useCallback(
     async (targetProjectId: string) => {
@@ -134,10 +136,8 @@ export function ProjectsPage() {
     <div className="flex h-svh flex-col overflow-hidden">
       <header className="shrink-0 border-b px-5 py-4">
         <div className="mx-auto w-full max-w-6xl">
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">プロジェクト</h1>
-          <p className="text-sm text-muted-foreground">
-            登録済みの tests.yml を切り替えて作業できます
-          </p>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">{t("project.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("project.descriptionLocal")}</p>
         </div>
       </header>
 

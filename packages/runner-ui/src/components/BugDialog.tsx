@@ -7,6 +7,7 @@ import type {
 } from "@qarows/shared";
 import { buildBugPrefillFromTestCase } from "@qarows/shared";
 import { useEffect, useState } from "react";
+import { useTranslation } from "@qarows/ui";
 import { BugFormFields } from "./BugFormFields";
 import { Button } from "@qarows/ui";
 import { Checkbox } from "@qarows/ui";
@@ -156,6 +157,7 @@ export function BugDialog({
   onSubmit,
   onCancel,
 }: BugDialogProps) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(() =>
     buildInitialDraft(testCase, initialTestCaseLinked, initialEnvironmentIds, defaultAssignee),
   );
@@ -188,9 +190,9 @@ export function BugDialog({
     >
       <DialogContent className="flex min-w-0 max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
         <DialogHeader className="shrink-0 border-b px-6 py-4">
-          <DialogTitle>バグを起票</DialogTitle>
+          <DialogTitle>{t("bug.report")}</DialogTitle>
           <DialogDescription>
-            {testCase.id} のテスト実行中にバグを登録します。
+            {t("bug.reportWhileRunning", { id: testCase.id })}
           </DialogDescription>
         </DialogHeader>
 
@@ -217,7 +219,7 @@ export function BugDialog({
           </label>
           <div className="flex gap-2">
             <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
-              キャンセル
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -225,7 +227,7 @@ export function BugDialog({
               className={cn(busy && "opacity-70")}
               onClick={() => void handleSubmit()}
             >
-              作成
+              {t("common.create")}
             </Button>
           </div>
         </DialogFooter>

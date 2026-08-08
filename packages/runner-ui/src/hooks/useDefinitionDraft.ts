@@ -8,6 +8,7 @@ import {
   type TestScenario,
   type TargetEnvironmentSpec,
 } from "@qarows/shared";
+import { useTranslation } from "@qarows/ui";
 
 function mapScenarioSteps(
   scenarios: TestScenario[] | undefined,
@@ -47,6 +48,7 @@ export function useDefinitionDraft(
   savedDefinition: TestDefinition | null,
   options?: { syncKey?: string | number | null },
 ) {
+  const { t } = useTranslation();
   const [baseline, setBaseline] = useState<TestDefinition | null>(null);
   const [draft, setDraft] = useState<TestDefinition | null>(null);
   const loadedKeyRef = useRef<string | null>(null);
@@ -85,7 +87,7 @@ export function useDefinitionDraft(
   }, [baseline, draft]);
 
   const hasChanges = diff?.hasChanges ?? false;
-  const changeSummary = diff ? definitionDiffSummary(diff) : "";
+  const changeSummary = diff ? definitionDiffSummary(diff, t) : "";
 
   const discard = useCallback(() => {
     if (!baseline) return;

@@ -1,7 +1,7 @@
 import type { ProjectCommand } from "@qarows/application";
 import {
+  getSnapshotReplacedMessage,
   parseServerMessage,
-  SNAPSHOT_REPLACED_MESSAGE,
   SyncSendError,
   type ClientMessage,
   type RoomSnapshot,
@@ -167,7 +167,7 @@ export class ProjectSyncClient {
         case "snapshotReplaced":
           this.applyServerSnapshot(message.snapshot);
           this.snapshotReceived = true;
-          this.discardOutboundQueue(new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
+          this.discardOutboundQueue(new SyncSendError(getSnapshotReplacedMessage()));
           this.handlers?.onSnapshotReplaced(message);
           return;
         case "commandApplied": {
@@ -193,8 +193,8 @@ export class ProjectSyncClient {
         }
         case "commandRejected": {
           this.applyServerSnapshot(message.snapshot);
-          this.discardOutboundQueue(new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
-          this.rejectPendingCommand(message.commandId, new SyncSendError(SNAPSHOT_REPLACED_MESSAGE));
+          this.discardOutboundQueue(new SyncSendError(getSnapshotReplacedMessage()));
+          this.rejectPendingCommand(message.commandId, new SyncSendError(getSnapshotReplacedMessage()));
           this.handlers?.onCommandRejected?.(message);
           return;
         }

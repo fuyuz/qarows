@@ -1,4 +1,6 @@
 import {
+  createI18n,
+  detectLocale,
   resolveRunnerTestCases,
   type RunnerFilters,
   type SessionConfig,
@@ -78,7 +80,8 @@ export function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error ?? new Error("ファイル読み込みに失敗しました"));
+    reader.onerror = () =>
+      reject(reader.error ?? new Error(createI18n(detectLocale()).t("error.readFileFailed")));
     reader.readAsText(file);
   });
 }
@@ -103,10 +106,11 @@ export function formatRunnerFilterTitle(
   definition: TestDefinition | null,
   filters: RunnerFilters,
 ): string {
+  const { t } = createI18n(detectLocale());
   const mode = filters.targetMode ?? "filter";
   if (mode === "scenario") {
     const scenario = definition?.scenarios?.find((entry) => entry.id === filters.scenarioId);
-    return scenario ? `シナリオ（${scenario.name}）` : "シナリオ";
+    return scenario ? t("runner.scenarioNamed", { name: scenario.name }) : t("runner.scenario");
   }
 
   const parts = [
@@ -114,6 +118,6 @@ export function formatRunnerFilterTitle(
     filters.mediumCategoryFilter,
     filters.minorCategoryFilter,
   ].filter(Boolean);
-  if (parts.length === 0) return "フィルタ";
-  return `フィルタ（${parts.join(" › ")}）`;
+  if (parts.length === 0) return t("runner.filter");
+  return t("runner.filterNamed", { parts: parts.join(" › ") });
 }

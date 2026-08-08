@@ -5,6 +5,8 @@ import type {
   TestDefinition,
   TestScenario,
 } from "./types";
+import type { TranslateFn } from "./i18n/translate";
+import { createTranslator, detectLocale, messageCatalogs } from "./i18n";
 
 export interface FieldChange {
   field: string;
@@ -257,19 +259,20 @@ export function computeDefinitionDiff(
   };
 }
 
-export function definitionDiffSummary(diff: DefinitionDiff): string {
+export function definitionDiffSummary(diff: DefinitionDiff, t?: TranslateFn): string {
+  const tr = t ?? createTranslator(detectLocale(), messageCatalogs);
   const parts: string[] = [];
   const { testCases } = diff;
-  if (testCases.added.length) parts.push(`+${testCases.added.length} TC`);
-  if (testCases.removed.length) parts.push(`-${testCases.removed.length} TC`);
-  if (testCases.modified.length) parts.push(`変更 ${testCases.modified.length} TC`);
-  if (diff.environments.added.length) parts.push(`端末 +${diff.environments.added.length}`);
-  if (diff.environments.removed.length) parts.push(`端末 -${diff.environments.removed.length}`);
-  if (diff.environments.modified.length) parts.push(`端末 変更 ${diff.environments.modified.length}`);
-  if (diff.scenarios.added.length) parts.push(`シナリオ +${diff.scenarios.added.length}`);
-  if (diff.scenarios.removed.length) parts.push(`シナリオ -${diff.scenarios.removed.length}`);
-  if (diff.scenarios.modified.length) parts.push(`シナリオ 変更 ${diff.scenarios.modified.length}`);
-  if (diff.project.length) parts.push("プロジェクト設定");
-  if (diff.categoryTargets) parts.push("categoryTargets");
-  return parts.length > 0 ? parts.join(" / ") : "変更なし";
+  if (testCases.added.length) parts.push(tr("definition.diffSummary.tcAdded", { n: testCases.added.length }));
+  if (testCases.removed.length) parts.push(tr("definition.diffSummary.tcRemoved", { n: testCases.removed.length }));
+  if (testCases.modified.length) parts.push(tr("definition.diffSummary.tcModified", { n: testCases.modified.length }));
+  if (diff.environments.added.length) parts.push(tr("definition.diffSummary.envAdded", { n: diff.environments.added.length }));
+  if (diff.environments.removed.length) parts.push(tr("definition.diffSummary.envRemoved", { n: diff.environments.removed.length }));
+  if (diff.environments.modified.length) parts.push(tr("definition.diffSummary.envModified", { n: diff.environments.modified.length }));
+  if (diff.scenarios.added.length) parts.push(tr("definition.diffSummary.scenarioAdded", { n: diff.scenarios.added.length }));
+  if (diff.scenarios.removed.length) parts.push(tr("definition.diffSummary.scenarioRemoved", { n: diff.scenarios.removed.length }));
+  if (diff.scenarios.modified.length) parts.push(tr("definition.diffSummary.scenarioModified", { n: diff.scenarios.modified.length }));
+  if (diff.project.length) parts.push(tr("definition.diffSummary.projectSettings"));
+  if (diff.categoryTargets) parts.push(tr("definition.diffSummary.categoryTargets"));
+  return parts.length > 0 ? parts.join(" / ") : tr("definition.diffSummary.none");
 }

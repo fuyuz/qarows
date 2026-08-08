@@ -1,18 +1,19 @@
 import type { Bug, BugSeverity, BugStatus, TestCase } from "./types";
+import { jaMessages } from "./i18n/messages/ja";
 
 export const BUG_STATUS_LABELS: Record<BugStatus, string> = {
-  open: "未対応",
-  in_progress: "修正中",
-  fixed: "修正済み",
-  resolved: "修正確認済み",
-  wont_fix: "対応しない",
+  open: jaMessages.bug.status.open,
+  in_progress: jaMessages.bug.status.in_progress,
+  fixed: jaMessages.bug.status.fixed,
+  resolved: jaMessages.bug.status.resolved,
+  wont_fix: jaMessages.bug.status.wont_fix,
 };
 
 export const BUG_SEVERITY_LABELS: Record<BugSeverity, string> = {
-  low: "低",
-  medium: "中",
-  high: "高",
-  critical: "致命的",
+  low: jaMessages.bug.severity.low,
+  medium: jaMessages.bug.severity.medium,
+  high: jaMessages.bug.severity.high,
+  critical: jaMessages.bug.severity.critical,
 };
 
 /** メインワークフロー上のステータス順（未対応 → 修正確認済み） */

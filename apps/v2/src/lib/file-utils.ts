@@ -1,3 +1,5 @@
+import { createI18n, detectLocale } from "@qarows/shared";
+
 export function downloadText(content: string, filename: string, mime: string): void {
   const blob = new Blob([content], { type: mime });
   downloadBlob(blob, filename);
@@ -16,7 +18,8 @@ export function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error ?? new Error("ファイル読み込みに失敗しました"));
+    reader.onerror = () =>
+      reject(reader.error ?? new Error(createI18n(detectLocale()).t("error.readFileFailed")));
     reader.readAsText(file);
   });
 }

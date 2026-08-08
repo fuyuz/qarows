@@ -8,7 +8,7 @@ import {
   serializeResultsJson,
   serializeTestsYaml,
 } from "@qarows/shared";
-import { Alert, AlertDescription, LoadingScreen } from "@qarows/ui";
+import { Alert, AlertDescription, LoadingScreen, useTranslation } from "@qarows/ui";
 import { ProjectDetailPanel } from "@/components/ProjectDetailPanel";
 import { ProjectImportPanel } from "@/components/ProjectImportPanel";
 import { ProjectList } from "@/components/ProjectList";
@@ -32,6 +32,7 @@ function resolveDefaultSelection(
 }
 
 export function ProjectsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     ready,
@@ -101,25 +102,25 @@ export function ProjectsPage() {
 
   const handleExportYaml = useCallback(async (targetProjectId: string) => {
     const data = await getProject(targetProjectId);
-    if (!data) throw new Error("プロジェクトが見つかりません");
+    if (!data) throw new Error(t("project.notFound"));
     downloadText(serializeTestsYaml(data.definition), "tests.yml", "text/yaml");
-  }, []);
+  }, [t]);
 
   const handleExportResults = useCallback(async (targetProjectId: string) => {
     const data = await getProject(targetProjectId);
-    if (!data) throw new Error("プロジェクトが見つかりません");
+    if (!data) throw new Error(t("project.notFound"));
     downloadText(serializeResultsJson(data.results), "results.json", "application/json");
-  }, []);
+  }, [t]);
 
   const handleExportZip = useCallback(async (targetProjectId: string) => {
     const data = await getProject(targetProjectId);
-    if (!data) throw new Error("プロジェクトが見つかりません");
+    if (!data) throw new Error(t("project.notFound"));
     const archive = packProjectArchive({
       testsYaml: serializeTestsYaml(data.definition),
       resultsJson: serializeResultsJson(data.results ?? createEmptyResults(targetProjectId)),
     });
     downloadBlob(projectArchiveToBlob(archive), projectArchiveFilename(targetProjectId));
-  }, []);
+  }, [t]);
 
   const handleDelete = useCallback(
     async (targetProjectId: string) => {
@@ -135,7 +136,7 @@ export function ProjectsPage() {
   );
 
   if (!ready && loading) {
-    return <LoadingScreen message="サーバーからプロジェクト一覧を読み込み中…" />;
+    return <LoadingScreen message={t("project.loadingListTeam")} />;
   }
 
   const isNewSelected = projectId === NEW_PROJECT_SELECTION;
@@ -144,10 +145,8 @@ export function ProjectsPage() {
     <div className="flex h-svh flex-col overflow-hidden">
       <header className="shrink-0 border-b px-5 py-4">
         <div className="mx-auto w-full max-w-6xl">
-          <h1 className="mb-1 text-2xl font-bold tracking-tight">プロジェクト</h1>
-          <p className="text-sm text-muted-foreground">
-            サーバー上の tests.yml を管理し、チームで同期して作業します
-          </p>
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">{t("project.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("project.descriptionTeam")}</p>
         </div>
       </header>
 

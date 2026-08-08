@@ -18,6 +18,7 @@ import {
   mergeProjectResults as mergeProjectResultsApi,
   type ProjectSummary,
 } from "@/lib/api/projects";
+import { useTranslation } from "@qarows/ui";
 import { clearLocalSelectedEnvironmentIds } from "@/lib/local-session";
 import { enrichSummariesWithSession } from "@/lib/project-session";
 import { getSyncUser } from "@/lib/sync/sync-user";
@@ -71,6 +72,7 @@ function writeLastOpenedProjectId(projectId: string | null): void {
 }
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,12 +105,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       setRawProjectSummaries(summaries);
       setUserEmail(email);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "プロジェクト一覧の取得に失敗しました");
+      setError(err instanceof Error ? err.message : t("error.fetchListFailed"));
     } finally {
       setLoading(false);
       setReady(true);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void refreshProjects();
@@ -125,7 +127,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         const current = await getProject(existingProjectId);
         const expectedGeneration = current.generation;
         if (!expectedGeneration) {
-          throw new Error("generation を取得できませんでした。再読み込みしてください");
+          throw new Error(t("error.noGeneration"));
         }
         snapshot = await replaceProjectFromYaml(existingProjectId, testsYaml, {
           resultsJsonList,
@@ -139,7 +141,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       setLastOpenedProjectId(snapshot.id);
       return snapshot.id;
     },
-    [refreshProjects],
+    [refreshProjects, t],
   );
 
   const createNamedProject = useCallback(
