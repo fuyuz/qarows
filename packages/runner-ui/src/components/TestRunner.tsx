@@ -27,6 +27,7 @@ import {
 } from "../lib/runner-keybindings";
 import { resolveRunnerTargets } from "../lib/runner-targets";
 import { formatTestCaseMarkdown } from "../lib/format-test-case-markdown";
+import { useTranslation } from "@qarows/ui";
 
 const AUTO_ADVANCE_DELAY_MS = 500;
 
@@ -49,6 +50,7 @@ export function TestRunner() {
     updateTestCase,
     clearTestResult,
   } = useRunnerWorkspace();
+  const { t } = useTranslation();
   const { runnerFilters, filtersSettled, testId, setTestId } = useRunnerQueryState();
 
   const [slideIndex, setSlideIndex] = useState(0);
@@ -392,9 +394,10 @@ export function TestRunner() {
       testCase: current,
       envTargets,
       bugs: relatedBugs,
+      t,
     });
     await navigator.clipboard.writeText(markdown);
-  }, [current, definition, envTargets, relatedBugs]);
+  }, [current, definition, envTargets, relatedBugs, t]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

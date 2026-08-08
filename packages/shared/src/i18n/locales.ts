@@ -57,9 +57,13 @@ export function getLocaleDefinition(locale: Locale): (typeof LOCALE_DEFINITIONS)
   return def;
 }
 
-export const messageCatalogs = Object.fromEntries(
-  LOCALE_DEFINITIONS.map((def) => [def.id, def.messages]),
-) as Record<Locale, Record<string, unknown>>;
+export const messageCatalogs = LOCALE_DEFINITIONS.reduce(
+  (acc, def) => {
+    acc[def.id] = def.messages;
+    return acc;
+  },
+  {} as Record<Locale, Record<string, unknown>>,
+);
 
 export function localeTag(locale: Locale): string {
   return getLocaleDefinition(locale).bcp47;

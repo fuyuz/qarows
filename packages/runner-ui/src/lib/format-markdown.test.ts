@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { resolveSessionTestTargets } from "@qarows/shared";
+import { createI18n, resolveSessionTestTargets } from "@qarows/shared";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
 import { formatBugMarkdown } from "./format-bug-markdown";
 import { formatTestCaseMarkdown } from "./format-test-case-markdown";
+
+const ja = createI18n("ja");
 
 describe("formatTestCaseMarkdown", () => {
   it("includes category, description, and related bugs", () => {
@@ -32,6 +34,7 @@ describe("formatTestCaseMarkdown", () => {
           testCaseId: "TC-001",
         },
       ],
+      t: ja.t,
     });
 
     expect(md).toContain("# Test Case: TC-001");
@@ -58,6 +61,7 @@ describe("formatTestCaseMarkdown", () => {
       testCase,
       envTargets: resolveSessionTestTargets(testCase, definition, ["chrome"]),
       bugs: [],
+      t: ja.t,
     });
 
     expect(md).not.toContain("Version:");
@@ -82,6 +86,7 @@ describe("formatBugMarkdown", () => {
         steps: "Open page",
       },
       relatedTestCase: testCase,
+      t: ja.t,
     });
 
     expect(md).toContain("# Bug: BUG-001");
@@ -105,6 +110,7 @@ describe("formatBugMarkdown", () => {
         memo: "Repro on staging",
         fixNote: "Patched in v1.2",
       },
+      t: ja.t,
     });
 
     expect(md).toContain("dev@example.com");

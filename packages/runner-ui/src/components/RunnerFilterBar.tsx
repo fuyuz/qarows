@@ -342,12 +342,14 @@ function CategorySelect({
   options,
   onValueChange,
   disabled,
+  t,
 }: {
   label: string;
   value: string | undefined;
   options: string[];
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  t: (key: string) => string;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -514,6 +516,7 @@ export function RunnerFilterBar({
                     value={runnerFilters.majorCategoryFilter}
                     options={majorCategories}
                     onValueChange={updateMajorFilter}
+                    t={t}
                   />
                   <CategorySelect
                     label={t("runner.medium")}
@@ -521,12 +524,14 @@ export function RunnerFilterBar({
                     options={mediumCategories}
                     onValueChange={updateMediumFilter}
                     disabled={mediumCategories.length === 0}
+                    t={t}
                   />
                   <CategorySelect
                     label={t("runner.minor")}
                     value={runnerFilters.minorCategoryFilter}
                     options={minorCategories}
                     onValueChange={updateMinorFilter}
+                    t={t}
                     disabled={minorCategories.length === 0}
                   />
                 </div>

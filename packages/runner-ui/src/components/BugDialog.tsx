@@ -56,8 +56,9 @@ function buildInitialDraft(
   initialTestCaseLinked: boolean,
   initialEnvironmentIds: string[],
   defaultAssignee = "",
+  prereqLabel = "Prereq:",
 ): BugDialogDraft {
-  const prefill = buildBugPrefillFromTestCase(testCase);
+  const prefill = buildBugPrefillFromTestCase(testCase, prereqLabel);
   return {
     testCaseId: initialTestCaseLinked ? testCase.id : undefined,
     environmentIds: [...initialEnvironmentIds],
@@ -158,18 +159,39 @@ export function BugDialog({
   onCancel,
 }: BugDialogProps) {
   const { t } = useTranslation();
+  const prereqLabel = t("runner.prereqShort");
   const [draft, setDraft] = useState(() =>
-    buildInitialDraft(testCase, initialTestCaseLinked, initialEnvironmentIds, defaultAssignee),
+    buildInitialDraft(
+      testCase,
+      initialTestCaseLinked,
+      initialEnvironmentIds,
+      defaultAssignee,
+      prereqLabel,
+    ),
   );
   const [titleError, setTitleError] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setDraft(
-      buildInitialDraft(testCase, initialTestCaseLinked, initialEnvironmentIds, defaultAssignee),
+      buildInitialDraft(
+        testCase,
+        initialTestCaseLinked,
+        initialEnvironmentIds,
+        defaultAssignee,
+        prereqLabel,
+      ),
     );
     setTitleError(false);
-  }, [defaultAssignee, open, formKey, testCase, initialTestCaseLinked, initialEnvironmentIds]);
+  }, [
+    defaultAssignee,
+    open,
+    formKey,
+    testCase,
+    initialTestCaseLinked,
+    initialEnvironmentIds,
+    prereqLabel,
+  ]);
 
   const handleSubmit = async () => {
     const normalized = normalizeBugDialogDraft(draft);

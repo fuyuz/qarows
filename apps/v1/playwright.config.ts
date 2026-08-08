@@ -14,6 +14,7 @@ export default defineConfig({
   timeout: 60_000,
   use: {
     baseURL,
+    locale: "ja-JP",
     trace: "on-first-retry",
   },
   projects: [

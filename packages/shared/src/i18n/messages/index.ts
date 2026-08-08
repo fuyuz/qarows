@@ -1,2 +1,2 @@
-export { jaMessages } from "./messages/ja";
-export { enMessages } from "./messages/en";
+export { jaMessages } from "./ja";
+export { enMessages } from "./en";

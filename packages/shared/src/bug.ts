@@ -1,20 +1,25 @@
+import { createI18n, detectLocale } from "./i18n";
 import type { Bug, BugSeverity, BugStatus, TestCase } from "./types";
-import { jaMessages } from "./i18n/messages/ja";
 
-export const BUG_STATUS_LABELS: Record<BugStatus, string> = {
-  open: jaMessages.bug.status.open,
-  in_progress: jaMessages.bug.status.in_progress,
-  fixed: jaMessages.bug.status.fixed,
-  resolved: jaMessages.bug.status.resolved,
-  wont_fix: jaMessages.bug.status.wont_fix,
-};
+const BUG_STATUS_VALUES: readonly BugStatus[] = [
+  "open",
+  "in_progress",
+  "fixed",
+  "resolved",
+  "wont_fix",
+];
 
-export const BUG_SEVERITY_LABELS: Record<BugSeverity, string> = {
-  low: jaMessages.bug.severity.low,
-  medium: jaMessages.bug.severity.medium,
-  high: jaMessages.bug.severity.high,
-  critical: jaMessages.bug.severity.critical,
-};
+const BUG_SEVERITY_VALUES: readonly BugSeverity[] = ["low", "medium", "high", "critical"];
+
+/** @deprecated Use bugStatusLabels(t) from @qarows/shared/i18n */
+export const BUG_STATUS_LABELS: Record<BugStatus, string> = Object.fromEntries(
+  BUG_STATUS_VALUES.map((status) => [status, createI18n("ja").t(`bug.status.${status}`)]),
+) as Record<BugStatus, string>;
+
+/** @deprecated Use bugSeverityLabels(t) from @qarows/shared/i18n */
+export const BUG_SEVERITY_LABELS: Record<BugSeverity, string> = Object.fromEntries(
+  BUG_SEVERITY_VALUES.map((severity) => [severity, createI18n("ja").t(`bug.severity.${severity}`)]),
+) as Record<BugSeverity, string>;
 
 /** メインワークフロー上のステータス順（未対応 → 修正確認済み） */
 export const BUG_STATUS_WORKFLOW: BugStatus[] = [
@@ -27,9 +32,9 @@ export const BUG_STATUS_WORKFLOW: BugStatus[] = [
 /** 進捗バー等の表示順（wont_fix は分岐先として末尾） */
 export const BUG_STATUS_DISPLAY_ORDER: BugStatus[] = [...BUG_STATUS_WORKFLOW, "wont_fix"];
 
-const BUG_STATUSES = new Set<string>(Object.keys(BUG_STATUS_LABELS));
+const BUG_STATUSES = new Set<string>(BUG_STATUS_VALUES);
 
-const BUG_SEVERITIES = new Set<string>(Object.keys(BUG_SEVERITY_LABELS));
+const BUG_SEVERITIES = new Set<string>(BUG_SEVERITY_VALUES);
 
 const LEGACY_BUG_STATUS_MAP: Record<string, BugStatus> = {
   pending_verification: "fixed",
@@ -55,12 +60,15 @@ export function getNextBugStatus(current: BugStatus): BugStatus | null {
   return BUG_STATUS_WORKFLOW[index + 1]!;
 }
 
-export function buildBugPrefillFromTestCase(testCase: TestCase): {
+export function buildBugPrefillFromTestCase(
+  testCase: TestCase,
+  prereqLabel = "Prereq:",
+): {
   steps: string;
   expected: string;
 } {
   const parts: string[] = [];
-  if (testCase.prerequisites) parts.push(`前提: ${testCase.prerequisites}`);
+  if (testCase.prerequisites) parts.push(`${prereqLabel} ${testCase.prerequisites}`);
   parts.push(testCase.description);
   return {
     steps: parts.join("\n\n"),
@@ -88,5 +96,5 @@ export function nextBugId(bugs: Bug[]): string {
     const id = `BUG-${randomBugIdSuffix()}`;
     if (!existing.has(id.toLowerCase())) return id;
   }
-  throw new Error("バグ ID を生成できませんでした");
+  throw new Error(createI18n(detectLocale()).t("error.bugIdFailed"));
 }

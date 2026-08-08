@@ -132,6 +132,7 @@ export const jaMessages = {
     subtitle: "プロジェクト: {name} — 今回の作業対象を選んでください",
     executor: "実施者",
     executorName: "実施者名",
+    executorPlaceholder: "例: tanaka",
     environments: "端末 / 環境",
     requiredOneOrMore: "必須・1つ以上",
     selectAll: "すべて選択",
@@ -250,6 +251,19 @@ export const jaMessages = {
     sessionLabel: "セッション:",
     scenarioNamed: "シナリオ（{name}）",
     filterNamed: "フィルタ（{parts}）",
+    introHowToBody:
+      "テスト内容を確認し、端末ごとに結果を入力します。{nextKeys} で次のテストへ進みます。",
+    introBatchKeysHint: "{okKeys} で表示中の端末すべてに同じ結果を一括入力できます。",
+    introPerDeviceHint: "端末ごとのボタンで個別に入力することもできます。",
+    introShortcutsHint: "右下の ? からショートカット一覧を確認できます。メモ入力中は無効です。",
+    completeNextStepsBody:
+      "結果は自動保存されています。フィルタを変えて続けるか、セッション設定から export してください。",
+    batchSkip: "一括 SKIP",
+    copyMarkdown: "Markdown をコピー",
+    copyMarkdownDone: "クリップボードにコピー済み",
+    progressBucketCount: "{label} {n}件",
+    progressAriaTotal: "{title}: {n}件",
+    targetEnvironments: "端末 / 環境",
   },
   bug: {
     list: "バグ一覧",

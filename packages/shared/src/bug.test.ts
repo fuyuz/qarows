@@ -54,7 +54,7 @@ describe("buildBugPrefillFromTestCase", () => {
       prerequisites: "Logged in",
       description: "Button works",
     };
-    const prefill = buildBugPrefillFromTestCase(testCase);
+    const prefill = buildBugPrefillFromTestCase(testCase, "前提:");
     expect(prefill.steps).toContain("前提: Logged in");
     expect(prefill.steps).toContain("Button works");
     expect(prefill.expected).toBe("Button works");

@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -38,6 +39,10 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
     const i18n = createI18n(locale);
     return { ...i18n, setLocale };
   }, [locale, setLocale]);
+
+  useEffect(() => {
+    document.documentElement.lang = value.localeTag;
+  }, [value.localeTag]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

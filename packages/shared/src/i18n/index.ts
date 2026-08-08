@@ -1,4 +1,5 @@
 import type { BugSeverity, BugStatus } from "../types";
+import type { LocaleDefinition } from "./locales";
 import type { Locale, TranslationParams } from "./types";
 import { createTranslator, type TranslateFn } from "./translate";
 import {
