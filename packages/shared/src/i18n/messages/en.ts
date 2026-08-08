@@ -40,8 +40,6 @@ export const enMessages = {
     countLeftParen: "({n} left)",
     zeroItems: "0 items",
     language: "Language",
-    languageJa: "日本語",
-    languageEn: "English",
   },
   nav: {
     navigation: "Navigation",

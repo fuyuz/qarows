@@ -1,4 +1,5 @@
 import type { Locale, TranslationParams } from "./types";
+import { DEFAULT_LOCALE, messageCatalogs } from "./locales";
 
 export type Messages = Record<string, unknown>;
 
@@ -25,14 +26,11 @@ function interpolate(template: string, params?: TranslationParams): string {
 
 export type TranslateFn = (key: string, params?: TranslationParams) => string;
 
-export function createTranslator(locale: Locale, catalogs: Record<Locale, Messages>): TranslateFn {
-  const messages = catalogs[locale] ?? catalogs.ja;
+export function createTranslator(locale: Locale, catalogs: Record<Locale, Messages> = messageCatalogs): TranslateFn {
+  const fallback = catalogs[DEFAULT_LOCALE];
+  const messages = catalogs[locale] ?? fallback;
   return (key, params) => {
-    const template = lookup(messages, key) ?? lookup(catalogs.ja, key) ?? key;
+    const template = lookup(messages, key) ?? lookup(fallback, key) ?? key;
     return interpolate(template, params);
   };
-}
-
-export function localeTag(locale: Locale): string {
-  return locale === "en" ? "en-US" : "ja-JP";
 }

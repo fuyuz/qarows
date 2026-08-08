@@ -1,5 +1,6 @@
 import {
   resolveRunnerTestCases,
+  sortLocaleFor,
   type Locale,
   type RunnerFilters,
   type SessionConfig,
@@ -9,16 +10,12 @@ import {
   type TranslateFn,
 } from "@qarows/shared";
 
-function sortLocaleTag(locale?: Locale | string): string {
-  return locale === "en" ? "en" : "ja";
-}
-
 export function getMajorCategories(definition: TestDefinition, locale?: Locale | string): string[] {
   const set = new Set<string>();
   for (const tc of definition.testCases) {
     set.add(tc.category.major);
   }
-  const localeTag = sortLocaleTag(locale);
+  const localeTag = sortLocaleFor(locale);
   return [...set].sort((a, b) => a.localeCompare(b, localeTag));
 }
 
@@ -32,7 +29,7 @@ export function getMediumCategories(
     if (majorFilter && tc.category.major !== majorFilter) continue;
     if (tc.category.medium) set.add(tc.category.medium);
   }
-  const localeTag = sortLocaleTag(locale);
+  const localeTag = sortLocaleFor(locale);
   return [...set].sort((a, b) => a.localeCompare(b, localeTag));
 }
 
@@ -48,7 +45,7 @@ export function getMinorCategories(
     if (mediumFilter && tc.category.medium !== mediumFilter) continue;
     if (tc.category.minor) set.add(tc.category.minor);
   }
-  const localeTag = sortLocaleTag(locale);
+  const localeTag = sortLocaleFor(locale);
   return [...set].sort((a, b) => a.localeCompare(b, localeTag));
 }
 

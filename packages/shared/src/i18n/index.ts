@@ -1,16 +1,35 @@
 import type { BugSeverity, BugStatus } from "../types";
 import type { Locale, TranslationParams } from "./types";
-import { createTranslator, localeTag, type TranslateFn } from "./translate";
-import { messageCatalogs } from "./messages";
+import { createTranslator, type TranslateFn } from "./translate";
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_DEFINITIONS,
+  detectLocale,
+  getLocaleDefinition,
+  localeLabel,
+  localeTag,
+  messageCatalogs,
+  sortLocaleFor,
+} from "./locales";
 
-export type { Locale, TranslationParams, TranslateFn };
-export { LOCALES, DEFAULT_LOCALE } from "./types";
-export { createTranslator, localeTag } from "./translate";
-export { detectLocale } from "./locale";
-export { messageCatalogs, jaMessages, enMessages } from "./messages";
+export type { Locale, LocaleDefinition, TranslationParams, TranslateFn };
+export {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_DEFINITIONS,
+  detectLocale,
+  getLocaleDefinition,
+  localeLabel,
+  localeTag,
+  messageCatalogs,
+  sortLocaleFor,
+};
+export { createTranslator } from "./translate";
+export { jaMessages, enMessages } from "./messages";
 
 export function createI18n(locale: Locale) {
-  const t = createTranslator(locale, messageCatalogs);
+  const t = createTranslator(locale);
   return { locale, t, localeTag: localeTag(locale) };
 }
 

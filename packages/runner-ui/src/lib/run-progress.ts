@@ -3,6 +3,7 @@ import {
   isTestIncomplete,
   resolveIncompleteCheckTargets,
   aggregateValidTestStatus,
+  sortLocaleFor,
   type Locale,
   type TestDefinition,
   type TestResults,
@@ -99,10 +100,6 @@ export function progressSegmentLabels(t: TranslateFn): Record<ProgressBucket, st
   };
 }
 
-function sortLocaleTag(locale?: Locale | string): string {
-  return locale === "en" ? "en" : "ja";
-}
-
 export function getAllEnvironmentIds(definition: TestDefinition): string[] {
   return definition.environments.map((env) => env.id);
 }
@@ -127,7 +124,7 @@ export function computeCategoryProgress(
     byMajor.set(testCase.category.major, list);
   }
 
-  const localeTag = sortLocaleTag(locale);
+  const localeTag = sortLocaleFor(locale);
   return [...byMajor.entries()]
     .sort(([a], [b]) => a.localeCompare(b, localeTag))
     .map(([major, cases]) => ({

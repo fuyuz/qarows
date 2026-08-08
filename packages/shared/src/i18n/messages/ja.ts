@@ -40,8 +40,6 @@ export const jaMessages = {
     countLeftParen: "（残り {n}）",
     zeroItems: "0 件",
     language: "言語",
-    languageJa: "日本語",
-    languageEn: "English",
   },
   nav: {
     navigation: "ナビゲーション",

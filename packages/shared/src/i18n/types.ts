@@ -1,6 +1,14 @@
-export const LOCALES = ["ja", "en"] as const;
-export type Locale = (typeof LOCALES)[number];
-
-export const DEFAULT_LOCALE: Locale = "en";
+export type { Locale, LocaleDefinition } from "./locales";
+export {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_DEFINITIONS,
+  detectLocale,
+  getLocaleDefinition,
+  localeLabel,
+  localeTag,
+  messageCatalogs,
+  sortLocaleFor,
+} from "./locales";
 
 export type TranslationParams = Record<string, string | number>;

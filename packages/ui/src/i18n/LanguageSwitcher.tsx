@@ -1,5 +1,5 @@
 import { Languages } from "lucide-react";
-import { LOCALES, type Locale } from "@qarows/shared";
+import { LOCALES, localeLabel } from "@qarows/shared";
 import { useTranslation } from "./context";
 import { Button } from "../components/ui/button";
 import {
@@ -8,11 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-
-const LOCALE_LABEL_KEYS: Record<Locale, "common.languageJa" | "common.languageEn"> = {
-  ja: "common.languageJa",
-  en: "common.languageEn",
-};
 
 export interface LanguageSwitcherProps {
   variant?: "icon" | "text";
@@ -37,7 +32,7 @@ export function LanguageSwitcher({ variant = "icon", className }: LanguageSwitch
         ) : (
           <Button variant="ghost" size="sm" className={className}>
             <Languages className="size-4" aria-hidden />
-            {t(LOCALE_LABEL_KEYS[locale])}
+            {localeLabel(locale)}
           </Button>
         )}
       </DropdownMenuTrigger>
@@ -48,7 +43,7 @@ export function LanguageSwitcher({ variant = "icon", className }: LanguageSwitch
             disabled={code === locale}
             onSelect={() => setLocale(code)}
           >
-            {t(LOCALE_LABEL_KEYS[code])}
+            {localeLabel(code)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
