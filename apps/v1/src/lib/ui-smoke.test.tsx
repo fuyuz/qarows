@@ -1,17 +1,22 @@
 import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
+import { I18nProvider, StatusBadge } from "@qarows/ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { StatusBadge } from "@qarows/ui";
 import { projectPath } from "@/lib/project-routes";
+
+function renderWithI18n(ui: ReactElement) {
+  return render(<I18nProvider initialLocale="ja">{ui}</I18nProvider>);
+}
 
 describe("LoadingScreen", () => {
   it("shows loading message", () => {
-    render(<LoadingScreen />);
+    renderWithI18n(<LoadingScreen />);
     expect(screen.getByRole("status", { name: "読み込み中…" })).toBeInTheDocument();
   });
 
   it("accepts a custom message", () => {
-    render(<LoadingScreen message="プロジェクトを切り替えています…" />);
+    renderWithI18n(<LoadingScreen message="プロジェクトを切り替えています…" />);
     expect(
       screen.getByRole("status", { name: "プロジェクトを切り替えています…" }),
     ).toBeInTheDocument();
