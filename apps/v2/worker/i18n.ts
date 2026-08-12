@@ -6,6 +6,7 @@ import {
   type TranslateFn,
 } from "@qarows/shared";
 import { HTTPException } from "hono/http-exception";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { Context } from "hono";
 import { GenerationMismatchError, MergeResultsValidationError } from "./merge-results";
 import type { AppEnv } from "./types";
@@ -32,7 +33,7 @@ export function requestT(
 
 export function apiError(
   c: Context<AppEnv>,
-  status: number,
+  status: ContentfulStatusCode,
   key: string,
   params?: TranslationParams,
 ): never {

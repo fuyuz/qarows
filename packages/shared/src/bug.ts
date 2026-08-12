@@ -1,3 +1,4 @@
+import { createI18n } from "./i18n";
 import { getClientI18n } from "./i18n/client-locale";
 import type { Bug, BugSeverity, BugStatus, TestCase } from "./types";
 
