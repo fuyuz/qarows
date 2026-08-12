@@ -297,7 +297,7 @@ export const jaMessages = {
     fixNotePlaceholder: "例: ボタンの min-width を調整",
     markFixed: "修正済みにする",
     relatedTitle: "関連するバグ",
-    relatedCount: "{id} に紐づく起票済みバグ（{n} 件）",
+    relatedCount: "{n} 件の起票済みバグが {id} に紐づいています",
     prevBug: "前のバグ",
     nextBug: "次のバグ",
     switchHl: "h / l で切り替え",
