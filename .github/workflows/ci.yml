@@ -25,7 +25,8 @@ jobs:
         run: bun run test
 
       - name: Install Playwright browser
-        run: bunx playwright install --with-deps chromium
+        working-directory: apps/v1
+        run: bun run test:e2e:install -- --with-deps
 
       - name: E2E tests
         run: bun run test:e2e
