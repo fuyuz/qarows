@@ -1,6 +1,5 @@
 import {
-  createI18n,
-  detectLocale,
+  getClientI18n,
   resolveRunnerTestCases,
   type RunnerFilters,
   type SessionConfig,
@@ -81,7 +80,7 @@ export function readFileAsText(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ""));
     reader.onerror = () =>
-      reject(reader.error ?? new Error(createI18n(detectLocale()).t("error.readFileFailed")));
+      reject(reader.error ?? new Error(getClientI18n().t("error.readFileFailed")));
     reader.readAsText(file);
   });
 }
@@ -106,7 +105,7 @@ export function formatRunnerFilterTitle(
   definition: TestDefinition | null,
   filters: RunnerFilters,
 ): string {
-  const { t } = createI18n(detectLocale());
+  const { t } = getClientI18n();
   const mode = filters.targetMode ?? "filter";
   if (mode === "scenario") {
     const scenario = definition?.scenarios?.find((entry) => entry.id === filters.scenarioId);

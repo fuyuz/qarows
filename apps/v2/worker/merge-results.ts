@@ -7,9 +7,7 @@ import {
 } from "@qarows/shared";
 
 export class GenerationMismatchError extends Error {
-  constructor(
-    message = "tests.yml が更新されたため結果の取り込みできません。最新の状態を取得して再試行してください",
-  ) {
+  constructor(message = "Generation mismatch") {
     super(message);
     this.name = "GenerationMismatchError";
   }

@@ -1,6 +1,7 @@
 import { getProjectIdFromDefinition, parseTestsYaml, serializeTestsYaml } from "@qarows/shared";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+import type { Context } from "hono";
 import { parseAiChatHistory, proposeTestsYamlEdit } from "../ai/propose";
 import { AiRateLimitError, assertAiProposeRateLimit } from "../ai/rate-limit";
 import { AiModelError } from "../ai/run-model";
@@ -17,6 +18,7 @@ import {
   saveCheckpointAndReplaceDefinition,
 } from "../replace-definition";
 import { BodyTooLargeError, MAX_AI_PROPOSE_BODY_BYTES, readRequestTextWithLimit } from "../request-body";
+import { apiError, requestT } from "../i18n";
 import type { AppEnv } from "../types";
 
 interface ProposeBody {
@@ -42,9 +44,9 @@ interface RestoreBody {
   expectedGeneration?: string;
 }
 
-function requireAi(c: { env: AppEnv["Bindings"] }): void {
+function requireAi(c: Context<AppEnv>): void {
   if (!c.env.AI) {
-    throw new HTTPException(503, { message: "AI is not enabled on this deployment" });
+    apiError(c, 503, "api.aiNotEnabled");
   }
 }
 
@@ -52,7 +54,7 @@ function isAiModelError(err: unknown): err is AiModelError {
   return err instanceof AiModelError || (err instanceof Error && err.name === "AiModelError");
 }
 
-function handleAiRouteError(err: unknown): never {
+function handleAiRouteError(c: Context<AppEnv>, err: unknown): never {
   if (err instanceof HTTPException) throw err;
   if (err instanceof AiProposalError) {
     throw new HTTPException(err.status, { message: err.message });
@@ -64,8 +66,7 @@ function handleAiRouteError(err: unknown): never {
     throw new HTTPException(502, { message: err.message });
   }
   console.error("AI route error", err);
-  const message = err instanceof Error ? err.message : "AI request failed";
-  throw new HTTPException(502, { message });
+  apiError(c, 502, "api.aiRequestFailed");
 }
 
 export function createAiRoutes(): Hono<AppEnv> {
@@ -82,7 +83,7 @@ export function createAiRoutes(): Hono<AppEnv> {
 
       const projectId = c.req.param("projectId");
       const snapshot = await getProject(c.env.DB, projectId);
-      if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
+      if (!snapshot) apiError(c, 404, "api.projectNotFound");
 
       let body: ProposeBody;
       try {
@@ -90,14 +91,14 @@ export function createAiRoutes(): Hono<AppEnv> {
         body = JSON.parse(raw) as ProposeBody;
       } catch (err) {
         if (err instanceof BodyTooLargeError) {
-          throw new HTTPException(413, { message: "Request body is too large" });
+          apiError(c, 413, "api.requestBodyTooLarge");
         }
-        throw new HTTPException(400, { message: "Invalid JSON body" });
+        apiError(c, 400, "api.invalidJsonBody");
       }
 
       const message = body.message?.trim();
       if (!message) {
-        throw new HTTPException(400, { message: "message is required" });
+        apiError(c, 400, "api.messageRequired");
       }
 
       let history;
@@ -119,13 +120,11 @@ export function createAiRoutes(): Hono<AppEnv> {
           baseYaml = serializeTestsYaml(baseDefinition);
         } catch (err) {
           throw new HTTPException(400, {
-            message: err instanceof Error ? err.message : "Invalid baseYaml",
+            message: err instanceof Error ? err.message : requestT(c, "api.invalidBaseYaml"),
           });
         }
         if (getProjectIdFromDefinition(baseDefinition) !== projectId) {
-          throw new HTTPException(400, {
-            message: "baseYaml project.id が URL の projectId と一致しません",
-          });
+          apiError(c, 400, "api.baseYamlProjectIdMismatch");
         }
       }
 
@@ -143,20 +142,16 @@ export function createAiRoutes(): Hono<AppEnv> {
         try {
           const proposalDefinition = parseTestsYaml(proposalYaml);
           if (getProjectIdFromDefinition(proposalDefinition) !== projectId) {
-            throw new HTTPException(400, {
-              message: "proposalYaml project.id が URL の projectId と一致しません",
-            });
+            apiError(c, 400, "api.proposalYamlProjectIdMismatch");
           }
         } catch (err) {
           if (err instanceof HTTPException) throw err;
           throw new HTTPException(400, {
-            message: err instanceof Error ? err.message : "Invalid proposalYaml",
+            message: err instanceof Error ? err.message : requestT(c, "api.invalidProposalYaml"),
           });
         }
       } else if (body.workingFrom === "proposal") {
-        throw new HTTPException(400, {
-          message: "workingFrom=proposal には baseProposalId または proposalYaml が必要です",
-        });
+        apiError(c, 400, "api.workingFromProposalRequiresId");
       }
 
       const result = await proposeTestsYamlEdit(c.env, {
@@ -193,7 +188,7 @@ export function createAiRoutes(): Hono<AppEnv> {
         },
       });
     } catch (err) {
-      handleAiRouteError(err);
+      handleAiRouteError(c, err);
     }
   });
 
@@ -206,49 +201,51 @@ export function createAiRoutes(): Hono<AppEnv> {
         body = JSON.parse(raw) as ApplyBody;
       } catch (err) {
         if (err instanceof BodyTooLargeError) {
-          throw new HTTPException(413, { message: "Request body is too large" });
+          apiError(c, 413, "api.requestBodyTooLarge");
         }
-        throw new HTTPException(400, { message: "Invalid JSON body" });
+        apiError(c, 400, "api.invalidJsonBody");
       }
 
       if (body.proposedYaml != null) {
-        throw new HTTPException(400, {
-          message: "proposedYaml is no longer accepted; pass proposalId from /ai/propose",
-        });
+        apiError(c, 400, "api.proposedYamlDeprecated");
       }
 
       const proposalId = body.proposalId?.trim();
       const expectedGeneration = body.expectedGeneration?.trim();
       if (!proposalId) {
-        throw new HTTPException(400, { message: "proposalId is required" });
+        apiError(c, 400, "api.proposalIdRequired");
       }
       if (!expectedGeneration) {
-        throw new HTTPException(400, { message: "expectedGeneration is required" });
+        apiError(c, 400, "api.expectedGenerationRequired");
       }
 
       const proposal = await requireUsableAiProposal(c.env.DB, { projectId, proposalId });
 
-      const result = await saveCheckpointAndReplaceDefinition(c.env, {
-        projectId,
-        testsYaml: proposal.proposedYaml,
-        expectedGeneration,
-        source: "ai_apply",
-        instruction: body.instruction?.trim() || proposal.instruction,
-        createdBy: c.get("user").email,
-      });
+      const result = await saveCheckpointAndReplaceDefinition(
+        c.env,
+        {
+          projectId,
+          testsYaml: proposal.proposedYaml,
+          expectedGeneration,
+          source: "ai_apply",
+          instruction: body.instruction?.trim() || proposal.instruction,
+          createdBy: c.get("user").email,
+        },
+        c.get("locale"),
+      );
 
       await markAiProposalConsumed(c.env.DB, { projectId, proposalId });
 
       return c.json({ ok: true, ...result });
     } catch (err) {
-      handleAiRouteError(err);
+      handleAiRouteError(c, err);
     }
   });
 
   ai.get("/:projectId/definition-revisions", async (c) => {
     const projectId = c.req.param("projectId");
     const snapshot = await getProject(c.env.DB, projectId);
-    if (!snapshot) throw new HTTPException(404, { message: "Project not found" });
+    if (!snapshot) apiError(c, 404, "api.projectNotFound");
 
     const revisions = await listDefinitionRevisions(c.env.DB, projectId);
     return c.json({ revisions });
@@ -264,22 +261,26 @@ export function createAiRoutes(): Hono<AppEnv> {
       body = raw.trim() ? (JSON.parse(raw) as RestoreBody) : {};
     } catch (err) {
       if (err instanceof BodyTooLargeError) {
-        throw new HTTPException(413, { message: "Request body is too large" });
+        apiError(c, 413, "api.requestBodyTooLarge");
       }
-      throw new HTTPException(400, { message: "Invalid JSON body" });
+      apiError(c, 400, "api.invalidJsonBody");
     }
 
     const expectedGeneration = body.expectedGeneration?.trim();
     if (!expectedGeneration) {
-      throw new HTTPException(400, { message: "expectedGeneration is required" });
+      apiError(c, 400, "api.expectedGenerationRequired");
     }
 
-    const result = await restoreDefinitionRevision(c.env, {
-      projectId,
-      revisionId,
-      expectedGeneration,
-      createdBy: c.get("user").email,
-    });
+    const result = await restoreDefinitionRevision(
+      c.env,
+      {
+        projectId,
+        revisionId,
+        expectedGeneration,
+        createdBy: c.get("user").email,
+      },
+      c.get("locale"),
+    );
 
     return c.json({ ok: true, ...result });
   });

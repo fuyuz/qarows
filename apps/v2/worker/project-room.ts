@@ -1,6 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import { applyProjectCommand, toProjectSnapshot, type ProjectCommand } from "@qarows/application";
-import type { ResultsFile } from "@qarows/shared";
+import {
+  createI18n,
+  DEFAULT_LOCALE,
+  parseAcceptLanguage,
+  type Locale,
+  type ResultsFile,
+} from "@qarows/shared";
 import { getProject, replaceProjectDefinition, snapshotToPersisted, updateProjectSnapshot } from "./db";
 import { assertGenerationMatch } from "./merge-results";
 import { AccessDeniedError, assertWebSocketOrigin, requireAuthUser } from "./auth";
@@ -37,6 +43,15 @@ interface ApplyCommandResult {
 
 interface SocketAttachment {
   user: string;
+  locale: Locale;
+}
+
+function getSocketAttachment(ws: WebSocket): SocketAttachment | null {
+  return ws.deserializeAttachment() as SocketAttachment | null;
+}
+
+function getSocketUser(ws: WebSocket): string | null {
+  return getSocketAttachment(ws)?.user ?? null;
 }
 
 const MAX_PROCESSED_COMMANDS = 256;
@@ -46,9 +61,9 @@ function isCommandPersisted(record: ProcessedCommandRecord): boolean {
   return record.persisted !== false;
 }
 
-function getSocketUser(ws: WebSocket): string | null {
-  const attachment = ws.deserializeAttachment() as SocketAttachment | null;
-  return attachment?.user ?? null;
+function getSocketI18n(ws: WebSocket) {
+  const locale = getSocketAttachment(ws)?.locale ?? DEFAULT_LOCALE;
+  return createI18n(locale);
 }
 
 export class ProjectRoom extends DurableObject<Env> {
@@ -122,18 +137,23 @@ export class ProjectRoom extends DurableObject<Env> {
   }
 
   override async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const acceptLanguage =
+      request.headers.get("Accept-Language") ?? url.searchParams.get("accept-language");
+    const locale = parseAcceptLanguage(acceptLanguage);
+    const { t } = createI18n(locale);
+
     let authUser;
     try {
       authUser = await requireAuthUser(request, this.env);
     } catch (err) {
-      const message = err instanceof AccessDeniedError ? err.message : "Unauthorized";
+      const message = err instanceof AccessDeniedError ? err.message : t("api.unauthorized");
       return new Response(message, { status: 401 });
     }
 
-    const url = new URL(request.url);
     const segments = url.pathname.split("/").filter(Boolean);
     const projectId = segments[2] ?? null;
-    if (!projectId) return new Response("Missing project id", { status: 400 });
+    if (!projectId) return new Response(t("api.missingProjectId"), { status: 400 });
 
     this.projectId = projectId;
 
@@ -143,44 +163,46 @@ export class ProjectRoom extends DurableObject<Env> {
     }
 
     if (request.headers.get("Upgrade") !== "websocket") {
-      return new Response("Expected WebSocket", { status: 426 });
+      return new Response(t("api.expectedWebSocket"), { status: 426 });
     }
 
     try {
       assertWebSocketOrigin(request, this.env);
     } catch (err) {
-      const message = err instanceof AccessDeniedError ? err.message : "Forbidden";
+      const message = err instanceof AccessDeniedError ? err.message : t("api.forbidden");
       return new Response(message, { status: 403 });
     }
 
     await this.ensureLoaded();
-    if (!this.state) return new Response("Project not found", { status: 404 });
+    if (!this.state) return new Response(t("api.projectNotFound"), { status: 404 });
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    server.serializeAttachment({ user: authUser.email } satisfies SocketAttachment);
+    server.serializeAttachment({ user: authUser.email, locale } satisfies SocketAttachment);
     this.ctx.acceptWebSocket(server);
     send(server, { type: "snapshot", snapshot: this.publicSnapshot() });
     return new Response(null, { status: 101, webSocket: client });
   }
 
   override async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    const { t } = getSocketI18n(ws);
+
     if (typeof message !== "string") return;
     if (message.length > MAX_WS_MESSAGE_BYTES) {
-      send(ws, { type: "error", message: "Message too large" });
+      send(ws, { type: "error", message: t("api.wsMessageTooLarge") });
       return;
     }
 
     const user = getSocketUser(ws);
     if (!user) {
-      send(ws, { type: "error", message: "Unauthorized" });
+      send(ws, { type: "error", message: t("api.unauthorized") });
       ws.close(1008, "Unauthorized");
       return;
     }
 
     const parsed = parseClientMessage(message);
     if (!parsed) {
-      send(ws, { type: "error", message: "Invalid message" });
+      send(ws, { type: "error", message: t("api.wsInvalidMessage") });
       return;
     }
     if (parsed.type === "ping") {
@@ -189,7 +211,7 @@ export class ProjectRoom extends DurableObject<Env> {
 
     await this.ensureLoaded();
     if (!this.state || !this.projectId) {
-      send(ws, { type: "error", message: "Room not ready" });
+      send(ws, { type: "error", message: t("api.wsRoomNotReady") });
       return;
     }
 
@@ -213,7 +235,7 @@ export class ProjectRoom extends DurableObject<Env> {
       applied = await this.applyCommandAndSync(parsed.commandId, parsed.command, user);
     } catch (err) {
       console.error("WebSocket command failed", err);
-      send(ws, { type: "error", message: "Command failed" });
+      send(ws, { type: "error", message: t("api.wsCommandFailed") });
       return;
     }
 

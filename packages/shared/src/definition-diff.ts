@@ -6,7 +6,8 @@ import type {
   TestScenario,
 } from "./types";
 import type { TranslateFn } from "./i18n/translate";
-import { createTranslator, detectLocale, messageCatalogs } from "./i18n";
+import { createTranslator, messageCatalogs } from "./i18n";
+import { getClientLocale } from "./i18n/client-locale";
 
 export interface FieldChange {
   field: string;
@@ -260,7 +261,7 @@ export function computeDefinitionDiff(
 }
 
 export function definitionDiffSummary(diff: DefinitionDiff, t?: TranslateFn): string {
-  const tr = t ?? createTranslator(detectLocale(), messageCatalogs);
+  const tr = t ?? createTranslator(getClientLocale(), messageCatalogs);
   const parts: string[] = [];
   const { testCases } = diff;
   if (testCases.added.length) parts.push(tr("definition.diffSummary.tcAdded", { n: testCases.added.length }));

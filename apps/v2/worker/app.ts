@@ -2,10 +2,12 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { accessMiddleware } from "./middleware/access";
 import { csrfMiddleware } from "./middleware/csrf";
+import { localeMiddleware } from "./middleware/locale";
 import { requestIdMiddleware, securityHeadersMiddleware } from "./middleware/security-headers";
 import { createAiRoutes } from "./routes/ai";
 import { projectsRoutes } from "./routes/projects";
 import { resolveAiModelConfig } from "./ai/models";
+import { apiError, requestT } from "./i18n";
 import type { AppEnv } from "./types";
 
 export function createApp() {
@@ -22,12 +24,13 @@ export function createApp() {
     const requestId = c.get("requestId");
     console.error(`[${requestId}] Unhandled error`, err);
     return c.json(
-      { error: "Internal Server Error", ...(requestId ? { requestId } : {}) },
+      { error: requestT(c, "api.internalServerError"), ...(requestId ? { requestId } : {}) },
       500,
     );
   });
 
   app.use("*", requestIdMiddleware);
+  app.use("*", localeMiddleware);
   app.use("*", securityHeadersMiddleware);
   app.use("*", accessMiddleware);
   app.use("*", csrfMiddleware);
@@ -52,8 +55,8 @@ export function createApp() {
   app.route("/api/projects", projectsRoutes);
   app.route("/api/projects", createAiRoutes());
 
-  app.all("/api/*", () => {
-    throw new HTTPException(404, { message: "Not found" });
+  app.all("/api/*", (c) => {
+    apiError(c, 404, "api.notFound");
   });
 
   app.all("*", async (c) => c.env.ASSETS.fetch(c.req.raw));

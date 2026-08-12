@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createI18n, detectLocale, serializeTestsYaml, type TestDefinition } from "@qarows/shared";
+import { getClientI18n, serializeTestsYaml, type TestDefinition } from "@qarows/shared";
 import { ApiError } from "@/lib/api/client";
 import { getProject } from "@/lib/api/projects";
 import {
@@ -86,7 +86,7 @@ export function useTestsYamlAiEdit({
 
   const handleSend = useCallback(async () => {
     if (!enabled || !projectId || !definition || !input.trim() || busy) return;
-    const { t } = createI18n(detectLocale());
+    const { t } = getClientI18n();
     const message = input.trim();
     setInput("");
     setErrorMessage(null);
@@ -150,7 +150,7 @@ export function useTestsYamlAiEdit({
   const handleRestore = useCallback(
     async (revisionId: string) => {
       if (!enabled || !projectId) return;
-      const { t } = createI18n(detectLocale());
+      const { t } = getClientI18n();
       setBusy(true);
       setErrorMessage(null);
       setSuccessMessage(null);
@@ -175,7 +175,7 @@ export function useTestsYamlAiEdit({
 
   const acceptProposalIntoDraft = useCallback(() => {
     if (!enabled || !proposal) return null;
-    const { t } = createI18n(detectLocale());
+    const { t } = getClientI18n();
     const accepted = proposal.proposedDefinition;
     setProposal(null);
     setWorkingFrom("definition");

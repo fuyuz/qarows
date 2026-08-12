@@ -1,4 +1,4 @@
-import { createI18n, detectLocale } from "./i18n";
+import { getClientI18n } from "./i18n/client-locale";
 import type { Bug, BugSeverity, BugStatus, TestCase } from "./types";
 
 const BUG_STATUS_VALUES: readonly BugStatus[] = [
@@ -96,5 +96,5 @@ export function nextBugId(bugs: Bug[]): string {
     const id = `BUG-${randomBugIdSuffix()}`;
     if (!existing.has(id.toLowerCase())) return id;
   }
-  throw new Error(createI18n(detectLocale()).t("error.bugIdFailed"));
+  throw new Error(getClientI18n().t("error.bugIdFailed"));
 }

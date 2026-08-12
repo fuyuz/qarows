@@ -10,6 +10,7 @@ import {
 import {
   createI18n,
   detectLocale,
+  setClientLocale,
   type Locale,
   type TranslateFn,
 } from "@qarows/shared";
@@ -29,9 +30,14 @@ export interface I18nProviderProps {
 }
 
 export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale ?? detectLocale);
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    const initial = initialLocale ?? detectLocale();
+    setClientLocale(initial);
+    return initial;
+  });
 
   const setLocale = useCallback((next: Locale) => {
+    setClientLocale(next);
     setLocaleState(next);
   }, []);
 

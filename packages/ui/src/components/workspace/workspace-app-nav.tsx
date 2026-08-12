@@ -11,6 +11,7 @@ import {
 } from "../../lib/app-keybindings";
 import { cn } from "../../lib/cn";
 import { useTranslation } from "../../i18n/context";
+import { LanguageMenuSection } from "../../i18n/LanguageMenuSection";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -358,6 +359,7 @@ export function WorkspaceAppNav({
               )}
             </>
           )}
+          <LanguageMenuSection onLocaleChange={() => setOpen(false)} />
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

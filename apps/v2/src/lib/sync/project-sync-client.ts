@@ -1,4 +1,5 @@
 import type { ProjectCommand } from "@qarows/application";
+import { getAcceptLanguageHeader } from "@qarows/shared";
 import {
   getSnapshotReplacedMessage,
   parseServerMessage,
@@ -120,7 +121,8 @@ export class ProjectSyncClient {
     if (this.intentionalClose) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${protocol}//${window.location.host}/api/projects/${encodeURIComponent(this.projectId)}/ws`;
+    const acceptLanguage = encodeURIComponent(getAcceptLanguageHeader());
+    const url = `${protocol}//${window.location.host}/api/projects/${encodeURIComponent(this.projectId)}/ws?accept-language=${acceptLanguage}`;
     const ws = new WebSocket(url);
     this.ws = ws;
 

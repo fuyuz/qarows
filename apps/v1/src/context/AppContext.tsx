@@ -18,8 +18,7 @@ import {
 } from "@qarows/application";
 import {
   createEmptyResults,
-  createI18n,
-  detectLocale,
+  getClientI18n,
   getProjectIdFromDefinition,
   parseResultsJson,
   parseTestsYaml,
@@ -235,7 +234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const mergeResultsFromFiles = useCallback(
     async (jsons: string[]) => {
       let snapshot = workspace.getSnapshot();
-      if (!snapshot) throw new Error(createI18n(detectLocale()).t("error.resultsNotLoaded"));
+      if (!snapshot) throw new Error(getClientI18n().t("error.resultsNotLoaded"));
       if (jsons.length === 0) return;
 
       const currentDefinition = snapshot.definition;
