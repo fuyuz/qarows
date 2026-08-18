@@ -927,3 +927,11 @@ testCases:
       minor: "インポート"
     prerequisites: "/projects?project=_new を表示中"
     description: "zip をドロップすると tests.yml / results.json が展開され、通常のファイル取り込みと同様に読み込める（zip 内の yml/json は拡張子で判別）"
+
+  - id: TC-123
+    category:
+      major: "AI編集"
+      medium: "編集案"
+      minor: "意図判定"
+    prerequisites: "テスト定義画面で AI アシスタント表示中、tests.yml 読み込み済み"
+    description: "「説明文を英語にして」「TC を 2 件にまとめて」等、編集キーワード（追加/削除/変更 等）を含まない指示でも編集案が生成される。質問（「〜は何件？」等）では編集案が作られず回答のみ返る"

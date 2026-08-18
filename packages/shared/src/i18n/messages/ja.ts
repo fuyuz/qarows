@@ -513,6 +513,7 @@ export const jaMessages = {
     unauthorized: "認証が必要です",
     forbidden: "アクセスが拒否されました",
     aiNotEnabled: "このデプロイでは AI が有効になっていません",
+    aiYamlTooLargeForEdit: "tests.yml が大きすぎるため AI 編集できません。質問のみ利用できます",
     messageRequired: "message が必要です",
     proposalIdRequired: "proposalId が必要です",
     proposedYamlDeprecated: "proposedYaml は受け付けません。/ai/propose の proposalId を渡してください",

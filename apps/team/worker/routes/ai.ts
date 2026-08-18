@@ -158,6 +158,7 @@ export function createAiRoutes(): Hono<AppEnv> {
         projectId,
         baseDefinition,
         baseYaml,
+        t: c.get("t"),
         request: {
           message,
           history,

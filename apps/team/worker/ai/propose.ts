@@ -1,9 +1,11 @@
 import {
   computeDefinitionDiff,
+  createTranslator,
   getProjectIdFromDefinition,
   parseTestsYaml,
   serializeTestsYaml,
   type TestDefinition,
+  type TranslateFn,
 } from "@qarows/shared";
 import type { Env } from "../env";
 import {
@@ -191,13 +193,19 @@ const PATCH_SCHEMA = {
   },
 };
 
-const AI_QUESTION_JSON_SCHEMA = {
+// 意図の事前分類はしない。編集かどうかはモデルが patch に変更を入れたかで決まる
+// （非空なら編集提案、空 {} なら回答）。constrained decoding は任意プロパティを
+// 省略しがちなので patch キー自体は必須にし、空オブジェクトを許す。
+const AI_PROPOSE_JSON_SCHEMA = {
   type: "object" as const,
   properties: {
     reply: { type: "string" },
+    patch: PATCH_SCHEMA,
   },
-  required: ["reply"],
+  required: ["reply", "patch"],
 };
+
+// patch 修復リトライ用（patch 必須なのは同じだが、非空を repair プロンプトで要求する）。
 
 const AI_EDIT_JSON_SCHEMA = {
   type: "object" as const,
@@ -207,22 +215,6 @@ const AI_EDIT_JSON_SCHEMA = {
   },
   required: ["reply", "patch"],
 };
-
-function isQuestionMessage(message: string): boolean {
-  return /[?？]|教えて|確認|どう(して|すれば|やれば)?|何件|いくつ|一覧|説明して|説明を|わかり|分かり|教えてください|ですか|ますか/.test(
-    message,
-  );
-}
-
-function isEditMessage(message: string): boolean {
-  return /(追加|削除|修正|変更|書き直|更新|直して|入れて|消して|編集|シナリオ)/.test(message);
-}
-
-function classifyMessageIntent(message: string): AiIntent {
-  if (isEditMessage(message)) return "edit";
-  if (isQuestionMessage(message)) return "answer";
-  return "clarify";
-}
 
 function truncateYamlForPrompt(yaml: string): string {
   if (yaml.length <= MAX_AI_CONTEXT_YAML_CHARS) return yaml;
@@ -235,10 +227,10 @@ function buildMessages(
   baseYaml: string,
   history: AiChatMessage[],
   message: string,
-  editMode: boolean,
+  editingDisabled: boolean,
 ): { role: "system" | "user" | "assistant"; content: string }[] {
-  const editHint = editMode
-    ? "\n\nIMPORTANT: This is an edit request. You MUST return a non-empty \"patch\" object with the changes. Never put patch JSON inside \"reply\". Never output full tests.yml."
+  const editHint = editingDisabled
+    ? "\n\nIMPORTANT: tests.yml is too large for AI editing in this session. Answer questions only. NEVER return \"patch\"."
     : "";
 
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -371,6 +363,8 @@ export async function proposeTestsYamlEdit(
     baseDefinition: TestDefinition;
     baseYaml: string;
     request: AiProposeRequest;
+    /** リクエストロケールの翻訳関数（省略時は ja）。 */
+    t?: TranslateFn;
   },
 ): Promise<{
   reply: string;
@@ -404,25 +398,15 @@ export async function proposeTestsYamlEdit(
     }
   }
 
-  const messageIntent = classifyMessageIntent(message);
-  const editMode = messageIntent === "edit";
+  const editingDisabled = workingYaml.length > MAX_AI_CONTEXT_YAML_CHARS;
 
-  if (editMode && workingYaml.length > MAX_AI_CONTEXT_YAML_CHARS) {
-    throw new AiModelError(
-      "tests.yml が大きすぎるため AI 編集できません。質問のみ利用できます。",
-    );
-  }
-
-  const messages = buildMessages(workingYaml, history, message, editMode);
-  const runOptions = {
-    temperature: 0.2,
-    maxTokens: editMode ? 4096 : 2048,
-    jsonSchema: editMode ? AI_EDIT_JSON_SCHEMA : AI_QUESTION_JSON_SCHEMA,
-  } as const;
+  const messages = buildMessages(workingYaml, history, message, editingDisabled);
 
   const { result, modelUsed } = await runAiModel(env, {
     messages,
-    ...runOptions,
+    temperature: 0.2,
+    maxTokens: 4096,
+    jsonSchema: AI_PROPOSE_JSON_SCHEMA,
   });
 
   const parsed = parseAiJsonResponse(result);
@@ -431,15 +415,18 @@ export async function proposeTestsYamlEdit(
     throw new AiModelError("AI reply is empty");
   }
 
-  if (messageIntent === "answer") {
+  const firstPatch = parseDefinitionPatch(parsed);
+  if (!hasDefinitionPatch(firstPatch)) {
     return { reply, intent: "answer", proposal: null };
   }
 
-  if (messageIntent === "clarify") {
-    const patch = parseDefinitionPatch(parsed);
-    if (!hasDefinitionPatch(patch)) {
-      return { reply, intent: "clarify", proposal: null };
-    }
+  if (editingDisabled) {
+    const t = input.t ?? createTranslator("ja");
+    return {
+      reply: `${reply}\n\n（${t("api.aiYamlTooLargeForEdit")}）`,
+      intent: "answer",
+      proposal: null,
+    };
   }
 
   let latestParsed = parsed;

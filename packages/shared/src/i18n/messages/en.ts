@@ -509,6 +509,7 @@ export const enMessages = {
     unauthorized: "Unauthorized",
     forbidden: "Forbidden",
     aiNotEnabled: "AI is not enabled on this deployment",
+    aiYamlTooLargeForEdit: "tests.yml is too large for AI editing. Only questions are available",
     messageRequired: "message is required",
     proposalIdRequired: "proposalId is required",
     proposedYamlDeprecated: "proposedYaml is no longer accepted; pass proposalId from /ai/propose",
