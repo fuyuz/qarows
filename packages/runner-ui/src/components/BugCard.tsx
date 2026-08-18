@@ -1,8 +1,9 @@
 import type { Bug, BugStatus, TestCase, TestDefinition } from "@qarows/shared";
-import { getNextBugStatus } from "@qarows/shared";
-import { Copy, Pencil } from "lucide-react";
+import { getNextBugStatus, isImageAttachment } from "@qarows/shared";
+import { Copy, ImageOff, Pencil } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "@qarows/ui";
+import { useRunnerWorkspace, type BugAttachmentsAdapter } from "../context/runner-workspace";
 import {
   RunnerCardFooter,
   testCardShellClass,
@@ -53,6 +54,65 @@ function BugField({
   );
 }
 
+function BugAttachmentsSection({
+  bug,
+  adapter,
+}: {
+  bug: Bug;
+  adapter: BugAttachmentsAdapter;
+}) {
+  const { t } = useTranslation();
+  const [missingKeys, setMissingKeys] = useState<Set<string>>(new Set());
+  const attachments = bug.attachments ?? [];
+  if (attachments.length === 0) return null;
+
+  const markMissing = (key: string) => {
+    setMissingKeys((prev) => new Set(prev).add(key));
+  };
+
+  return (
+    <section className="mb-5">
+      <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {t("bug.attachments")}
+      </h2>
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {attachments.map((attachment) => (
+          <li key={attachment.key} className="overflow-hidden rounded-lg border">
+            {missingKeys.has(attachment.key) ? (
+              <div className="flex h-32 flex-col items-center justify-center gap-2 bg-muted/40 px-3 text-center">
+                <ImageOff className="size-5 text-muted-foreground/60" aria-hidden />
+                <p className="text-xs text-muted-foreground">{t("bug.attachmentMissing")}</p>
+              </div>
+            ) : isImageAttachment(attachment.mimeType) ? (
+              <a href={adapter.url(attachment.key)} target="_blank" rel="noreferrer">
+                <img
+                  src={adapter.url(attachment.key)}
+                  alt={attachment.name}
+                  loading="lazy"
+                  className="max-h-64 w-full bg-muted/40 object-contain"
+                  onError={() => markMissing(attachment.key)}
+                />
+              </a>
+            ) : (
+              <video
+                src={adapter.url(attachment.key)}
+                controls
+                preload="metadata"
+                playsInline
+                className="max-h-64 w-full bg-black"
+                onError={() => markMissing(attachment.key)}
+              />
+            )}
+            <p className="truncate px-2.5 py-1.5 text-xs text-muted-foreground" title={attachment.name}>
+              {attachment.name}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function BugCard({
   bug,
   definition,
@@ -78,6 +138,7 @@ export function BugCard({
 } & RunnerCardNavProps) {
   const { t } = useTranslation();
   const { statusLabels, severityLabels } = useBugLabels();
+  const { attachments: attachmentsAdapter } = useRunnerWorkspace();
   const [copied, setCopied] = useState(false);
   const nextStatus = getNextBugStatus(bug.status);
 
@@ -217,6 +278,7 @@ export function BugCard({
         <BugField label={t("bug.reproSteps")} value={bug.steps} />
         <BugField label={t("bug.expected")} value={bug.expected} />
         <BugField label={t("bug.actual")} value={bug.actual} placeholder="—" />
+        {attachmentsAdapter && <BugAttachmentsSection bug={bug} adapter={attachmentsAdapter} />}
         <BugField label={t("runner.memo")} value={bug.memo} placeholder="—" />
         {bug.fixNote && <BugField label={t("bug.fixNote")} value={bug.fixNote} />}
       </div>

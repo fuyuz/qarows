@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from "@qarows/ui";
 import { Textarea } from "@qarows/ui";
+import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useBugLabels } from "../hooks/useBugLabels";
+import { BugAttachmentsField } from "./BugAttachmentsField";
 import type { BugDialogDraft } from "./BugDialog";
 
 const NONE_TEST_CASE = "__none__";
@@ -42,6 +44,7 @@ export function BugFormFields({
 }) {
   const { t } = useTranslation();
   const { statusLabels, severityLabels } = useBugLabels();
+  const { attachments: attachmentsAdapter } = useRunnerWorkspace();
   const envNameById = new Map(environments.map((env) => [env.id, env.name]));
   const selectableTestCases = testCases ?? (testCase ? [testCase] : []);
   const showFixNote = draft.status === "fixed" || draft.status === "resolved";
@@ -212,6 +215,15 @@ export function BugFormFields({
           onChange={(e) => setDraft((prev) => ({ ...prev, actual: e.target.value }))}
         />
       </div>
+
+      {attachmentsAdapter && (
+        <BugAttachmentsField
+          idPrefix={idPrefix}
+          adapter={attachmentsAdapter}
+          draft={draft}
+          setDraft={setDraft}
+        />
+      )}
 
       {showFixNote && (
         <div className="grid min-w-0 gap-2">

@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type {
   Bug,
+  BugAttachment,
   ResultsFile,
   SessionConfig,
   TestCase,
@@ -8,6 +9,13 @@ import type {
   TestResultEntry,
   TestStatus,
 } from "@qarows/shared";
+
+/** Team 版のみ提供。未設定（Local 版 / R2 なしデプロイ）では添付 UI を出さない */
+export interface BugAttachmentsAdapter {
+  upload: (file: File) => Promise<BugAttachment>;
+  remove: (key: string) => Promise<void>;
+  url: (key: string) => string;
+}
 
 export interface RunnerWorkspaceValue {
   definition: TestDefinition | null;
@@ -32,6 +40,7 @@ export interface RunnerWorkspaceValue {
     patch: Partial<Pick<TestCase, "category" | "prerequisites" | "description" | "version">>,
   ) => Promise<void>;
   clearTestResult: (testCaseId: string, envId: string) => Promise<void>;
+  attachments?: BugAttachmentsAdapter;
 }
 
 const RunnerWorkspaceContext = createContext<RunnerWorkspaceValue | null>(null);

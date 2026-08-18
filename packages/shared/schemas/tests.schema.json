@@ -52,8 +52,8 @@
         "name": { "type": "string", "minLength": 1 },
         "id": {
           "type": "string",
-          "minLength": 1,
-          "description": "URL 用 ID。name が slug 化できない場合は必須"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+          "description": "URL 用 ID。name が slug 化できない場合は必須。URL パス・ストレージキーに使うため英数字で始まる 64 文字以内の英数字・ハイフン・アンダースコアに限る"
         },
         "version": { "type": "integer", "minimum": 1 }
       }

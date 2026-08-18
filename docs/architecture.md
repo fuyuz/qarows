@@ -1,8 +1,8 @@
 # アーキテクチャ
 
-Local 版と Team 版は **別アプリ**（`apps/v1` / `apps/v2`）として独立デプロイ・独立利用する。本ドキュメントは各エディションの構成要素とデータの流れを示す。
+Local 版と Team 版は **別アプリ**（`apps/local` / `apps/team`）として独立デプロイ・独立利用する。本ドキュメントは各エディションの構成要素とデータの流れを示す。
 
-デプロイ手順は [deploy-v1.md](./deploy-v1.md) / [deploy-v2.md](./deploy-v2.md)、要件は [requirements.md](./requirements.md) を参照。
+デプロイ手順は [deploy-local.md](./deploy-local.md) / [deploy-team.md](./deploy-team.md)、要件は [requirements.md](./requirements.md) を参照。
 
 ---
 
@@ -23,7 +23,7 @@ UI と永続化・同期の差分を吸収する中間層。
 
 ```mermaid
 flowchart LR
-  UI["apps/v1 or v2<br/>React UI"]
+  UI["apps/local or team<br/>React UI"]
   Ctrl["WorkspaceController"]
   Repo["ProjectRepository<br/>(IndexedDB / HTTP)"]
   Chan["ProjectChannel<br/>(Local / WebSocket)"]
@@ -52,7 +52,7 @@ flowchart LR
 ```mermaid
 flowchart TB
   subgraph User["利用者ブラウザ"]
-    SPA["React SPA<br/>(apps/v1)"]
+    SPA["React SPA<br/>(apps/local)"]
     RunnerUI["@qarows/runner-ui"]
     AppLayer["@qarows/application<br/>WorkspaceController"]
     IDB[("IndexedDB<br/>qarows-v1")]
@@ -74,7 +74,7 @@ flowchart TB
 
 | レイヤ | 技術 | 役割 |
 |---|---|---|
-| フロントエンド | React + Vite (`apps/v1`) | テスト実行 UI、マトリクス、バグ管理 |
+| フロントエンド | React + Vite (`apps/local`) | テスト実行 UI、マトリクス、バグ管理 |
 | 実行 UI | `@qarows/runner-ui` | 1 テストずつ集中入力のランナー UI |
 | ホスティング | Cloudflare Pages | ビルド成果物（`dist/`）の配信のみ |
 | 永続化 | IndexedDB | プロジェクト定義・結果・セッションの自動保存 |
@@ -125,7 +125,7 @@ sequenceDiagram
 ```mermaid
 flowchart TB
   subgraph User["利用者ブラウザ"]
-    SPA2["React SPA<br/>(apps/v2)"]
+    SPA2["React SPA<br/>(apps/team)"]
     RunnerUI2["@qarows/runner-ui"]
     AppLayer2["@qarows/application<br/>WorkspaceController"]
     SPA2 --> RunnerUI2
@@ -164,7 +164,7 @@ flowchart TB
 
 | レイヤ | 技術 | 役割 |
 |---|---|---|
-| フロントエンド | React + Vite (`apps/v2`) | プロジェクト一覧、テスト実行 UI |
+| フロントエンド | React + Vite (`apps/team`) | プロジェクト一覧、テスト実行 UI |
 | 実行 UI | `@qarows/runner-ui` | Local 版 と同一のランナー体験 |
 | 認証 | Cloudflare Access + Worker middleware | 組織内メンバー限定アクセス |
 | Worker | Hono (`worker/`) | REST API、SPA 配信、WebSocket プロキシ |
@@ -261,13 +261,13 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  subgraph P1["Local 版 (apps/v1)"]
+  subgraph P1["Local 版 (apps/local)"]
     P1App["静的 SPA"]
     P1Pages["Cloudflare Pages"]
     P1App --- P1Pages
   end
 
-  subgraph P2["Team 版 (apps/v2)"]
+  subgraph P2["Team 版 (apps/team)"]
     P2App["SPA + API client"]
     P2Worker["Worker + D1 + DO"]
     P2App --- P2Worker

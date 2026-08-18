@@ -1,6 +1,7 @@
 export {
   RunnerWorkspaceProvider,
   useRunnerWorkspace,
+  type BugAttachmentsAdapter,
   type RunnerWorkspaceValue,
 } from "./context/runner-workspace";
 

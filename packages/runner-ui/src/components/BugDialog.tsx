@@ -1,5 +1,6 @@
 import type {
   Bug,
+  BugAttachment,
   BugSeverity,
   BugStatus,
   Environment,
@@ -8,6 +9,7 @@ import type {
 import { buildBugPrefillFromTestCase } from "@qarows/shared";
 import { useEffect, useState } from "react";
 import { useTranslation } from "@qarows/ui";
+import { useRunnerWorkspace } from "../context/runner-workspace";
 import { BugFormFields } from "./BugFormFields";
 import { Button } from "@qarows/ui";
 import { Checkbox } from "@qarows/ui";
@@ -33,6 +35,7 @@ export interface BugDialogDraft {
   actual: string;
   fixNote: string;
   memo: string;
+  attachments: BugAttachment[];
 }
 
 export interface BugDialogProps {
@@ -71,6 +74,7 @@ function buildInitialDraft(
     actual: "",
     fixNote: "",
     memo: "",
+    attachments: [],
   };
 }
 
@@ -87,6 +91,7 @@ export function bugToDraft(bug: Bug): BugDialogDraft {
     actual: bug.actual ?? "",
     fixNote: bug.fixNote ?? "",
     memo: bug.memo ?? "",
+    attachments: bug.attachments ? [...bug.attachments] : [],
   };
 }
 
@@ -118,6 +123,7 @@ export function bugDraftToBug(id: string, draft: BugDialogDraft): Bug {
     actual: normalized.actual || undefined,
     fixNote: normalized.fixNote || undefined,
     memo: normalized.memo || undefined,
+    attachments: normalized.attachments.length > 0 ? normalized.attachments : undefined,
   };
 }
 
@@ -139,7 +145,9 @@ export function isBugDraftDirty(bug: Bug, draft: BugDialogDraft): boolean {
     (saved.actual ?? "") !== (next.actual ?? "") ||
     (saved.fixNote ?? "") !== (next.fixNote ?? "") ||
     (saved.memo ?? "") !== (next.memo ?? "") ||
-    sortedEnvKey(saved.environmentIds) !== sortedEnvKey(next.environmentIds)
+    sortedEnvKey(saved.environmentIds) !== sortedEnvKey(next.environmentIds) ||
+    (saved.attachments ?? []).map((a) => a.key).join("\0") !==
+      (next.attachments ?? []).map((a) => a.key).join("\0")
   );
 }
 
@@ -159,6 +167,7 @@ export function BugDialog({
   onCancel,
 }: BugDialogProps) {
   const { t } = useTranslation();
+  const { attachments: attachmentsAdapter } = useRunnerWorkspace();
   const prereqLabel = t("runner.prereqShort");
   const [draft, setDraft] = useState(() =>
     buildInitialDraft(
@@ -203,11 +212,21 @@ export function BugDialog({
     await onSubmit(normalized);
   };
 
+  // 起票キャンセル時はアップロード済みの実体を削除（すべてこのダイアログで追加されたもの）
+  const handleCancel = () => {
+    if (attachmentsAdapter) {
+      for (const attachment of draft.attachments) {
+        void attachmentsAdapter.remove(attachment.key).catch(() => {});
+      }
+    }
+    onCancel();
+  };
+
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) onCancel();
+        if (!nextOpen) handleCancel();
       }}
     >
       <DialogContent className="flex min-w-0 max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
@@ -240,7 +259,7 @@ export function BugDialog({
             <span>Create more</span>
           </label>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
+            <Button type="button" variant="outline" disabled={busy} onClick={handleCancel}>
               {t("common.cancel")}
             </Button>
             <Button

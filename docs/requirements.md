@@ -25,7 +25,7 @@
 
 Local 版と Team 版は **別アプリとして独立デプロイ・独立利用** できる状態を維持する。
 
-| | Local 版（`apps/v1`） | Team 版（`apps/v2`） |
+| | Local 版（`apps/local`） | Team 版（`apps/team`） |
 |---|---|---|
 | 提供形態 | 公式インスタンスを固定 URL で公開 | **各自が専用の closed 環境**にセルフデプロイ（公式共通インスタンスなし） |
 | 利用者 | 誰でも URL にアクセスするだけ | デプロイした組織内のメンバー（Cloudflare Access で限定） |
@@ -137,7 +137,7 @@ Local 版と Team 版は **別アプリとして独立デプロイ・独立利�
 - 複数プロジェクトを管理する。
 - テスト結果・メモ・バグ・テストケース定義を **すべてリアルタイム同期** する。
 - **Cloudflare Access** でメールアドレス認証し、closed 環境への入口を限定する（Worker 側でも enforce）。
-- 公式の共通 Team 版 URL は提供しない。セットアップは [deploy-v2.md](./deploy-v2.md) を参照。
+- 公式の共通 Team 版 URL は提供しない。セットアップは [deploy-team.md](./deploy-team.md) を参照。
 
 ### 4.2 プロジェクト作成
 

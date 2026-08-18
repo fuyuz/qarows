@@ -96,7 +96,40 @@
         "expected": { "type": "string" },
         "actual": { "type": "string" },
         "fixNote": { "type": "string" },
-        "memo": { "type": "string" }
+        "memo": { "type": "string" },
+        "attachments": {
+          "type": "array",
+          "maxItems": 5,
+          "items": { "$ref": "#/$defs/bugAttachment" },
+          "description": "バグ添付（画像・動画）メタデータ。実体は Team 版の R2 / zip 同梱（attachments/<key>.<ext>）"
+        }
+      }
+    },
+    "bugAttachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name", "size", "mimeType"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "description": "サーバー生成 UUID（配信 URL とストレージキーの識別子）"
+        },
+        "name": { "type": "string", "maxLength": 255, "description": "元のファイル名（表示用）" },
+        "size": { "type": "integer", "minimum": 0, "maximum": 94371840 },
+        "mimeType": {
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/gif",
+            "video/mp4",
+            "video/webm",
+            "video/quicktime"
+          ]
+        },
+        "uploadedAt": { "type": "string", "format": "date-time" },
+        "uploadedBy": { "type": "string" }
       }
     }
   }

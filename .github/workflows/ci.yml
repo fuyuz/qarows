@@ -25,7 +25,7 @@ jobs:
         run: bun run test
 
       - name: Install Playwright browser
-        working-directory: apps/v1
+        working-directory: apps/local
         run: bun run test:e2e:install -- --with-deps
 
       - name: E2E tests

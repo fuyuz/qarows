@@ -80,6 +80,18 @@ export type TestResults = Record<string, Record<string, TestResultEntry>>;
 /** testCaseId -> テストケース単位メモ */
 export type TestMemos = Record<string, string>;
 
+/** Team 版のみ実体（R2）を持つ。Local 版はメタデータを保持したまま無視する */
+export interface BugAttachment {
+  /** サーバー生成 UUID。配信 URL とストレージキーの識別子 */
+  key: string;
+  /** 元のファイル名（表示用） */
+  name: string;
+  size: number;
+  mimeType: string;
+  uploadedAt?: string;
+  uploadedBy?: string;
+}
+
 export interface Bug {
   id: string;
   testCaseId?: string;
@@ -95,6 +107,8 @@ export interface Bug {
   fixNote?: string;
   /** 自由記入メモ */
   memo?: string;
+  /** 添付（画像・動画）。最大 MAX_BUG_ATTACHMENTS 件 */
+  attachments?: BugAttachment[];
 }
 
 export interface ResultsFile {

@@ -1,3 +1,4 @@
+import { normalizeBugAttachments } from "./attachment";
 import { normalizeBugSeverity, normalizeBugStatus } from "./bug";
 import type { Bug, ResultsFile, TestDefinition, TestMemos, TestResultEntry, TestResults } from "./types";
 import { normalizeStatus } from "./status";
@@ -105,6 +106,7 @@ function parseBug(raw: unknown, index: number): Bug {
     actual: obj.actual != null ? String(obj.actual) : undefined,
     fixNote: obj.fixNote != null ? String(obj.fixNote) : undefined,
     memo: obj.memo != null ? String(obj.memo) : undefined,
+    attachments: normalizeBugAttachments(obj.attachments),
   };
 }
 

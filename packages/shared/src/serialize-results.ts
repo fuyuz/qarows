@@ -45,6 +45,16 @@ function serializeBug(bug: Bug): Record<string, unknown> {
   if (bug.actual) obj.actual = bug.actual;
   if (bug.fixNote) obj.fixNote = bug.fixNote;
   if (bug.memo) obj.memo = bug.memo;
+  if (bug.attachments?.length) {
+    obj.attachments = bug.attachments.map((attachment) => ({
+      key: attachment.key,
+      name: attachment.name,
+      size: attachment.size,
+      mimeType: attachment.mimeType,
+      ...(attachment.uploadedAt ? { uploadedAt: attachment.uploadedAt } : {}),
+      ...(attachment.uploadedBy ? { uploadedBy: attachment.uploadedBy } : {}),
+    }));
+  }
   return obj;
 }
 

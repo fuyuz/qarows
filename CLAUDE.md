@@ -14,14 +14,14 @@ AI コーディングアシスタント向けのプロジェクト概要。こ�
 ## 現状
 
 - 要件・データ形式・デプロイ方針は `docs/` に整理済み
-- `apps/v1`, `packages/shared` scaffold 済み（Step 1 ビルド通過）
+- `apps/local`, `packages/shared` scaffold 済み（Step 1 ビルド通過）
 - 実装は **Local 版優先**
 
 ## エディション
 
 Local 版と Team 版は **別アプリ**。独立デプロイ・独立利用を維持する。
 
-| | Local 版 (`apps/v1`) | Team 版 (`apps/v2`) |
+| | Local 版 (`apps/local`) | Team 版 (`apps/team`) |
 |---|---|---|
 | 提供 | 公式 URL で誰でも利用 | **各自 closed 環境**にセルフデプロイ（Access で限定） |
 | サーバー | 不要（静的 SPA） | Workers + DO + D1 等 |
@@ -41,8 +41,8 @@ Cloudflare 関連は公式ドキュメントを優先すること。
 
 ```
 qarows/
-├── apps/v1/           # Local 版: 静的 SPA
-├── apps/v2/           # Team 版: Workers + DO
+├── apps/local/           # Local 版: 静的 SPA
+├── apps/team/           # Team 版: Workers + DO
 ├── packages/shared/   # 共通型・スキーマ・i18n
 └── docs/              # 人間向け詳細ドキュメント
 ```
@@ -110,7 +110,7 @@ qarows/
 |---|---|---|
 | `bun run preview:start` | http://localhost:5173 | Local 版本番ビルド確認 |
 | `bun run dev` | http://localhost:5174 | Local 版開発（HMR） |
-| `bun run dev:v2` | http://localhost:5177 | Team 版開発（Vite + Worker `:8787`） |
+| `bun run dev:team` | http://localhost:5177 | Team 版開発（Vite + Worker `:8787`） |
 
 5173 は **preview 専用**。Local 版開発中は 5174、Team 版は 5177 を使う。
 
@@ -118,14 +118,14 @@ qarows/
 # dev ポートを止める（Local + Team 版）
 bun run dev:stop
 
-# Team 版初回: cp apps/v2/wrangler.toml.example apps/v2/wrangler.toml
-bun run dev:v2
+# Team 版初回: cp apps/team/wrangler.toml.example apps/team/wrangler.toml
+bun run dev:team
 
 # preview をビルドして 5173 で起動
 bun run preview:start
 ```
 
-Team 版デプロイ手順: [docs/deploy-v2.md](docs/deploy-v2.md)
+Team 版デプロイ手順: [docs/deploy-team.md](docs/deploy-team.md)
 
 ## ドキュメント
 
@@ -140,7 +140,7 @@ Team 版デプロイ手順: [docs/deploy-v2.md](docs/deploy-v2.md)
 
 ## サンプル tests.yml（リポジトリの QA リスト）
 
-`apps/v1/public/samples/tests.yml` は **デモ用サンプル** かつ **このリポジトリ自身の手動 QA チェックリスト** として扱う。機能追加のたびに都度テストケースを増やしていく。
+`apps/local/public/samples/tests.yml` は **デモ用サンプル** かつ **このリポジトリ自身の手動 QA チェックリスト** として扱う。機能追加のたびに都度テストケースを増やしていく。
 
 | 用途 | 説明 |
 |---|---|

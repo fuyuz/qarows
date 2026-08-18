@@ -1,4 +1,5 @@
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
+import { MAX_ATTACHMENT_BYTES, MAX_BUG_ATTACHMENTS, attachmentFileExtension, isValidAttachmentKey } from "./attachment";
 
 /** Per-member limit aligned with Team upload caps. */
 export const MAX_ARCHIVE_MEMBER_BYTES = 5 * 1024 * 1024;
@@ -7,12 +8,26 @@ export const MAX_ARCHIVE_TOTAL_BYTES = 10 * 1024 * 1024;
 /** Max yml/json entries extracted from one archive. */
 export const MAX_ARCHIVE_ENTRIES = 32;
 
+/** Max attachment entries extracted from one archive (Team import). */
+export const MAX_ARCHIVE_ATTACHMENT_ENTRIES = 50 * MAX_BUG_ATTACHMENTS;
+/** Total attachment payload limit per archive (Team import). */
+export const MAX_ARCHIVE_ATTACHMENT_TOTAL_BYTES = 500 * 1024 * 1024;
+
 export const PROJECT_ARCHIVE_TESTS_NAME = "tests.yml";
 export const PROJECT_ARCHIVE_RESULTS_NAME = "results.json";
+export const PROJECT_ARCHIVE_ATTACHMENTS_DIR = "attachments";
 
 export interface PackProjectArchiveInput {
   testsYaml: string;
   resultsJson: string;
+  /** Team 版: バグ添付の実体。attachments/<key>.<ext> として無圧縮で同梱する */
+  attachments?: ProjectArchiveAttachment[];
+}
+
+export interface ProjectArchiveAttachment {
+  key: string;
+  mimeType: string;
+  data: Uint8Array;
 }
 
 export interface UnpackedProjectFile {
@@ -37,10 +52,17 @@ export function projectArchiveToBlob(archive: Uint8Array): Blob {
 }
 
 export function packProjectArchive(input: PackProjectArchiveInput): Uint8Array {
-  return zipSync({
+  const entries: Zippable = {
     [PROJECT_ARCHIVE_TESTS_NAME]: strToU8(input.testsYaml),
     [PROJECT_ARCHIVE_RESULTS_NAME]: strToU8(input.resultsJson),
-  });
+  };
+  for (const attachment of input.attachments ?? []) {
+    if (!isValidAttachmentKey(attachment.key)) continue;
+    const name = `${PROJECT_ARCHIVE_ATTACHMENTS_DIR}/${attachment.key}.${attachmentFileExtension(attachment.mimeType)}`;
+    // 画像・動画は圧縮済みのため STORE で詰める
+    entries[name] = [attachment.data, { level: 0 }];
+  }
+  return zipSync(entries);
 }
 
 function basename(entryPath: string): string {
@@ -65,7 +87,10 @@ function classifyArchiveEntryName(name: string): "tests" | "results" | null {
 export function unpackProjectArchive(bytes: Uint8Array): UnpackedProjectFile[] {
   let entries: Record<string, Uint8Array>;
   try {
-    entries = unzipSync(bytes);
+    // 添付エントリ（attachments/ 配下の画像・動画）は展開しない
+    entries = unzipSync(bytes, {
+      filter: (file) => classifyArchiveEntryName(basename(file.name)) != null,
+    });
   } catch {
     throw new ProjectArchiveError("zip ファイルの展開に失敗しました");
   }
@@ -104,6 +129,49 @@ export function unpackProjectArchive(bytes: Uint8Array): UnpackedProjectFile[] {
   }
 
   return extracted;
+}
+
+export interface UnpackedArchiveAttachment {
+  /** attachments/<key>.<ext> の <key> 部分（UUID） */
+  key: string;
+  data: Uint8Array;
+}
+
+/** Team 版 import 用: attachments/ 配下のエントリのみ展開する */
+export function unpackProjectArchiveAttachments(bytes: Uint8Array): UnpackedArchiveAttachment[] {
+  const prefix = `${PROJECT_ARCHIVE_ATTACHMENTS_DIR}/`;
+  let entries: Record<string, Uint8Array>;
+  try {
+    entries = unzipSync(bytes, {
+      filter: (file) =>
+        file.name.startsWith(prefix) &&
+        !file.name.endsWith("/") &&
+        file.originalSize <= MAX_ATTACHMENT_BYTES,
+    });
+  } catch {
+    throw new ProjectArchiveError("zip ファイルの展開に失敗しました");
+  }
+
+  const attachments: UnpackedArchiveAttachment[] = [];
+  let totalBytes = 0;
+
+  for (const [entryPath, payload] of Object.entries(entries)) {
+    if (!isSafeArchiveEntryPath(entryPath)) continue;
+    const name = basename(entryPath);
+    const key = name.replace(/\.[A-Za-z0-9]+$/, "").toLowerCase();
+    if (!isValidAttachmentKey(key)) continue;
+
+    totalBytes += payload.byteLength;
+    if (totalBytes > MAX_ARCHIVE_ATTACHMENT_TOTAL_BYTES) {
+      throw new ProjectArchiveError("zip 内の添付ファイル合計サイズが上限を超えています");
+    }
+    attachments.push({ key, data: payload });
+    if (attachments.length > MAX_ARCHIVE_ATTACHMENT_ENTRIES) {
+      throw new ProjectArchiveError("zip 内の添付ファイルが多すぎます");
+    }
+  }
+
+  return attachments;
 }
 
 export function unpackedProjectFilesToImportFiles(files: UnpackedProjectFile[]): File[] {

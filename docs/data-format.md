@@ -16,6 +16,8 @@ project/
 
 zip エクスポート時は `{project.id}.zip` として上記 2 ファイルを同梱する（例: `qarows.zip`）。zip インポート時はアーカイブ内の `.yml` / `.yaml` / `.json` を拡張子で判別する（ファイル名固定は不要）。
 
+Team 版でバグ添付がある場合、zip には `attachments/<key>.<ext>` として実体（画像・動画、無圧縮 STORE）を同梱する。`<key>` は `bugs[].attachments[].key` の UUID。Team 版へのインポート時は同じキーで R2 に復元され、Local 版インポート時は添付エントリを展開せずスキップする（メタデータは `results.json` に残る）。
+
 | ファイル | 形式 | 更新頻度 | マージ対象 |
 |---|---|---|---|
 | `tests.yml` | YAML | 低（定義変更時） | Local 版: 対象外 |
@@ -42,6 +44,9 @@ project:
   name: "My App QA"
   id: my-app-qa   # 必須（name が英数字のみでない場合）。省略時は name から自動生成
   version: 1
+
+# project.id は URL パス・ストレージキーに使うため、
+# 英数字で始まる 64 文字以内の英数字・ハイフン・アンダースコア（^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$）に限る
 
 # 端末/環境（プロジェクト固定リスト）
 environments:
@@ -241,7 +246,17 @@ testCases:
       "status": "open",
       "steps": "1. iOS Safari でログイン画面を開く\n2. ...",
       "expected": "フォームが画面幅に収まる",
-      "actual": "右端がはみ出す"
+      "actual": "右端がはみ出す",
+      "attachments": [
+        {
+          "key": "0198c8e2-4f3a-7b21-9c40-1a2b3c4d5e6f",
+          "name": "layout-broken.png",
+          "size": 482113,
+          "mimeType": "image/png",
+          "uploadedAt": "2026-06-27T11:35:00Z",
+          "uploadedBy": "suzuki@example.com"
+        }
+      ]
     }
   ]
 }
@@ -274,6 +289,20 @@ testCases:
 | `wont_fix` | 対応しない |
 
 旧形式の `pending_verification` は読み込み時に `fixed` へ正規化される。
+
+### バグ添付（Team 版）
+
+バグには画像・動画を最大 **5 件** 添付できる（Team 版のみ。R2 バケット設定時に有効）。
+
+| 項目 | 内容 |
+|---|---|
+| 上限 | 1 ファイル 90 MB、バグあたり 5 件 |
+| 形式 | `image/png`, `image/jpeg`, `image/webp`, `image/gif`, `video/mp4`, `video/webm`, `video/quicktime`（アップロード時にマジックバイト検証） |
+| キー | サーバー生成 UUIDv7。`results.json` にはメタデータ（`key`, `name`, `size`, `mimeType` 等）のみ保存 |
+| 実体 | R2 の `projects/<projectId>/attachments/<key>`。プロジェクト削除時に prefix で一括削除 |
+| 配信 | Worker プロキシ（Access 認証必須）。Range 対応で動画はストリーミング再生 |
+
+Local 版は `attachments` フィールドを解釈せず保持のみ行う（マージ・再エクスポートで欠落しない）。
 
 ---
 

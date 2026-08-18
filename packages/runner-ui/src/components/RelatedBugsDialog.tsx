@@ -36,6 +36,7 @@ function emptyRelatedBugDraft(): BugDialogDraft {
     actual: "",
     fixNote: "",
     memo: "",
+    attachments: [],
   };
 }
 

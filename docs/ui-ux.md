@@ -1,6 +1,6 @@
 # UI / UX デザイン方針
 
-Local 版（`apps/v1`）の画面設計・インタラクション設計の考え方。  
+Local 版（`apps/local`）の画面設計・インタラクション設計の考え方。  
 ゲーム UI の **わかりやすさ・手応え・進捗感** を業務向けに取り入れるが、**ゲーム風の見た目にはしない**。
 
 ## 目的
@@ -203,7 +203,7 @@ BtoB としての **信頼感**（静か・正確・邪魔しない）を損な�
 
 - [requirements.md](./requirements.md) — Local 版 UX（1件ずつ集中入力など）
 - [data-format.md](./data-format.md) — `required: all | any` のデータ定義
-- サンプル TC: `apps/v1/public/samples/tests.yml`（`TC-025`〜 フィードバック系）
+- サンプル TC: `apps/local/public/samples/tests.yml`（`TC-025`〜 フィードバック系）
 
 ## バージョン
 

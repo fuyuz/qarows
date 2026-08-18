@@ -1,5 +1,12 @@
 import type { Bug, TestDefinition, TestResultEntry } from "@qarows/shared";
-import { parseTestsYaml, serializeTestsYaml } from "@qarows/shared";
+import {
+  MAX_ATTACHMENT_BYTES,
+  MAX_BUG_ATTACHMENTS,
+  isAllowedAttachmentMimeType,
+  isValidAttachmentKey,
+  parseTestsYaml,
+  serializeTestsYaml,
+} from "@qarows/shared";
 import type { ProjectCommand } from "./project-command";
 import type { ProjectSnapshot } from "./types";
 
@@ -66,6 +73,30 @@ function assertBugReferences(definition: TestDefinition, bug: Bug): void {
   }
   if (bug.environmentIds !== undefined) {
     assertKnownEnvironments(definition, bug.environmentIds);
+  }
+  if (bug.attachments !== undefined) {
+    if (!Array.isArray(bug.attachments) || bug.attachments.length > MAX_BUG_ATTACHMENTS) {
+      fail(`bug.attachments must be an array of at most ${MAX_BUG_ATTACHMENTS}`);
+    }
+    for (const attachment of bug.attachments) {
+      if (!isValidAttachmentKey(attachment.key)) {
+        fail(`Invalid attachment key: ${String(attachment.key).slice(0, 64)}`);
+      }
+      if (!isAllowedAttachmentMimeType(attachment.mimeType)) {
+        fail(`Unsupported attachment mimeType: ${String(attachment.mimeType).slice(0, 64)}`);
+      }
+      if (
+        typeof attachment.size !== "number" ||
+        !Number.isFinite(attachment.size) ||
+        attachment.size < 0 ||
+        attachment.size > MAX_ATTACHMENT_BYTES
+      ) {
+        fail("Invalid attachment size");
+      }
+      if (typeof attachment.name !== "string" || attachment.name.length > 255) {
+        fail("Invalid attachment name");
+      }
+    }
   }
 }
 

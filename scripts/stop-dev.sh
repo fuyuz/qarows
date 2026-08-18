@@ -13,27 +13,27 @@ stop_listeners() {
 
 TARGET="${1:-all}"
 
-stop_v1_ports() {
+stop_local_ports() {
   for port in 5173 5174 5178; do
     stop_listeners "$port"
   done
 }
 
-stop_v2_ports() {
+stop_team_ports() {
   for port in 5176 5177 8787; do
     stop_listeners "$port"
   done
 }
 
 case "$TARGET" in
-  v1) stop_v1_ports ;;
-  v2) stop_v2_ports ;;
+  local) stop_local_ports ;;
+  team) stop_team_ports ;;
   all)
-    stop_v1_ports
-    stop_v2_ports
+    stop_local_ports
+    stop_team_ports
     ;;
   *)
-    echo "Usage: $0 [all|v1|v2]" >&2
+    echo "Usage: $0 [all|local|team]" >&2
     exit 1
     ;;
 esac

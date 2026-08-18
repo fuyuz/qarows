@@ -85,7 +85,7 @@ UI 言語は日本語メイン（将来 i18n で英語対応を予定）。詳�
 
 Local 版と Team 版は **別アプリ**。独立デプロイ・独立利用できる。
 
-| | Local 版 (`apps/v1`) | Team 版 (`apps/v2`) |
+| | Local 版 (`apps/local`) | Team 版 (`apps/team`) |
 |---|---|---|
 | 提供 | 公式 URL で誰でも利用 | **各自 closed 環境**にセルフデプロイ |
 | サーバー | 不要（静的 SPA） | Workers + Durable Objects + D1 |
@@ -106,7 +106,7 @@ Local 版と Team 版は **別アプリ**。独立デプロイ・独立利用で
 |---|---|
 | 開発 | `bun run dev` → http://localhost:5174 |
 | 本番ビルド確認 | `bun run preview:start` → http://localhost:5173 |
-| 公式デプロイ手順（メンテナ向け） | [docs/deploy-v1.md](docs/deploy-v1.md) |
+| 公式デプロイ手順（メンテナ向け） | [docs/deploy-local.md](docs/deploy-local.md) |
 | データ形式 | [docs/data-format.md](docs/data-format.md) |
 
 ## Team 版
@@ -121,8 +121,8 @@ Local 版と Team 版は **別アプリ**。独立デプロイ・独立利用で
 
 | | リンク |
 |---|---|
-| **セルフデプロイ手順** | **[docs/deploy-v2.md](docs/deploy-v2.md)** |
-| ローカル開発 | `bun run dev:v2` → http://localhost:5177 |
+| **セルフデプロイ手順** | **[docs/deploy-team.md](docs/deploy-team.md)** |
+| ローカル開発 | `bun run dev:team` → http://localhost:5177 |
 | デプロイ方針の概要 | [docs/deployment.md](docs/deployment.md) |
 | アーキテクチャ | [docs/architecture.md](docs/architecture.md) |
 
@@ -136,8 +136,8 @@ Local 版と Team 版は **別アプリ**。独立デプロイ・独立利用で
 | [docs/ui-ux.md](docs/ui-ux.md) | UI / UX |
 | [docs/data-format.md](docs/data-format.md) | `tests.yml` / `results.json` |
 | [docs/deployment.md](docs/deployment.md) | デプロイ方針・セキュリティ |
-| [docs/deploy-v1.md](docs/deploy-v1.md) | Local 版公式デプロイ |
-| [docs/deploy-v2.md](docs/deploy-v2.md) | Team 版セルフデプロイ |
+| [docs/deploy-local.md](docs/deploy-local.md) | Local 版公式デプロイ |
+| [docs/deploy-team.md](docs/deploy-team.md) | Team 版セルフデプロイ |
 
 ## ライセンス
 

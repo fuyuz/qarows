@@ -20,6 +20,7 @@ import {
 } from "@qarows/ui";
 import { useTranslation } from "@qarows/ui";
 import { cn } from "@qarows/ui";
+import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useProjectRoutes } from "../hooks/useProjectRoutes";
 
 export function BugEditDialog({
@@ -40,6 +41,7 @@ export function BugEditDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { attachments: attachmentsAdapter } = useRunnerWorkspace();
   const [draft, setDraft] = useState<BugDialogDraft>(() => bugToDraft(bug));
   const [titleError, setTitleError] = useState(false);
   const navigate = useNavigate();
@@ -54,6 +56,8 @@ export function BugEditDialog({
     }
   }, [bug, open]);
 
+  const savedKeys = useMemo(() => new Set((bug.attachments ?? []).map((a) => a.key)), [bug]);
+
   const handleSave = async () => {
     const normalized = normalizeBugDialogDraft(draft);
     if (!normalized.title) {
@@ -62,6 +66,25 @@ export function BugEditDialog({
     }
     setTitleError(false);
     await onSave(bugDraftToBug(bug.id, normalized));
+    // 保存成功後、外された既存添付の実体を削除する
+    if (attachmentsAdapter) {
+      const remaining = new Set(normalized.attachments.map((a) => a.key));
+      for (const key of savedKeys) {
+        if (!remaining.has(key)) void attachmentsAdapter.remove(key).catch(() => {});
+      }
+    }
+  };
+
+  // キャンセル時は、このダイアログで新規アップロードした実体だけを削除する
+  const handleClose = () => {
+    if (attachmentsAdapter) {
+      for (const attachment of draft.attachments) {
+        if (!savedKeys.has(attachment.key)) {
+          void attachmentsAdapter.remove(attachment.key).catch(() => {});
+        }
+      }
+    }
+    onClose();
   };
 
   if (!open) return null;
@@ -70,7 +93,7 @@ export function BugEditDialog({
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
+        if (!nextOpen) handleClose();
       }}
     >
       <DialogContent className="flex min-w-0 max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
@@ -81,7 +104,7 @@ export function BugEditDialog({
               type="button"
               className="font-bold text-primary hover:underline"
               onClick={() => {
-                onClose();
+                handleClose();
                 navigate(path("bugs", undefined, null, bug.id));
               }}
             >
@@ -106,7 +129,7 @@ export function BugEditDialog({
 
         <DialogFooter className="shrink-0 border-t px-6 py-4">
           <div className="flex w-full justify-end gap-2">
-            <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
+            <Button type="button" variant="outline" disabled={busy} onClick={handleClose}>
               {t("common.cancel")}
             </Button>
             <Button

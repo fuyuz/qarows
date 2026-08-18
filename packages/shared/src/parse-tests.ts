@@ -318,6 +318,9 @@ export function parseTestsYaml(content: string): TestDefinition {
   };
 }
 
+/** URL パス・ストレージキーに使うため英数字とハイフン・アンダースコアのみ許可 */
+export const PROJECT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+
 export function resolveProjectId(
   projectObj: Record<string, unknown>,
   projectName: string,
@@ -325,6 +328,11 @@ export function resolveProjectId(
   if (projectObj.id != null) {
     const id = String(projectObj.id).trim();
     if (!id) throw new Error("project.id は空にできません");
+    if (!PROJECT_ID_PATTERN.test(id)) {
+      throw new Error(
+        "project.id は英数字で始まる 64 文字以内の英数字・ハイフン・アンダースコアで指定してください",
+      );
+    }
     return id;
   }
   const slug = slugify(projectName);

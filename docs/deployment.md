@@ -20,8 +20,8 @@ Local 版と Team 版は **別アプリとして独立デプロイ・独立利�
 ```
 qarows/
 ├── apps/
-│   ├── v1/              # Local 版: 静的 SPA
-│   └── v2/              # Team 版: Workers + DO + Access
+│   ├── local/           # Local 版: 静的 SPA
+│   └── team/            # Team 版: Workers + DO + Access
 ├── packages/
 │   └── shared/          # 共通型定義・スキーマ・i18n
 ├── docs/                # ドキュメント（本ディレクトリ）
@@ -48,8 +48,8 @@ qarows/
 |---|---|
 | `.env.example` | 環境変数のキー名一覧 |
 | `wrangler.toml.example` | Wrangler 設定テンプレート（プレースホルダー） |
-| `docs/deploy-v1.md` | Local 版公式デプロイ手順（メンテナ向け） |
-| `docs/deploy-v2.md` | Team 版セルフデプロイ手順（利用者向け） |
+| `docs/deploy-local.md` | Local 版公式デプロイ手順（メンテナ向け） |
+| `docs/deploy-team.md` | Team 版セルフデプロイ手順（利用者向け） |
 
 ---
 
@@ -65,7 +65,7 @@ qarows/
 
 Pages 連携・ビルド設定・カスタムドメインは **別ドキュメント** にまとめる。
 
-→ **[deploy-v1.md](./deploy-v1.md)**（メンテナ向け・正本）
+→ **[deploy-local.md](./deploy-local.md)**（メンテナ向け・正本）
 
 ### 利用者
 
@@ -90,13 +90,13 @@ Team 版に **公式の共通ホストはない**。fork / clone した利用者
 
 ローカル開発・D1・本番デプロイ・Access（AUD / ポリシー）・トラブルシューティングは **別ドキュメント** にまとめる。
 
-→ **[deploy-v2.md](./deploy-v2.md)**（利用者向け・正本）
+→ **[deploy-team.md](./deploy-team.md)**（利用者向け・正本）
 
 概要だけ:
 
 1. `wrangler.toml.example` をコピーし `account_id` / D1 を設定
 2. Access Application を作成し `ACCESS_AUD` / `ACCESS_TEAM_DOMAIN` を Worker に設定
-3. `bun run deploy:v2` でデプロイ
+3. `bun run deploy:team` でデプロイ
 4. Dashboard で Access ポリシー（許可メール / ドメイン）を設定
 
 ---
@@ -137,4 +137,4 @@ wrangler.toml
 | 日付 | 内容 |
 |---|---|
 | 2026-06-27 | 初版 |
-| 2026-07-12 | Team 版手順を deploy-v2.md へ集約。構成表記を現行（Worker assets）に更新 |
+| 2026-07-12 | Team 版手順を deploy-team.md へ集約。構成表記を現行（Worker assets）に更新 |

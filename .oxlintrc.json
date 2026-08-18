@@ -14,7 +14,7 @@
   },
   "overrides": [
     {
-      "files": ["apps/v1/e2e/**"],
+      "files": ["apps/local/e2e/**"],
       "rules": {
         "react-hooks/rules-of-hooks": "off"
       }
