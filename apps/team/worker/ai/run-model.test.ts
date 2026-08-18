@@ -4,13 +4,14 @@ import { DEFAULT_AI_MODEL, DEFAULT_AI_MODEL_FALLBACK, supportsJsonSchemaResponse
 
 describe("AI model defaults", () => {
   it("uses json_schema-capable models", () => {
-    expect(DEFAULT_AI_MODEL).toBe("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
-    expect(DEFAULT_AI_MODEL_FALLBACK).toBe("@cf/meta/llama-3.1-8b-instruct-fast");
+    expect(DEFAULT_AI_MODEL).toBe("@cf/openai/gpt-oss-120b");
+    expect(DEFAULT_AI_MODEL_FALLBACK).toBe("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
   });
 });
 
 describe("supportsJsonSchemaResponse", () => {
   it("allows configured json_schema models", () => {
+    expect(supportsJsonSchemaResponse("@cf/openai/gpt-oss-120b")).toBe(true);
     expect(supportsJsonSchemaResponse("@cf/meta/llama-3.3-70b-instruct-fp8-fast")).toBe(true);
     expect(supportsJsonSchemaResponse("@cf/meta/llama-3.1-8b-instruct-fast")).toBe(true);
     expect(supportsJsonSchemaResponse("@cf/meta/llama-3.2-1b-instruct")).toBe(false);

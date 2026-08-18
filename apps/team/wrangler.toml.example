@@ -37,8 +37,8 @@ ACCESS_AUD = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 # binding = "AI"
 #
 # Prefer json_schema-capable models (see Workers AI JSON Mode docs).
-# AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-# AI_MODEL_FALLBACK = "@cf/meta/llama-3.1-8b-instruct-fast"
+# AI_MODEL = "@cf/openai/gpt-oss-120b"
+# AI_MODEL_FALLBACK = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
 [assets]
 directory = "./dist"

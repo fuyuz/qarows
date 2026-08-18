@@ -1,7 +1,10 @@
 /** Workers AI JSON Mode (json_schema) 対応モデル。
  * @see https://developers.cloudflare.com/workers-ai/features/json-mode/
+ * gpt-oss-120b は上記リスト未掲載だが、response_format: json_schema が
+ * スキーマ強制込みで動作することを実機確認済み（2026-08）。
  */
 export const JSON_SCHEMA_AI_MODELS = [
+  "@cf/openai/gpt-oss-120b",
   "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   "@cf/meta/llama-3.1-8b-instruct-fast",
   "@cf/meta/llama-3.2-11b-vision-instruct",
