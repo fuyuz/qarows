@@ -1039,3 +1039,11 @@ testCases:
       minor: "インポート"
     prerequisites: "/projects?project=_new を表示中"
     description: "zip をドロップすると tests.yml / results.json が展開され、通常のファイル取り込みと同様に読み込める（zip 内の yml/json は拡張子で判別）"
+
+  - id: TC-111
+    category:
+      major: "閲覧"
+      medium: "ダッシュボード"
+      minor: "集計対象"
+    prerequisites: "tests.yml 読み込み済み、セッション開始済み"
+    description: "ダッシュボード右上のドロップダウンで「セッションのみ（選択環境）」と「全体（全環境）」を切り替えられ、進捗・大項目別の集計が選択環境のみ / 全環境で再計算される（セッション未設定時はドロップダウンが無効で全体表示）"

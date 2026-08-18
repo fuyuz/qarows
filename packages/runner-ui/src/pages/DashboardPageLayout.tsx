@@ -1,8 +1,18 @@
-import { useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { isBugClosed } from "@qarows/shared";
 import { useTranslation } from "@qarows/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@qarows/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@qarows/ui";
 import { CategoryStatsLegend, CategoryStatsTable } from "../components/CategoryStatsTable";
 import { ProgressRow } from "../components/ProgressRow";
 import { useRunnerWorkspace } from "../context/runner-workspace";
@@ -18,12 +28,17 @@ function countOpenBugs(bugs: { status: Parameters<typeof isBugClosed>[0] }[]): n
   return bugs.filter((bug) => !isBugClosed(bug.status)).length;
 }
 
+type DashboardScope = "all" | "session";
+
 export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
   const { t, locale } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { definition, results, session } = useRunnerWorkspace();
   const { projectId, path } = useProjectRoutes();
+  const [scope, setScope] = useState<DashboardScope>("session");
+  // セッション未設定時はセッション絞り込みができないため全体に固定
+  const effectiveScope: DashboardScope = session ? scope : "all";
 
   useEffect(() => {
     if (!location.search || !projectId) return;
@@ -41,12 +56,15 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
         categoryRows: [],
       };
     }
-    const envIds = getAllEnvironmentIds(definition);
+    const envIds =
+      effectiveScope === "session" && session
+        ? session.selectedEnvironmentIds
+        : getAllEnvironmentIds(definition);
     return {
       overallStats: computeRunProgress(definition, envIds, results.results),
       categoryRows: computeCategoryProgress(definition, envIds, results.results, locale),
     };
-  }, [definition, locale, results]);
+  }, [definition, effectiveScope, locale, results, session]);
 
   const handleMajorCategoryClick = useCallback(
     (major: string) => {
@@ -75,7 +93,25 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
     <div className="flex min-h-svh flex-col">
       {nav}
       <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-6">
-        <h1 className="mb-6 text-lg font-bold tracking-tight">{t("nav.dashboard")}</h1>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-lg font-bold tracking-tight">{t("nav.dashboard")}</h1>
+          <Select
+            value={effectiveScope}
+            onValueChange={(value) => setScope(value as DashboardScope)}
+            disabled={!session}
+          >
+            <SelectTrigger
+              aria-label={t("runner.dashboardScopeAria")}
+              className="h-auto w-auto px-2.5 py-1.5 text-sm font-semibold"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="session">{t("runner.dashboardScopeSession")}</SelectItem>
+              <SelectItem value="all">{t("runner.dashboardScopeAll")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <section className="mb-8 grid gap-4 sm:grid-cols-2">
           <Card>
@@ -143,7 +179,9 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-3 text-xs font-semibold text-muted-foreground">{t("runner.overallProgress")}</h2>
+          <h2 className="mb-3 text-xs font-semibold text-muted-foreground">
+            {t(effectiveScope === "session" ? "runner.sessionProgress" : "runner.overallProgress")}
+          </h2>
           <div className="rounded-xl border bg-card px-4 py-3 shadow-sm">
             <ProgressRow id="dashboard-overall" title={t("common.overall")} stats={overallStats} />
           </div>
