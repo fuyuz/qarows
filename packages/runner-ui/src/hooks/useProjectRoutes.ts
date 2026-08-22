@@ -2,9 +2,9 @@ import { useCallback } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import type { RunnerFilters, TestDefinition } from "@qarows/shared";
 import { useRunnerWorkspace } from "../context/runner-workspace";
+import { projectIdFromPathname } from "@qarows/ui";
 import {
   inheritsRunnerQueryFromLocation,
-  projectIdFromPathname,
   projectPath,
   resolveProjectId,
   type ProjectPage,
@@ -26,7 +26,7 @@ export function useProjectRoutesFor(definition: TestDefinition | null) {
     (page: ProjectPage, filters?: RunnerFilters, testId?: string | null, bugId?: string | null) => {
       if (!definition && !routeProjectId) return "/projects";
 
-      const id = resolveProjectId(definition, routeProjectId) ?? "project";
+      const id = resolveProjectId(definition, routeProjectId);
       const onProjectRoute = location.pathname.startsWith("/p/");
       const sameProject = inheritsRunnerQueryFromLocation(locationProjectId, id);
 

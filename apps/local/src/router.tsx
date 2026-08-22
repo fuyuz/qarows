@@ -14,6 +14,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import {
   projectPath,
+  resolveProjectId,
   runnerSearchChanged,
   sanitizeRunnerSearchParams,
 } from "@qarows/runner-ui";
@@ -155,7 +156,7 @@ function RequireSession({ children }: { children: ReactNode }) {
   if (!ready) return <LoadingScreen />;
   if (!definition) return <Navigate to="/projects" replace />;
   if (!session || !isValidSession(session)) {
-    const projectId = definition.project.id ?? "project";
+    const projectId = resolveProjectId(definition);
     return (
       <Navigate
         to={{ pathname: projectPath(projectId, "session"), search: location.search }}

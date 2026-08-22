@@ -1,7 +1,9 @@
 import type { RunnerFilters, TestDefinition } from "@qarows/shared";
+import type { WorkspaceProjectPage } from "@qarows/ui";
 import { runnerFiltersToSearchParams } from "./runner-query";
 
-export type ProjectPage = "session" | "run" | "matrix" | "dashboard" | "bugs" | "tests";
+/** @qarows/ui のナビゲーション定義を単一の出典にする（頁を増やしたときに片方だけ漏れないように） */
+export type ProjectPage = WorkspaceProjectPage;
 
 /** Query value for the new-project import panel on /projects. */
 export const NEW_PROJECT_SELECTION = "_new";
@@ -14,7 +16,7 @@ export function projectsHubPath(projectSelection?: string | null): string {
 export function resolveProjectId(
   definition: TestDefinition | null | undefined,
   routeProjectId?: string,
-): string | null {
+): string {
   return routeProjectId ?? definition?.project.id ?? "project";
 }
 
@@ -38,10 +40,3 @@ export function projectPath(
   const base = `/p/${encodeURIComponent(projectId)}/${page}`;
   return search ? `${base}?${search}` : base;
 }
-
-function projectIdFromPathname(pathname: string): string | null {
-  const match = pathname.match(/^\/p\/([^/]+)/);
-  return match?.[1] ? decodeURIComponent(match[1]) : null;
-}
-
-export { projectIdFromPathname };

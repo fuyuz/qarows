@@ -56,6 +56,15 @@ describe("projectIdFromPathname", () => {
     expect(projectIdFromPathname("/p/app%2Fb/session")).toBe("app/b");
     expect(projectIdFromPathname("/projects")).toBeNull();
   });
+
+  /**
+   * runner-ui にあった複製は decodeURIComponent を素で呼んでいて、
+   * 不正なエスケープでレンダー中に URIError を投げていた
+   */
+  it("survives a malformed escape instead of throwing", () => {
+    expect(projectIdFromPathname("/p/%zz/run")).toBe("%zz");
+    expect(projectIdFromPathname("/p/100%/run")).toBe("100%");
+  });
 });
 
 describe("isProjectWorkspacePath", () => {
