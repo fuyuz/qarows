@@ -112,9 +112,21 @@ binding = "AI"
 [vars]
 AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 AI_MODEL_FALLBACK = "@cf/meta/llama-3.1-8b-instruct-fast"
+
+# 表 (table) ブロックは [vars] のキーより後に置く
+[[ratelimits]]
+name = "AI_RATE_LIMIT"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 20
+  period = 60
 ```
 
 - `[ai]` が **ない** デプロイでは AI タブ・API は表示されない（opt-in）
+- **`[[ratelimits]]` は `[ai]` を有効にするなら設定すること。** 未設定でも動くが、その場合の
+  レート制限は isolate ローカルの Map なので実効上限が定まらず（Cloudflare は isolate を
+  多数立てる）、Workers AI の利用量に上限がかからない。設定すると Cloudflare の
+  ロケーション単位で数える（グローバルではない点は要注意）。`period` は 10 か 60 のみ
 - `AI_MODEL` / `AI_MODEL_FALLBACK` はデプロイごとに固定。未設定時は Worker 内デフォルト（`llama-3.3-70b-instruct-fp8-fast` / `llama-3.1-8b-instruct-fast`）を使用
 - AI 編集は [Workers AI JSON Mode](https://developers.cloudflare.com/workers-ai/features/json-mode/) の `json_schema` 対応モデルのみ利用（非対応モデルは Worker が拒否）
 - 編集の schema 遵守には 70B 系を推奨。容量・コストを抑える場合は 8B-fast を primary にしてもよい

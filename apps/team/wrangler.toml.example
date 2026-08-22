@@ -40,6 +40,18 @@ ACCESS_AUD = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 # AI_MODEL = "@cf/openai/gpt-oss-120b"
 # AI_MODEL_FALLBACK = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
 
+# Strongly recommended when [ai] is enabled: without it the propose limit is
+# per-isolate, so the effective ceiling is undefined and Workers AI usage is
+# unbounded. Counted per Cloudflare location, not globally.
+# Note: this is a table block, so it must stay below every [vars] key —
+# uncommenting it inside [vars] would swallow the keys that follow.
+# [[ratelimits]]
+# name = "AI_RATE_LIMIT"
+# namespace_id = "1001"
+#   [ratelimits.simple]
+#   limit = 20
+#   period = 60
+
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"

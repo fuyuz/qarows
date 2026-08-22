@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Context } from "hono";
 import { parseAiChatHistory, proposeTestsYamlEdit } from "../ai/propose";
-import { AiRateLimitError, assertAiProposeRateLimit } from "../ai/rate-limit";
+import { AiRateLimitError, assertAiProposeAllowed } from "../ai/rate-limit";
 import { AiModelError } from "../ai/run-model";
 import {
   AiProposalError,
@@ -67,7 +67,7 @@ export function createAiRoutes(): Hono<AppEnv> {
 
   ai.post("/:projectId/ai/propose", async (c) => {
     try {
-      assertAiProposeRateLimit(c.get("user").email);
+      await assertAiProposeAllowed(c.env.AI_RATE_LIMIT, c.get("user").email);
 
       const projectId = c.req.param("projectId");
       const snapshot = await getProject(c.env.DB, projectId);
