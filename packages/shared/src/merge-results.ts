@@ -4,13 +4,20 @@ import type { Bug, ResultsFile, TestMemos, TestResultEntry } from "./types";
 
 const MEMO_SEPARATOR = "\n---\n";
 
+/**
+ * 区切り済みのセグメント単位で重複を落とす。
+ * 全体一致だけを見ていると、同じファイルを 2 回マージするたびに同じメモが積み増しされる
+ * （Local 版は保存済み snapshot に対してマージするので現実に起こる）
+ */
 function mergeMemos(a?: string, b?: string): string | undefined {
-  const left = a?.trim();
-  const right = b?.trim();
-  if (!left) return right;
-  if (!right) return left;
-  if (left === right) return left;
-  return `${left}${MEMO_SEPARATOR}${right}`;
+  const segments: string[] = [];
+  for (const text of [a, b]) {
+    for (const segment of (text ?? "").split(MEMO_SEPARATOR)) {
+      const trimmed = segment.trim();
+      if (trimmed && !segments.includes(trimmed)) segments.push(trimmed);
+    }
+  }
+  return segments.length > 0 ? segments.join(MEMO_SEPARATOR) : undefined;
 }
 
 function mergeTestMemos(base: TestMemos, incoming: TestMemos): TestMemos {
@@ -57,12 +64,54 @@ function mergeEntry(a: TestResultEntry, b: TestResultEntry): TestResultEntry {
   };
 }
 
+/** バグが再現した環境は片方を捨てず束ねる（別端末で踏んだ報告が消えないように） */
+function mergeEnvironmentIds(a?: string[], b?: string[]): string[] | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  const merged = [...new Set([...a, ...b])];
+  return merged.length > 0 ? merged : undefined;
+}
+
+/**
+ * 任意フィールドが増えたときに取りこぼしを型で検出するための写像。
+ * homomorphic でない mapped type なので optional が外れ、キーの追加忘れが compile error になる
+ */
+type AllFields<T> = { [K in keyof Required<T>]: T[K] };
+
+/**
+ * 同 id のバグをフィールド単位でマージする。
+ * spread では潰れる: parseResultsJson は省略された任意フィールドも undefined として
+ * 明示的に立てるため、`{ ...existing, ...bug }` だと片方に無いだけで既存値が消える。
+ * 自由記入テキストは Local 版のメモ規則どおり両方残し、それ以外は値があるほうを採る。
+ * Bug に時刻がないため、必須フィールド（title / severity / status）は後勝ちのまま
+ */
+function mergeBug(existing: Bug, incoming: Bug): Bug {
+  const merged: AllFields<Bug> = {
+    id: incoming.id,
+    title: incoming.title,
+    severity: incoming.severity,
+    status: incoming.status,
+    testCaseId: incoming.testCaseId ?? existing.testCaseId,
+    environmentIds: mergeEnvironmentIds(existing.environmentIds, incoming.environmentIds),
+    assignee: incoming.assignee ?? existing.assignee,
+    steps: incoming.steps ?? existing.steps,
+    expected: incoming.expected ?? existing.expected,
+    actual: incoming.actual ?? existing.actual,
+    fixNote: mergeMemos(existing.fixNote, incoming.fixNote),
+    memo: mergeMemos(existing.memo, incoming.memo),
+    // 添付は束ねない: parse 時に MAX_BUG_ATTACHMENTS で切られる一方、マージ結果は
+    // 再正規化されないため、union すると上限超えのバグを作れてしまう
+    attachments: incoming.attachments ?? existing.attachments,
+  };
+  return merged;
+}
+
 function mergeBugs(base: Bug[], incoming: Bug[]): Bug[] {
   const map = new Map<string, Bug>();
   for (const bug of base) map.set(bug.id, bug);
   for (const bug of incoming) {
     const existing = map.get(bug.id);
-    map.set(bug.id, existing ? { ...existing, ...bug } : bug);
+    map.set(bug.id, existing ? mergeBug(existing, bug) : bug);
   }
   return [...map.values()];
 }

@@ -1186,3 +1186,22 @@ testCases:
       minor: "無関係ファイルの混入"
     prerequisites: "添付付きプロジェクトの zip を macOS / Windows で展開し再圧縮して（attachments/ に .DS_Store や Thumbs.db が混ざった状態で）Team 版にインポートする"
     description: "attachments/ 配下の無関係ファイルは無視され、添付と tests.yml / results.json が通常どおり取り込まれる（インポート全体が失敗しない）"
+
+  - id: TC-128
+    category:
+      major: "ファイル読み込み"
+      medium: "results.json"
+      minor: "バグのマージ"
+    prerequisites: |
+      メモ・修正内容・担当者・手順付きのバグを含む results.json をエクスポートし、同じ bug.id を持つが
+      それらのフィールドを持たない results.json（別メンバーが最小構成で書き出したもの）を用意する。
+      添付（Team 版のみ生成される）は TC-129 で確認する
+    description: "マージ後もバグの担当者・手順・期待/実際の値が残る。メモと修正内容は両方が --- 区切りで連結され、同じファイルを2回マージしても増えない。環境は両方の和になる。ステータスは後に取り込んだファイル側になる"
+
+  - id: TC-129
+    category:
+      major: "Team 版"
+      medium: "zip インポート"
+      minor: "添付のマージ"
+    prerequisites: "添付付きバグのあるプロジェクトを Team 版で zip エクスポートし、同じ bug.id を持つが添付を持たない results.json を用意する"
+    description: "results.json をマージしても既存の添付が残り、バグ画面で引き続き表示・再生できる"
