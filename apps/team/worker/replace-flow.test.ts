@@ -94,8 +94,10 @@ describe("saveCheckpointAndReplaceDefinition", () => {
       PROJECT: {
         getByName() {
           return {
+            // 実 RPC は置換後の RoomSnapshot（新しい generation 込み）を返す
             async replaceProjectFromWorker() {
               replaced = true;
+              return { generation: "gen-next", revision: 0 };
             },
           };
         },
@@ -150,11 +152,15 @@ describe("saveCheckpointAndReplaceDefinition", () => {
   it("records a checkpoint and replaces when the generation matches", async () => {
     const { env, definition, sql, wasReplaced } = makeEnv();
 
-    await saveCheckpointAndReplaceDefinition(env, input("gen-current", definition));
+    const result = await saveCheckpointAndReplaceDefinition(env, input("gen-current", definition));
 
     expect(sql.some((statement) => statement.includes("INSERT INTO definition_revisions"))).toBe(
       true,
     );
     expect(wasReplaced()).toBe(true);
+    // generation は RPC の戻り値から取る（置換後に D1 を読み直さない）
+    expect(result.generation).toBe("gen-next");
+    const readsAfterReplace = sql.filter((statement) => statement.includes("FROM projects")).length;
+    expect(readsAfterReplace).toBe(1);
   });
 });

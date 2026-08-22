@@ -71,8 +71,10 @@ async function replaceInRoom(
   locale: Locale,
 ): Promise<{ generation: string }> {
   const stub = env.PROJECT.getByName(input.projectId);
+  let replaced;
   try {
-    await stub.replaceProjectFromWorker({
+    // RPC が新しい generation を返すので、D1 を読み直さない
+    replaced = await stub.replaceProjectFromWorker({
       projectId: input.projectId,
       testsYaml: input.testsYaml,
       expectedGeneration: input.expectedGeneration,
@@ -87,11 +89,10 @@ async function replaceInRoom(
     throw new HTTPException(500, { message: apiMessage(locale, "api.failedReplaceDefinition") });
   }
 
-  const snapshot = await getProject(env.DB, input.projectId);
-  if (!snapshot) {
-    throw new HTTPException(404, { message: apiMessage(locale, "api.projectNotFound") });
+  if (!replaced.generation) {
+    throw new HTTPException(500, { message: apiMessage(locale, "api.failedReplaceDefinition") });
   }
-  return { generation: snapshot.generation };
+  return { generation: replaced.generation };
 }
 
 export async function replaceProjectDefinitionInRoom(

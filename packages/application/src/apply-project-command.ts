@@ -14,14 +14,30 @@ import type {
   ProjectCommand,
 } from "./project-command";
 import type { ProjectSnapshot } from "./types";
-import { validateProjectCommand } from "./validate-project-command";
+import { ProjectCommandValidationError, validateProjectCommand } from "./validate-project-command";
+
+/**
+ * YAML を往復させて検証と正規化を同時に済ませる。
+ * 以前は validateProjectCommand でも同じ往復をしていて、1 回の置換で 2 度読んでいた
+ */
+function normalizeDefinition(
+  definition: import("@qarows/shared").TestDefinition,
+): import("@qarows/shared").TestDefinition {
+  try {
+    return parseTestsYaml(serializeTestsYaml(definition));
+  } catch (error) {
+    throw new ProjectCommandValidationError(
+      error instanceof Error ? error.message : "Invalid test definition",
+    );
+  }
+}
 
 function normalizeReplaceDefinition(
   snapshot: ProjectSnapshot,
   definition: import("@qarows/shared").TestDefinition,
 ): import("@qarows/shared").TestDefinition {
   const projectId = snapshot.definition.project.id ?? snapshot.id;
-  const normalized = parseTestsYaml(serializeTestsYaml(definition));
+  const normalized = normalizeDefinition(definition);
   return {
     ...normalized,
     project: {
@@ -242,11 +258,12 @@ function applyCommandToSnapshot(
     }
 
     case "replaceSnapshot": {
+      const definition = normalizeDefinition(command.definition);
       return {
         snapshot: {
           ...snapshot,
-          name: command.definition.project.name,
-          definition: command.definition,
+          name: definition.project.name,
+          definition,
           results: command.results,
           session: command.session,
           updatedAt: now,

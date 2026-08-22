@@ -4,8 +4,6 @@ import {
   MAX_BUG_ATTACHMENTS,
   isAllowedAttachmentMimeType,
   isValidAttachmentKey,
-  parseTestsYaml,
-  serializeTestsYaml,
 } from "@qarows/shared";
 import type { ProjectCommand } from "./project-command";
 import type { ProjectSnapshot } from "./types";
@@ -147,25 +145,11 @@ export function validateProjectCommand(snapshot: ProjectSnapshot, command: Proje
       assertBugReferences(definition, command.bug);
       return;
 
-    case "replaceDefinition": {
-      try {
-        parseTestsYaml(serializeTestsYaml(command.definition));
-      } catch (error) {
-        fail(error instanceof Error ? error.message : "Invalid test definition");
-      }
-      return;
-    }
-
-    case "replaceSnapshot": {
-      // definition をそのまま採用する経路なので、replaceDefinition と同じ検証を通す
-      try {
-        parseTestsYaml(serializeTestsYaml(command.definition));
-      } catch (error) {
-        fail(error instanceof Error ? error.message : "Invalid test definition");
-      }
-      return;
-    }
-
+    // replaceDefinition / replaceSnapshot の YAML 検証は
+    // applyProjectCommand の正規化（normalizeDefinition）が兼ねる。
+    // ここで往復させると 1 回の置換で 2 度読むことになる
+    case "replaceDefinition":
+    case "replaceSnapshot":
     case "clearResults":
     case "mergeResults":
       return;
