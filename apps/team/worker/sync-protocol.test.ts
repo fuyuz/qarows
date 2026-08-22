@@ -4,6 +4,7 @@ import {
   MAX_WS_MESSAGE_BYTES,
   SYNC_PING_MESSAGE,
   SYNC_PONG_MESSAGE,
+  exceedsMaxWsMessageBytes,
   parseClientMessage,
 } from "./sync-protocol";
 
@@ -203,5 +204,57 @@ describe("sync-protocol", () => {
         },
       },
     });
+  });
+
+  it("measures the size limit in UTF-8 bytes, not UTF-16 code units", () => {
+    // 日本語は 1 文字 3 バイト。length 比較だと上限の約 3 倍まで通っていた
+    const japanese = "あ".repeat(Math.floor(MAX_WS_MESSAGE_BYTES / 3) + 1);
+    expect(japanese.length).toBeLessThan(MAX_WS_MESSAGE_BYTES);
+    expect(exceedsMaxWsMessageBytes(japanese)).toBe(true);
+  });
+
+  it("accepts ascii payloads up to the limit exactly", () => {
+    expect(exceedsMaxWsMessageBytes("a".repeat(MAX_WS_MESSAGE_BYTES))).toBe(false);
+    expect(exceedsMaxWsMessageBytes("a".repeat(MAX_WS_MESSAGE_BYTES + 1))).toBe(true);
+  });
+
+  it("counts surrogate pairs by their real byte length", () => {
+    // 絵文字は UTF-16 で 2 code unit / UTF-8 で 4 バイト
+    const emoji = "😀".repeat(MAX_WS_MESSAGE_BYTES / 4);
+    expect(exceedsMaxWsMessageBytes(emoji)).toBe(false);
+    expect(exceedsMaxWsMessageBytes(emoji + "😀")).toBe(true);
+  });
+
+  /**
+   * transport 上限がフィールド上限より厳しいと、各項目は正当なのに
+   * コマンド全体が拒否される。日本語の長いバグ報告で現実に起こるので固定する
+   */
+  it("accepts the largest field-valid addBug", () => {
+    const ja = (count: number) => "あ".repeat(count);
+    const raw = JSON.stringify({
+      type: "command",
+      generation: "g".repeat(64),
+      commandId: "c".repeat(64),
+      command: {
+        type: "addBug",
+        bug: {
+          id: "B".repeat(128),
+          title: ja(8192),
+          severity: "critical",
+          status: "open",
+          testCaseId: "TC-001",
+          assignee: ja(512),
+          environmentIds: Array.from({ length: 64 }, (_, index) => `env-${index}`),
+          steps: ja(8192),
+          expected: ja(8192),
+          actual: ja(8192),
+          fixNote: ja(8192),
+          memo: ja(8192),
+        },
+      },
+    });
+
+    expect(exceedsMaxWsMessageBytes(raw)).toBe(false);
+    expect(parseClientMessage(raw)?.type).toBe("command");
   });
 });

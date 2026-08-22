@@ -1216,3 +1216,13 @@ testCases:
       （例: {"projectId":"qarows","results":{"__proto__":{"chrome-desktop":{"status":"OK"}}},"bugs":[]}）。
       あわせて testCases の id に __proto__ を持つ tests.yml も用意する
     description: "どちらもエラーメッセージ付きで読み込みが拒否され、アプリの状態が壊れない（エラー表示のまま操作を続けられる）"
+
+  - id: TC-131
+    category:
+      major: "Team 版"
+      medium: "同期"
+      minor: "メッセージ上限"
+    prerequisites: |
+      Team 版でバグ起票 Dialog を開き、タイトル・手順・期待結果・実際の結果・メモに
+      それぞれ日本語で 8000 文字程度（各項目は上限内、合計で 20000 文字超）を貼り付けて保存する
+    description: "各項目が上限内であれば、合計が大きくても保存でき、リロード後も内容が残る。1項目が上限（8192文字）を超える場合はその項目のエラーになる"

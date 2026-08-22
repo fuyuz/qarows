@@ -12,7 +12,7 @@ import { assertGenerationMatch } from "./merge-results";
 import { AccessDeniedError, assertWebSocketOrigin, requireAuthUser } from "./auth";
 import type { Env } from "./env";
 import {
-  MAX_WS_MESSAGE_BYTES,
+  exceedsMaxWsMessageBytes,
   parseClientMessage,
   send,
   SYNC_PING_MESSAGE,
@@ -198,7 +198,8 @@ export class ProjectRoom extends DurableObject<Env> {
     const { t } = getSocketI18n(ws);
 
     if (typeof message !== "string") return;
-    if (message.length > MAX_WS_MESSAGE_BYTES) {
+    // 汎用の invalid ではなく専用メッセージを返すため、parse より前に見る
+    if (exceedsMaxWsMessageBytes(message)) {
       send(ws, { type: "error", message: t("api.wsMessageTooLarge") });
       return;
     }

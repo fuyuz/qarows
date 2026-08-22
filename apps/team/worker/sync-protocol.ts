@@ -51,10 +51,29 @@ export type ServerMessage =
 export const SYNC_PING_MESSAGE = JSON.stringify({ type: "ping" } satisfies ClientMessage);
 export const SYNC_PONG_MESSAGE = JSON.stringify({ type: "pong" } satisfies ServerMessage);
 
-export const MAX_WS_MESSAGE_BYTES = 64 * 1024;
+/**
+ * transport の上限。フィールド単位の上限（parse-project-command の MAX_TEXT 等）を
+ * すべて満たすコマンドは必ずここに収まる必要がある。全項目最大の addBug は
+ * 日本語で約 160KB になるため 64KB では足りない（sync-protocol.test.ts で固定）
+ */
+export const MAX_WS_MESSAGE_BYTES = 256 * 1024;
+
+const textEncoder = new TextEncoder();
+
+/**
+ * UTF-8 の実バイト数で判定する。String.length（UTF-16 code unit 数）と比べていたため、
+ * 日本語なら 1 文字 3 バイトで上限の約 3 倍まで通っていた。
+ * 1 code unit は UTF-8 で最大 3 バイトなので、その範囲なら encode せずに判定できる
+ */
+export function exceedsMaxWsMessageBytes(raw: string): boolean {
+  if (raw.length * 3 <= MAX_WS_MESSAGE_BYTES) return false;
+  if (raw.length > MAX_WS_MESSAGE_BYTES) return true;
+  return textEncoder.encode(raw).byteLength > MAX_WS_MESSAGE_BYTES;
+}
 
 export function parseClientMessage(raw: string): ClientMessage | null {
-  if (raw.length > MAX_WS_MESSAGE_BYTES) return null;
+  // 呼び出し側でも判定しているが、単体で安全な関数にしておく
+  if (exceedsMaxWsMessageBytes(raw)) return null;
 
   try {
     const data = JSON.parse(raw) as ClientMessage;
