@@ -1,10 +1,9 @@
 import {
+  getTestCaseAggregateStatus,
   isTestInScope,
-  isTestIncomplete,
-  resolveIncompleteCheckTargets,
-  aggregateValidTestStatus,
   sortLocaleFor,
   type Locale,
+  type TestCase,
   type TestDefinition,
   type TestResults,
   type TestStatus,
@@ -26,25 +25,6 @@ const EMPTY_BUCKETS: Record<ProgressBucket, number> = {
   SKIP: 0,
 };
 
-function aggregateTestStatus(
-  testCaseId: string,
-  definition: TestDefinition,
-  sessionEnvironmentIds: string[],
-  results: TestResults,
-): ProgressBucket {
-  const testCase = definition.testCases.find((tc) => tc.id === testCaseId);
-  if (!testCase) return "incomplete";
-
-  if (isTestIncomplete(testCase, definition, sessionEnvironmentIds, results)) {
-    return "incomplete";
-  }
-
-  const targets = resolveIncompleteCheckTargets(testCase, definition, sessionEnvironmentIds);
-  const strongest = aggregateValidTestStatus(testCase, targets.environmentIds, results);
-
-  return strongest ?? "incomplete";
-}
-
 export function computeRunProgress(
   definition: TestDefinition,
   sessionEnvironmentIds: string[],
@@ -56,7 +36,7 @@ export function computeRunProgress(
   for (const testCase of definition.testCases) {
     if (!isTestInScope(testCase, definition, sessionEnvironmentIds)) continue;
     total++;
-    const bucket = aggregateTestStatus(testCase.id, definition, sessionEnvironmentIds, results);
+    const bucket = getTestCaseAggregateStatus(testCase, definition, sessionEnvironmentIds, results);
     buckets[bucket]++;
   }
 
@@ -68,7 +48,7 @@ export function computeRunProgress(
 }
 
 export function computeRunProgressForTestCases(
-  testCases: Array<{ id: string }>,
+  testCases: TestCase[],
   definition: TestDefinition,
   sessionEnvironmentIds: string[],
   results: TestResults,
@@ -77,7 +57,7 @@ export function computeRunProgressForTestCases(
   const total = testCases.length;
 
   for (const testCase of testCases) {
-    const bucket = aggregateTestStatus(testCase.id, definition, sessionEnvironmentIds, results);
+    const bucket = getTestCaseAggregateStatus(testCase, definition, sessionEnvironmentIds, results);
     buckets[bucket]++;
   }
 
@@ -115,7 +95,7 @@ export function computeCategoryProgress(
   results: TestResults,
   locale?: Locale | string,
 ): CategoryProgressRow[] {
-  const byMajor = new Map<string, Array<{ id: string }>>();
+  const byMajor = new Map<string, TestCase[]>();
 
   for (const testCase of definition.testCases) {
     if (!isTestInScope(testCase, definition, environmentIds)) continue;

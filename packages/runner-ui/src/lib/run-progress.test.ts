@@ -65,7 +65,7 @@ describe("computeRunProgressForTestCases", () => {
     };
 
     const stats = computeRunProgressForTestCases(
-      [{ id: "TC-001" }],
+      [definition.testCases[0]!],
       definition,
       ["chrome"],
       results,

@@ -1095,3 +1095,11 @@ testCases:
       minor: "保存往復"
     prerequisites: "Team 版で R2（ATTACHMENTS）設定済み、添付を付けたバグを起票または編集して保存した直後"
     description: "保存直後にリロードしても添付が残る。別ブラウザで同一プロジェクトを開いても同じ添付が表示され、zip エクスポートにも含まれる"
+
+  - id: TC-118
+    category:
+      major: "テスト実行"
+      medium: "進捗"
+      minor: "大規模プロジェクト"
+    prerequisites: "サンプル tests.yml の testCases をコピー増殖させて 1000 件以上にしたファイルを読み込み、テスト実行画面 (/run) を表示中（id は重複不可）"
+    description: "結果を連続入力しても進捗バーの更新が体感で遅延せず、入力から次のテストへの遷移が引っかからない"
