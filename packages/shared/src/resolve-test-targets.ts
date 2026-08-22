@@ -55,30 +55,64 @@ function matchesCategoryLevel(
   return true;
 }
 
+/**
+ * categoryTargets を match.major で索引する。matchesCategoryLevel は最初に major を
+ * 見るので、全件走査 × テストケース数（O(N×C)）になっていた。
+ * definition は差し替えで更新される不変オブジェクトなので WeakMap で持てる
+ */
+const categoryTargetIndexes = new WeakMap<TestDefinition, Map<string, CategoryTarget[]>>();
+
+function categoryTargetsByMajor(definition: TestDefinition): Map<string, CategoryTarget[]> {
+  const cached = categoryTargetIndexes.get(definition);
+  if (cached) return cached;
+
+  const index = new Map<string, CategoryTarget[]>();
+  for (const entry of definition.categoryTargets ?? []) {
+    const list = index.get(entry.match.major);
+    if (list) list.push(entry);
+    else index.set(entry.match.major, [entry]);
+  }
+  categoryTargetIndexes.set(definition, index);
+  return index;
+}
+
 function findCategoryTarget(
-  categoryTargets: CategoryTarget[] | undefined,
+  definition: TestDefinition,
   level: "major" | "medium" | "minor",
   category: TestCase["category"],
 ): CategoryTarget | undefined {
-  if (!categoryTargets) return undefined;
-  return categoryTargets.find((entry) => matchesCategoryLevel(entry, level, category));
+  const candidates = categoryTargetsByMajor(definition).get(category.major);
+  if (!candidates) return undefined;
+  return candidates.find((entry) => matchesCategoryLevel(entry, level, category));
 }
+
+/**
+ * (definition, testCase) ごとの解決結果。1 テストケースの判定で 3〜4 回呼ばれるうえ、
+ * 呼ぶたびに environments の配列を作り直していた。
+ * 結果は定義単位で共有されるので、返す配列は freeze して破壊的変更を実行時に落とす
+ * （resolveIncompleteCheckTargets はこの配列を参照でそのまま返す）
+ */
+const resolvedTargets = new WeakMap<TestDefinition, WeakMap<TestCase, ResolvedTestTargets>>();
 
 export function resolveTestTargets(
   testCase: TestCase,
   definition: TestDefinition,
 ): ResolvedTestTargets {
-  const allEnvironmentIds = definition.environments.map((env) => env.id);
-  let pool = [...allEnvironmentIds];
+  const perDefinition = resolvedTargets.get(definition) ?? new WeakMap<TestCase, ResolvedTestTargets>();
+  const cached = perDefinition.get(testCase);
+  if (cached) return cached;
+  resolvedTargets.set(definition, perDefinition);
+
+  let pool = definition.environments.map((env) => env.id);
   let required: TargetRequirement = "all";
 
   const layers: Array<{ required?: TargetRequirement; targets?: string[] } | undefined> = [
-    findCategoryTarget(definition.categoryTargets, "major", testCase.category),
+    findCategoryTarget(definition, "major", testCase.category),
     testCase.category.medium
-      ? findCategoryTarget(definition.categoryTargets, "medium", testCase.category)
+      ? findCategoryTarget(definition, "medium", testCase.category)
       : undefined,
     testCase.category.minor
-      ? findCategoryTarget(definition.categoryTargets, "minor", testCase.category)
+      ? findCategoryTarget(definition, "minor", testCase.category)
       : undefined,
     testCase.targetEnvironments,
   ];
@@ -89,7 +123,10 @@ export function resolveTestTargets(
     required = next.required;
   }
 
-  return { environmentIds: pool, required };
+  Object.freeze(pool);
+  const resolved: ResolvedTestTargets = { environmentIds: pool, required };
+  perDefinition.set(testCase, resolved);
+  return resolved;
 }
 
 export function resolveSessionTestTargets(
