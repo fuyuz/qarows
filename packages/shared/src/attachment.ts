@@ -50,6 +50,10 @@ export function attachmentFileExtension(mimeType: string): string {
   return ATTACHMENT_EXTENSION_BY_MIME[mimeType as AttachmentMimeType] ?? "bin";
 }
 
+/** 表示用メタデータの上限（uploadedAt は ISO-8601、uploadedBy はメールアドレス想定） */
+const MAX_ATTACHMENT_UPLOADED_AT_LENGTH = 64;
+const MAX_ATTACHMENT_UPLOADED_BY_LENGTH = 320;
+
 export type AttachmentValidationError = "unsupportedType" | "tooLarge" | "tooMany";
 
 /** アップロード前のクライアント側バリデーション（無駄な送信を防ぐ） */
@@ -82,8 +86,14 @@ export function normalizeBugAttachments(raw: unknown): BugAttachment[] | undefin
       name: String(obj.name ?? "").slice(0, 255) || `attachment.${attachmentFileExtension(mimeType)}`,
       size,
       mimeType,
-      uploadedAt: obj.uploadedAt != null ? String(obj.uploadedAt) : undefined,
-      uploadedBy: obj.uploadedBy != null ? String(obj.uploadedBy) : undefined,
+      uploadedAt:
+        obj.uploadedAt != null
+          ? String(obj.uploadedAt).slice(0, MAX_ATTACHMENT_UPLOADED_AT_LENGTH)
+          : undefined,
+      uploadedBy:
+        obj.uploadedBy != null
+          ? String(obj.uploadedBy).slice(0, MAX_ATTACHMENT_UPLOADED_BY_LENGTH)
+          : undefined,
     });
     if (attachments.length >= MAX_BUG_ATTACHMENTS) break;
   }

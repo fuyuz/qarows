@@ -1,3 +1,4 @@
+import { normalizeBugAttachments } from "@qarows/shared";
 import type { ProjectCommand } from "./project-command";
 import { isValidIsoDateTime } from "./validate-project-command";
 
@@ -67,7 +68,8 @@ function isStringArray(value: unknown, maxItems: number, maxItemLength: number):
 
 function parseSession(value: unknown): ProjectCommand | null {
   if (!isRecord(value)) return null;
-  const executorName = typeof value.executorName === "string" ? value.executorName : "";
+  const executorName =
+    typeof value.executorName === "string" ? value.executorName.slice(0, MAX_SHORT_TEXT) : "";
   const selectedEnvironmentIds = value.selectedEnvironmentIds;
   if (!isStringArray(selectedEnvironmentIds, MAX_ENVIRONMENT_IDS, MAX_ID_LENGTH)) return null;
   return {
@@ -114,6 +116,7 @@ function parseBug(value: unknown): import("@qarows/shared").Bug | null {
   if (value.environmentIds !== undefined) {
     if (!isStringArray(value.environmentIds, MAX_ENV_IDS, MAX_ID_LENGTH)) return null;
   }
+  const attachments = normalizeBugAttachments(value.attachments);
   return {
     id: value.id,
     title: value.title,
@@ -127,6 +130,7 @@ function parseBug(value: unknown): import("@qarows/shared").Bug | null {
     ...(typeof value.actual === "string" ? { actual: value.actual } : {}),
     ...(typeof value.fixNote === "string" ? { fixNote: value.fixNote } : {}),
     ...(typeof value.memo === "string" ? { memo: value.memo } : {}),
+    ...(attachments !== undefined ? { attachments } : {}),
   };
 }
 

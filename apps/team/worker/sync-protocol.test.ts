@@ -152,4 +152,56 @@ describe("sync-protocol", () => {
     });
     expect(parseClientMessage(raw)?.type).toBe("command");
   });
+  it("returns the sanitized command, not the raw client payload", () => {
+    const raw = JSON.stringify({
+      type: "command",
+      generation: "gen-1",
+      commandId: "cmd-sanitize",
+      unknownEnvelopeField: "drop me",
+      command: {
+        type: "addBug",
+        bug: {
+          id: "BUG-1",
+          title: "crash",
+          severity: "high",
+          status: "open",
+          attachments: [
+            {
+              key: "0189BD6C-1F2E-4A3B-8C4D-5E6F7A8B9C0D",
+              name: "shot.png",
+              size: 12,
+              mimeType: "image/png",
+            },
+          ],
+          injected: "drop me too",
+        },
+      },
+    });
+
+    // 生の payload が DO 状態・broadcast・D1 に流れないこと（key は正規化される）
+    expect(parseClientMessage(raw)).toEqual({
+      type: "command",
+      generation: "gen-1",
+      commandId: "cmd-sanitize",
+      command: {
+        type: "addBug",
+        bug: {
+          id: "BUG-1",
+          title: "crash",
+          severity: "high",
+          status: "open",
+          attachments: [
+            {
+              key: "0189bd6c-1f2e-4a3b-8c4d-5e6f7a8b9c0d",
+              name: "shot.png",
+              size: 12,
+              mimeType: "image/png",
+              uploadedAt: undefined,
+              uploadedBy: undefined,
+            },
+          ],
+        },
+      },
+    });
+  });
 });

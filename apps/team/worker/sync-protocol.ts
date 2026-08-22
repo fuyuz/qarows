@@ -58,16 +58,19 @@ export function parseClientMessage(raw: string): ClientMessage | null {
 
   try {
     const data = JSON.parse(raw) as ClientMessage;
-    if (data.type === "ping" || data.type === "resync") return data;
+    if (data.type === "ping" || data.type === "resync") return { type: data.type };
     if (
       data.type === "command" &&
       typeof data.generation === "string" &&
       data.generation.length > 0 &&
       typeof data.commandId === "string" &&
-      data.commandId.length > 0 &&
-      parseClientProjectCommand(data.command)
+      data.commandId.length > 0
     ) {
-      return data;
+      // parse 結果を返す（生の payload は返さない）。未知フィールドを DO 状態・
+      // broadcast・D1 に持ち込ませず、添付キー等の正規化もここで確定させる
+      const command = parseClientProjectCommand(data.command);
+      if (!command) return null;
+      return { type: "command", generation: data.generation, commandId: data.commandId, command };
     }
     return null;
   } catch {
