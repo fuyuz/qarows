@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseTestsYaml, resolveProjectId } from "./parse-tests";
+import {
+  PROJECT_ID_PATTERN,
+  parseTestsYaml,
+  resolveProjectId,
+  slugifyProjectId,
+} from "./parse-tests";
 
 const minimalYaml = (extra = "") => `
 project:
@@ -80,5 +85,46 @@ testCases:
       nested = `wrap:\n  ${nested.replace(/\n/g, "\n  ")}`;
     }
     expect(() => parseTestsYaml(nested)).toThrow(/maxDepth|nesting/i);
+  });
+});
+
+describe("slugifyProjectId", () => {
+  /**
+   * 導出 id も PROJECT_ID_PATTERN を満たす必要がある。
+   * 満たさない id は URL パス・ストレージキーに使えず、Team 版では API から
+   * 一切触れない（削除もできない）プロジェクトが作れてしまう
+   */
+  it("always produces an id that passes PROJECT_ID_PATTERN", () => {
+    for (const name of [
+      "qarows",
+      "My Project",
+      "QA 2026",
+      "  padded  ",
+      "テスト qarows",
+      "スマホアプリ QA",
+      "- foo",
+      `Web ${"a".repeat(70)}`,
+      "a".repeat(64),
+      "--",
+    ]) {
+      const slug = slugifyProjectId(name);
+      if (slug) expect(PROJECT_ID_PATTERN.test(slug), `${name} -> ${slug}`).toBe(true);
+    }
+  });
+
+  it("leaves names that already slugified cleanly untouched", () => {
+    expect(slugifyProjectId("qarows")).toBe("qarows");
+    expect(slugifyProjectId("My Project")).toBe("my-project");
+    expect(slugifyProjectId("QA 2026")).toBe("qa-2026");
+  });
+
+  it("strips the leading hyphen a non-ascii prefix used to leave", () => {
+    expect(slugifyProjectId("テスト qarows")).toBe("qarows");
+    expect(slugifyProjectId("スマホアプリ QA")).toBe("qa");
+  });
+
+  it("returns empty when no usable id can be derived", () => {
+    expect(slugifyProjectId("日本語のみ")).toBe("");
+    expect(slugifyProjectId("--")).toBe("");
   });
 });

@@ -30,7 +30,10 @@ function requireBucket(c: Context<AppEnv>): R2Bucket {
   return bucket;
 }
 
-/** R2 キーに使う前に必ず通す。通らなければ R2 に触れずに 400 */
+/**
+ * R2 キーに使う前に必ず通す。通らなければ R2 に触れずに 400。
+ * app.ts の projectIdMiddleware が先に弾くが、ここが最も危険な利用箇所なので残す
+ */
 function requireValidProjectId(c: Context<AppEnv>): string {
   const projectId = c.req.param("projectId") ?? "";
   if (!PROJECT_ID_PATTERN.test(projectId)) {

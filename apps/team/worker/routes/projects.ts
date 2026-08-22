@@ -1,5 +1,4 @@
 import {
-  PROJECT_ID_PATTERN,
   getProjectIdFromDefinition,
   parseTestsYaml,
   serializeResultsJson,
@@ -327,7 +326,7 @@ projectsRoutes.delete("/:projectId", async (c) => {
 
   // 添付の実体を prefix で一括削除（失敗してもプロジェクト削除自体は成立させる）
   const bucket = c.env.ATTACHMENTS;
-  if (bucket && PROJECT_ID_PATTERN.test(projectId)) {
+  if (bucket) {
     try {
       let cursor: string | undefined;
       do {

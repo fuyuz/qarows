@@ -340,7 +340,7 @@ export function resolveProjectId(
     }
     return id;
   }
-  const slug = slugify(projectName);
+  const slug = slugifyProjectId(projectName);
   if (!slug) {
     throw new Error(
       "project.id が必要です（project.name から英数字 ID を自動生成できません）",
@@ -349,10 +349,20 @@ export function resolveProjectId(
   return slug;
 }
 
-function slugify(value: string): string {
-  return value
+/**
+ * project.name から id を導く。結果は必ず PROJECT_ID_PATTERN を満たす（満たせなければ空文字）。
+ * 以前は先頭ハイフンや 64 文字超をそのまま返しており、たとえば「テスト qarows」が
+ * "-qarows" になっていた。URL パス・ストレージキーに使えない id が作られてしまう
+ */
+export function slugifyProjectId(value: string): string {
+  const slug = value
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64)
+    .replace(/-+$/g, "");
+  return PROJECT_ID_PATTERN.test(slug) ? slug : "";
 }

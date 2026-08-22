@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { accessMiddleware } from "./middleware/access";
 import { csrfMiddleware } from "./middleware/csrf";
 import { localeMiddleware } from "./middleware/locale";
+import { projectIdMiddleware } from "./middleware/project-id";
 import { requestIdMiddleware, securityHeadersMiddleware } from "./middleware/security-headers";
 import { createAiRoutes } from "./routes/ai";
 import { attachmentsRoutes } from "./routes/attachments";
@@ -53,6 +54,10 @@ export function createApp() {
   });
 
   app.get("/api/me", (c) => c.json({ user: c.get("user") }));
+
+  // route() より前に置く: 配下のハンドラが DO 名・R2 キーに使う前に弾く
+  app.use("/api/projects/:projectId", projectIdMiddleware);
+  app.use("/api/projects/:projectId/*", projectIdMiddleware);
 
   app.route("/api/projects", projectsRoutes);
   app.route("/api/projects", attachmentsRoutes);

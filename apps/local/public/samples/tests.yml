@@ -1234,3 +1234,13 @@ testCases:
       minor: "添付付き zip"
     prerequisites: "添付付きバグが 20 件以上あるプロジェクトを Team 版で開いている（DevTools の Network タブを開いておく）"
     description: "添付の取得が数件ずつ並行して走り（直列に 1 件ずつ待たない）、完了後の zip に添付がすべて含まれる。圧縮自体は同期処理なので、巨大な動画添付では最後に一瞬固まる"
+
+  - id: TC-133
+    category:
+      major: "Team 版"
+      medium: "セキュリティ"
+      minor: "projectId 検証"
+    prerequisites: |
+      日本語で始まる名前（例「テスト qarows」）で project.id を書いていない tests.yml を
+      Team 版にアップロードする。あわせて curl で不正な projectId を直接叩く
+    description: "アップロードしたプロジェクトは一覧・実行・削除がすべて正常に動く（英数字の id が振られる）。/api/projects/<不正な id> への直接アクセスは 400 で拒否され、一覧・新規作成は影響を受けない"
