@@ -1,4 +1,4 @@
-import type { AttachmentMimeType } from "@qarows/shared";
+import { isValidAttachmentKey, type AttachmentMimeType } from "@qarows/shared";
 
 /** R2 オブジェクトキー。projectId prefix でプロジェクト削除時に一括削除する */
 export function attachmentObjectKey(projectId: string, key: string): string {
@@ -7,6 +7,45 @@ export function attachmentObjectKey(projectId: string, key: string): string {
 
 export function attachmentPrefix(projectId: string): string {
   return `projects/${projectId}/attachments/`;
+}
+
+/** R2 オブジェクトキーから配信 URL 用の添付キーを取り出す */
+export function attachmentKeyFromObjectKey(projectId: string, objectKey: string): string | null {
+  const prefix = attachmentPrefix(projectId);
+  if (!objectKey.startsWith(prefix)) return null;
+  return objectKey.slice(prefix.length) || null;
+}
+
+/**
+ * エッジキャッシュのキー。検証済み（小文字化済み）のキーで URL を組み直すことで、
+ * 配信時と purge 時（個別 DELETE・プロジェクト削除）が必ず同じエントリを指す。
+ * projectId / key は必ず検証済みのものを渡す（未検証だと別 URL の purge になる）
+ */
+export function attachmentCacheKey(requestUrl: string, projectId: string, key: string): Request {
+  const url = new URL(`/api/projects/${projectId}/attachments/${key}`, requestUrl);
+  return new Request(url.toString(), { method: "GET" });
+}
+
+/**
+ * プロジェクト削除時のエッジキャッシュ purge。
+ * caches.default.delete() は呼び出し元の colo のみ対象なので best-effort。
+ * 削除済み添付が配信されない保証は配信側の R2 head が担う
+ */
+export async function purgeAttachmentCache(
+  requestUrl: string,
+  projectId: string,
+  objects: Array<{ key: string }>,
+): Promise<void> {
+  for (const object of objects) {
+    const key = attachmentKeyFromObjectKey(projectId, object.key);
+    // 手動で置かれた不正キーで無関係な URL を purge しないよう検証する
+    if (!key || !isValidAttachmentKey(key)) continue;
+    try {
+      await caches.default.delete(attachmentCacheKey(requestUrl, projectId, key));
+    } catch (err) {
+      console.error(`Failed to purge attachment cache: ${projectId}/${key}`, err);
+    }
+  }
 }
 
 /** 時刻順に整列する UUIDv7（48bit unix ms + 74bit random） */

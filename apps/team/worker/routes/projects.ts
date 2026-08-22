@@ -5,11 +5,18 @@ import {
   serializeResultsJson,
   type ResultsFile,
 } from "@qarows/shared";
-import { attachmentPrefix } from "../attachments";
+import { attachmentPrefix, purgeAttachmentCache } from "../attachments";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Context } from "hono";
-import { deleteProject, getProject, insertProject, listProjects, ProjectIdMismatchError } from "../db";
+import {
+  deleteProject,
+  getProject,
+  insertProject,
+  listProjects,
+  projectExists,
+  ProjectIdMismatchError,
+} from "../db";
 import {
   GenerationMismatchError,
   MergeResultsValidationError,
@@ -326,6 +333,10 @@ projectsRoutes.post("/:projectId/definition/apply", async (c) => {
 
 projectsRoutes.delete("/:projectId", async (c) => {
   const projectId = c.req.param("projectId");
+
+  // 存在確認を先に済ませる: 未知の ID で DO を作ってから壊して 404 を返さないため
+  if (!(await projectExists(c.env.DB, projectId))) apiError(c, 404, "api.projectNotFound");
+
   const stub = c.env.PROJECT.getByName(projectId);
   try {
     await stub.destroy();
@@ -346,6 +357,9 @@ projectsRoutes.delete("/:projectId", async (c) => {
         const listing = await bucket.list({ prefix: attachmentPrefix(projectId), cursor });
         if (listing.objects.length > 0) {
           await bucket.delete(listing.objects.map((object) => object.key));
+          // 削除済み添付を配信しない保証は配信側の R2 head が担う。
+          // これは無駄なキャッシュを抱えないための best-effort（呼び出し元 colo のみ）
+          c.executionCtx.waitUntil(purgeAttachmentCache(c.req.url, projectId, listing.objects));
         }
         cursor = listing.truncated ? listing.cursor : undefined;
       } while (cursor);

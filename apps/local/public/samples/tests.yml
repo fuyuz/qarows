@@ -1121,3 +1121,15 @@ testCases:
       コメント・独自のキー順を含む tests.yml を Team 版にアップロードし、テスト結果を1件以上入力した後。
       確認は wrangler d1 execute <DB> --remote --command "select tests_yaml from projects where id='<ID>'" で行う
     description: "結果入力では D1 の tests_yaml が書き換わらず、アップロードしたコメント・キー順・project.version がそのまま残る。テスト定義の編集（定義編集画面での保存、実行画面でのテストケース編集）を行ったときだけ再直列化される"
+
+  - id: TC-121
+    category:
+      major: "Team 版"
+      medium: "バグ添付"
+      minor: "削除後の配信停止"
+    prerequisites: |
+      Team 版で R2（ATTACHMENTS）設定済み。添付付きバグのあるプロジェクトで添付を一度表示
+      （= エッジキャッシュに載せる）した後、そのプロジェクトまたは添付を削除する。
+      配信レスポンスは immutable なのでブラウザキャッシュを避け、シークレットウィンドウか
+      キャッシュ無効化リロードで確認する
+    description: "削除後に同じ添付 URL を直接開くと 404 になる。プロジェクト削除・個別の添付削除のどちらでも、また削除を実行した拠点と別の回線・別端末から開いても 404 になる"

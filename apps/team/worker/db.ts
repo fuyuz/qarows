@@ -244,6 +244,18 @@ export async function replaceProjectDefinition(
   return getProject(db, projectId);
 }
 
+/**
+ * 削除前の存在確認。getProject は tests_yaml / results_json を丸ごと parse するため、
+ * 壊れた行があると 500 になり「削除で復旧する」逃げ道まで塞いでしまう
+ */
+export async function projectExists(db: D1Database, projectId: string): Promise<boolean> {
+  const row = await db
+    .prepare("SELECT 1 AS ok FROM projects WHERE id = ?")
+    .bind(projectId)
+    .first<{ ok: number }>();
+  return row != null;
+}
+
 export async function deleteProject(db: D1Database, projectId: string): Promise<boolean> {
   const result = await db.prepare("DELETE FROM projects WHERE id = ?").bind(projectId).run();
   return (result.meta.changes ?? 0) > 0;

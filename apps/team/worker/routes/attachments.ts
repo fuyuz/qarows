@@ -10,6 +10,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import {
   SNIFF_HEAD_BYTES,
+  attachmentCacheKey,
   attachmentObjectKey,
   encodeContentDispositionFilename,
   generateAttachmentKey,
@@ -204,10 +205,16 @@ attachmentsRoutes.get("/:projectId/attachments/:key", async (c) => {
   const objectKey = attachmentObjectKey(projectId, key);
   const rangeHeader = c.req.header("Range");
 
+  // 存在確認は必ず R2 に問い合わせる。caches.default.delete() は呼び出し元の colo
+  // だけを purge するため、キャッシュを先に見ると削除済み添付が他 colo で
+  // max-age=31536000 のまま配信され続ける
+  const headObject = await bucket.head(objectKey);
+  if (!headObject) apiError(c, 404, "api.attachmentNotFound");
+
   // 認証（accessMiddleware）通過後のみ到達する。エッジキャッシュは Worker 経由でしか読めない。
   // Range 付きは cache.match が全体 200 を返す可能性があるため R2 直で応答する
   const cache = caches.default;
-  const cacheKey = new Request(new URL(c.req.url).toString(), { method: "GET" });
+  const cacheKey = attachmentCacheKey(c.req.url, projectId, key);
   if (!rangeHeader) {
     const cached = await cache.match(cacheKey);
     if (cached) {
@@ -216,9 +223,6 @@ attachmentsRoutes.get("/:projectId/attachments/:key", async (c) => {
       return response;
     }
   }
-
-  const headObject = await bucket.head(objectKey);
-  if (!headObject) apiError(c, 404, "api.attachmentNotFound");
 
   const mimeType = headObject.httpMetadata?.contentType ?? "application/octet-stream";
   const filename = decodeUploadFilename(headObject.customMetadata?.filename);
@@ -263,7 +267,7 @@ attachmentsRoutes.delete("/:projectId/attachments/:key", async (c) => {
 
   await bucket.delete(attachmentObjectKey(projectId, key));
   c.executionCtx.waitUntil(
-    caches.default.delete(new Request(new URL(c.req.url).toString(), { method: "GET" })).catch(() => {}),
+    caches.default.delete(attachmentCacheKey(c.req.url, projectId, key)).catch(() => {}),
   );
   return c.json({ ok: true });
 });
