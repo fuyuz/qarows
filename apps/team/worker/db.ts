@@ -289,10 +289,11 @@ export async function insertDefinitionRevision(
     source: string;
     instruction?: string | null;
     createdBy?: string | null;
+    now?: Date;
   },
 ): Promise<DefinitionRevisionSummary> {
   const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
+  const createdAt = (input.now ?? new Date()).toISOString();
   await db
     .prepare(
       `INSERT INTO definition_revisions (id, project_id, tests_yaml, source, instruction, created_by, created_at)
@@ -309,22 +310,20 @@ export async function insertDefinitionRevision(
     )
     .run();
 
-  const overflow = await db
+  // 1 文で切る（以前は SELECT してから 1 行ずつ DELETE していた）
+  await db
     .prepare(
-      `SELECT id FROM definition_revisions
-       WHERE project_id = ?
-       ORDER BY created_at DESC
-       LIMIT -1 OFFSET ?`,
+      `DELETE FROM definition_revisions
+       WHERE project_id = ?1
+         AND id NOT IN (
+           SELECT id FROM definition_revisions
+           WHERE project_id = ?1
+           ORDER BY created_at DESC
+           LIMIT ?2
+         )`,
     )
     .bind(input.projectId, DEFINITION_REVISION_LIMIT)
-    .all<{ id: string }>();
-
-  for (const row of overflow.results ?? []) {
-    await db
-      .prepare("DELETE FROM definition_revisions WHERE id = ? AND project_id = ?")
-      .bind(row.id, input.projectId)
-      .run();
-  }
+    .run();
 
   return {
     id,
@@ -454,22 +453,19 @@ export async function insertAiProposal(
     .bind(input.projectId, createdAt)
     .run();
 
-  const overflow = await db
+  await db
     .prepare(
-      `SELECT id FROM ai_proposals
-       WHERE project_id = ?
-       ORDER BY created_at DESC
-       LIMIT -1 OFFSET ?`,
+      `DELETE FROM ai_proposals
+       WHERE project_id = ?1
+         AND id NOT IN (
+           SELECT id FROM ai_proposals
+           WHERE project_id = ?1
+           ORDER BY created_at DESC
+           LIMIT ?2
+         )`,
     )
     .bind(input.projectId, AI_PROPOSAL_RETENTION)
-    .all<{ id: string }>();
-
-  for (const row of overflow.results ?? []) {
-    await db
-      .prepare("DELETE FROM ai_proposals WHERE id = ? AND project_id = ?")
-      .bind(row.id, input.projectId)
-      .run();
-  }
+    .run();
 
   return {
     id,
