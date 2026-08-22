@@ -3,7 +3,6 @@ import {
   type ProjectSnapshot,
   type ProjectSummary,
   normalizeProjectSummary,
-  snapshotToPersisted,
   toProjectSnapshot,
 } from "@qarows/application";
 import { buildProjectRecord } from "@/lib/project-record";
@@ -35,9 +34,7 @@ export class IndexedDbProjectRepository implements ProjectRepository {
   }
 
   async saveSnapshot(snapshot: ProjectSnapshot): Promise<void> {
-    const persisted = snapshotToPersisted(snapshot);
-    const record = buildProjectRecord(persisted, snapshot.updatedAt);
-    await saveProject(snapshot.id, record);
+    await saveProject(snapshot.id, buildProjectRecord(snapshot, snapshot.updatedAt));
   }
 
   async deleteProject(projectId: string): Promise<void> {

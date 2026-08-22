@@ -46,20 +46,6 @@ export function toProjectSnapshot(
   };
 }
 
-export function snapshotToPersisted(snapshot: ProjectSnapshot): {
-  definition: ProjectSnapshot["definition"];
-  results: ProjectSnapshot["results"];
-  session: ProjectSnapshot["session"];
-  updatedAt: string;
-} {
-  return {
-    definition: snapshot.definition,
-    results: snapshot.results,
-    session: snapshot.session,
-    updatedAt: snapshot.updatedAt,
-  };
-}
-
 export function summaryFromSnapshot(snapshot: ProjectSnapshot): ProjectSummary {
   return {
     id: snapshot.id,

@@ -7,7 +7,7 @@ import {
   type Locale,
   type ResultsFile,
 } from "@qarows/shared";
-import { getProject, replaceProjectDefinition, snapshotToPersisted, updateProjectSnapshot } from "./db";
+import { getProject, replaceProjectDefinition, snapshotToProjectColumns, updateProjectSnapshot } from "./db";
 import { assertGenerationMatch } from "./merge-results";
 import { AccessDeniedError, assertWebSocketOrigin, requireAuthUser } from "./auth";
 import type { Env } from "./env";
@@ -463,7 +463,7 @@ export class ProjectRoom extends DurableObject<Env> {
   private async persistToD1(): Promise<void> {
     if (!this.state || !this.projectId) return;
     const definitionDirty = this.state.definitionDirty === true;
-    const persisted = snapshotToPersisted(
+    const persisted = snapshotToProjectColumns(
       {
         definition: this.state.definition,
         results: this.state.results,

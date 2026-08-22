@@ -511,23 +511,6 @@ export function assertAiProposalUsable(proposal: AiProposalRecord, now = new Dat
   }
 }
 
-/** Load a proposal and ensure it is still usable (not consumed / not expired). */
-export async function requireUsableAiProposal(
-  db: D1Database,
-  input: {
-    projectId: string;
-    proposalId: string;
-    now?: Date;
-  },
-): Promise<AiProposalRecord> {
-  const proposal = await getAiProposal(db, input.projectId, input.proposalId);
-  if (!proposal) {
-    throw new AiProposalError(404, "AI proposal not found");
-  }
-  assertAiProposalUsable(proposal, input.now ?? new Date());
-  return proposal;
-}
-
 /** Mark a proposal consumed after a successful apply. */
 export async function markAiProposalConsumed(
   db: D1Database,
@@ -552,7 +535,25 @@ export async function markAiProposalConsumed(
   }
 }
 
-export function snapshotToPersisted(
+/** Load a proposal and ensure it is still usable (not consumed / not expired). */
+export async function requireUsableAiProposal(
+  db: D1Database,
+  input: {
+    projectId: string;
+    proposalId: string;
+    now?: Date;
+  },
+): Promise<AiProposalRecord> {
+  const proposal = await getAiProposal(db, input.projectId, input.proposalId);
+  if (!proposal) {
+    throw new AiProposalError(404, "AI proposal not found");
+  }
+  assertAiProposalUsable(proposal, input.now ?? new Date());
+  return proposal;
+}
+
+/** DO のメモリ上の状態を projects テーブルの列値へ。永続化そのものは呼び出し側が行う */
+export function snapshotToProjectColumns(
   row: {
     definition: TestDefinition;
     results: ResultsFile;

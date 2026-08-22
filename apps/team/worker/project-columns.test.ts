@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyResults } from "@qarows/shared";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
-import { snapshotToPersisted, updateProjectSnapshot } from "./db";
+import { snapshotToProjectColumns, updateProjectSnapshot } from "./db";
 
 const PROJECT_ID = "test";
 
@@ -109,7 +109,7 @@ describe("updateProjectSnapshot", () => {
   });
 });
 
-describe("snapshotToPersisted", () => {
+describe("snapshotToProjectColumns", () => {
   const row = {
     definition: makeDefinition(),
     results: createEmptyResults(PROJECT_ID),
@@ -118,12 +118,12 @@ describe("snapshotToPersisted", () => {
   };
 
   it("omits testsYaml when the definition is already in D1", () => {
-    const persisted = snapshotToPersisted(row, { includeTestsYaml: false });
+    const persisted = snapshotToProjectColumns(row, { includeTestsYaml: false });
     expect("testsYaml" in persisted).toBe(false);
     expect(persisted.resultsJson.length).toBeGreaterThan(0);
   });
 
   it("serializes testsYaml by default", () => {
-    expect(snapshotToPersisted(row).testsYaml).toContain("project:");
+    expect(snapshotToProjectColumns(row).testsYaml).toContain("project:");
   });
 });
