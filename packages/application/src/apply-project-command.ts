@@ -218,6 +218,8 @@ export function applyProjectCommand(
       return {
         snapshot: {
           ...snapshot,
+          // name は definition の非正規化コピー。定義を差し替えたら追従させる
+          name: definition.project.name,
           definition,
           session,
           updatedAt: now,
@@ -230,6 +232,7 @@ export function applyProjectCommand(
       return {
         snapshot: {
           ...snapshot,
+          name: command.definition.project.name,
           definition: command.definition,
           results: command.results,
           session: command.session,

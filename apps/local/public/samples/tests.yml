@@ -1103,3 +1103,11 @@ testCases:
       minor: "大規模プロジェクト"
     prerequisites: "サンプル tests.yml の testCases をコピー増殖させて 1000 件以上にしたファイルを読み込み、テスト実行画面 (/run) を表示中（id は重複不可）"
     description: "結果を連続入力しても進捗バーの更新が体感で遅延せず、入力から次のテストへの遷移が引っかからない"
+
+  - id: TC-119
+    category:
+      major: "プロジェクト"
+      medium: "一覧"
+      minor: "最終更新の追従"
+    prerequisites: "テスト実行画面で結果を1件入力し、その後 /projects へ戻る"
+    description: "一覧の最終更新が直前の入力時刻に更新されている（1操作前の古い時刻が残らない）。セッション開始直後もセッションバッジが即座に反映される"

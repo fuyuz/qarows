@@ -11,9 +11,11 @@ import {
 import {
   affectedTestCaseFromCommand,
   applyProjectCommand,
+  summaryFromSnapshot,
   toProjectSnapshot,
   type ProjectCommand,
   type ProjectEvent,
+  type ProjectSnapshot,
   type ProjectSummary as ApplicationProjectSummary,
 } from "@qarows/application";
 import {
@@ -147,6 +149,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProjectSummaries(sortProjectSummaries(summaries.map(toV1Summary)));
   }, [workspace]);
 
+  /**
+   * 開いているプロジェクトのサマリだけを snapshot から更新する。
+   * コマンドごとに listSummaries()（IndexedDB の全プロジェクト全レコード読み出し）
+   * を走らせないため、必要な name / updatedAt / hasValidSession は手元の snapshot で足りる
+   */
+  const applySummaryFromSnapshot = useCallback((snapshot: ProjectSnapshot) => {
+    const summary = toV1Summary(summaryFromSnapshot(snapshot));
+    setProjectSummaries((prev) => {
+      const others = prev.filter((entry) => entry.projectId !== summary.projectId);
+      return sortProjectSummaries([...others, summary]);
+    });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -160,7 +175,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const affected = affectedTestCaseFromCommand(event.command);
             if (affected) markTestUpdated(affected);
           }
-          void refreshProjectSummaries();
+          applySummaryFromSnapshot(event.snapshot);
           return;
         case "error":
           console.error(event.message);
@@ -182,7 +197,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unsubscribe();
     };
-  }, [applySnapshotToState, markTestUpdated, refreshProjectSummaries, workspace]);
+  }, [
+    applySnapshotToState,
+    applySummaryFromSnapshot,
+    markTestUpdated,
+    refreshProjectSummaries,
+    workspace,
+  ]);
 
   const dispatch = useCallback(
     async (command: ProjectCommand) => {
