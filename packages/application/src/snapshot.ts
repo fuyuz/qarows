@@ -56,6 +56,18 @@ export function summaryFromSnapshot(snapshot: ProjectSnapshot): ProjectSummary {
   };
 }
 
+/** Local 版の `projectId` フィールドを `id` に正規化 */
+export function normalizeProjectSummary(
+  summary: ProjectSummary & { projectId?: string },
+): ProjectSummary {
+  const id = summary.id ?? summary.projectId;
+  if (!id) {
+    throw new Error("ProjectSummary requires id or projectId");
+  }
+  const { projectId: _legacy, ...rest } = summary;
+  return { ...rest, id };
+}
+
 export function sortProjectSummaries(summaries: ProjectSummary[]): ProjectSummary[] {
   return [...summaries].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),

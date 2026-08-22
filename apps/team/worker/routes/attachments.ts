@@ -11,16 +11,10 @@ import type { Context } from "hono";
 import {
   SNIFF_HEAD_BYTES,
   attachmentCacheKey,
-  attachmentExists,
-  attachmentFilename,
-  decodeAttachmentFilename,
-  deleteAttachment,
+  attachmentObjectKey,
   encodeContentDispositionFilename,
   generateAttachmentKey,
-  getAttachment,
-  headAttachment,
   parseRangeHeader,
-  putAttachment,
   sniffMatchesMimeType,
 } from "../attachments";
 import { getProject } from "../db";
@@ -54,6 +48,16 @@ function requireValidKey(c: Context<AppEnv>): string {
     apiError(c, 400, "api.invalidAttachmentKey");
   }
   return key;
+}
+
+function decodeUploadFilename(raw: string | undefined): string {
+  if (!raw) return "";
+  try {
+    // ヘッダ経由のため URI エンコードで受ける。制御文字は落とす
+    return decodeURIComponent(raw).replace(/[\p{Cc}]/gu, "").slice(0, 255);
+  } catch {
+    return "";
+  }
 }
 
 /** 配信・キャッシュ共通のレスポンスヘッダ。実行コンテキストを sandbox で殺しておく */
@@ -98,7 +102,7 @@ attachmentsRoutes.post("/:projectId/attachments", async (c) => {
     if (!isValidAttachmentKey(requestedKey)) {
       apiError(c, 400, "api.invalidAttachmentKey");
     }
-    if (await attachmentExists(bucket, projectId, requestedKey)) {
+    if (await bucket.head(attachmentObjectKey(projectId, requestedKey))) {
       apiError(c, 409, "api.attachmentAlreadyExists");
     }
     key = requestedKey;
@@ -106,7 +110,7 @@ attachmentsRoutes.post("/:projectId/attachments", async (c) => {
     key = generateAttachmentKey();
   }
 
-  const filename = decodeAttachmentFilename(c.req.header("X-Attachment-Filename"));
+  const filename = decodeUploadFilename(c.req.header("X-Attachment-Filename"));
   const body = c.req.raw.body;
   if (!body) apiError(c, 400, "api.requestBodyRequired");
 
@@ -136,11 +140,15 @@ attachmentsRoutes.post("/:projectId/attachments", async (c) => {
     apiError(c, 400, "api.attachmentContentMismatch");
   }
 
+  const objectKey = attachmentObjectKey(projectId, key);
   const fixed = new FixedLengthStream(contentLength);
-  const putPromise = putAttachment(bucket, projectId, key, fixed.readable, {
-    contentType: mimeType,
-    filename,
-    uploadedBy: c.get("user").email,
+  const putPromise = bucket.put(objectKey, fixed.readable, {
+    httpMetadata: { contentType: mimeType },
+    customMetadata: {
+      filename: encodeURIComponent(filename),
+      uploadedBy: c.get("user").email,
+      projectId,
+    },
   });
 
   const writer = fixed.writable.getWriter();
@@ -176,7 +184,7 @@ attachmentsRoutes.post("/:projectId/attachments", async (c) => {
   }
   if (pumpError) {
     // put が成功していても長さ不一致は不正とみなし、オブジェクトを残さない
-    await deleteAttachment(bucket, projectId, key).catch(() => {});
+    await bucket.delete(objectKey).catch(() => {});
     console.error(`[${c.get("requestId")}] Attachment upload failed`, pumpError);
     apiError(c, 400, "api.attachmentUploadFailed");
   }
@@ -197,12 +205,13 @@ attachmentsRoutes.get("/:projectId/attachments/:key", async (c) => {
   const projectId = requireValidProjectId(c);
   const key = requireValidKey(c);
 
+  const objectKey = attachmentObjectKey(projectId, key);
   const rangeHeader = c.req.header("Range");
 
   // 存在確認は必ず R2 に問い合わせる。caches.default.delete() は呼び出し元の colo
   // だけを purge するため、キャッシュを先に見ると削除済み添付が他 colo で
   // max-age=31536000 のまま配信され続ける
-  const headObject = await headAttachment(bucket, projectId, key);
+  const headObject = await bucket.head(objectKey);
   if (!headObject) apiError(c, 404, "api.attachmentNotFound");
 
   // 認証（accessMiddleware）通過後のみ到達する。エッジキャッシュは Worker 経由でしか読めない。
@@ -219,11 +228,11 @@ attachmentsRoutes.get("/:projectId/attachments/:key", async (c) => {
   }
 
   const mimeType = headObject.httpMetadata?.contentType ?? "application/octet-stream";
-  const filename = attachmentFilename(headObject);
+  const filename = decodeUploadFilename(headObject.customMetadata?.filename);
   const range = parseRangeHeader(rangeHeader, headObject.size);
 
   if (range) {
-    const object = await getAttachment(bucket, projectId, key, { range });
+    const object = await bucket.get(objectKey, { range });
     if (!object?.body) apiError(c, 404, "api.attachmentNotFound");
     const headers = attachmentHeaders(object, mimeType, filename);
     headers.set("Cache-Control", IMMUTABLE_BROWSER_CACHE);
@@ -235,7 +244,7 @@ attachmentsRoutes.get("/:projectId/attachments/:key", async (c) => {
     return new Response(object.body, { status: 206, headers });
   }
 
-  const object = await getAttachment(bucket, projectId, key);
+  const object = await bucket.get(objectKey);
   if (!object?.body) apiError(c, 404, "api.attachmentNotFound");
 
   const headers = attachmentHeaders(object, mimeType, filename);
@@ -259,7 +268,7 @@ attachmentsRoutes.delete("/:projectId/attachments/:key", async (c) => {
   const projectId = requireValidProjectId(c);
   const key = requireValidKey(c);
 
-  await deleteAttachment(bucket, projectId, key);
+  await bucket.delete(attachmentObjectKey(projectId, key));
   c.executionCtx.waitUntil(
     caches.default.delete(attachmentCacheKey(c.req.url, projectId, key)).catch(() => {}),
   );

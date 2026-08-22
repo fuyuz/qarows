@@ -89,7 +89,7 @@ describe("storage v2", () => {
     await saveProject("newer", sampleRecord("newer", "Newer", "2026-06-03T10:00:00Z"));
 
     const summaries = await listProjectSummaries();
-    expect(summaries.map((s) => s.id)).toEqual(["newer", "older"]);
+    expect(summaries.map((s) => s.projectId)).toEqual(["newer", "older"]);
     expect(summaries[0]?.name).toBe("Newer");
     expect(summaries[0]?.hasValidSession).toBe(true);
   });
@@ -111,7 +111,7 @@ describe("storage v2", () => {
 
     expect(await hasProject("drop")).toBe(false);
     expect(await hasProject("keep")).toBe(true);
-    expect((await listProjectSummaries()).map((s) => s.id)).toEqual(["keep"]);
+    expect((await listProjectSummaries()).map((s) => s.projectId)).toEqual(["keep"]);
   });
 
   it("persists and reads app meta", async () => {

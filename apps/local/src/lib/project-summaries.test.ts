@@ -2,7 +2,18 @@ import { describe, expect, it } from "vitest";
 import { applyProjectCommand, summaryFromSnapshot, toProjectSnapshot } from "@qarows/application";
 import type { ResultsFile, SessionConfig, TestDefinition } from "@qarows/shared";
 import { buildProjectRecord } from "@/lib/project-record";
-import { projectRecordToSummary } from "@/lib/project-summaries";
+import { projectRecordToSummary, sortProjectSummaries } from "@/lib/project-summaries";
+import type { ProjectSummary } from "@/lib/storage";
+
+describe("sortProjectSummaries", () => {
+  it("orders by updatedAt descending", () => {
+    const summaries: ProjectSummary[] = [
+      { projectId: "old", name: "Old", updatedAt: "2026-01-01T00:00:00.000Z", hasValidSession: false },
+      { projectId: "new", name: "New", updatedAt: "2026-06-01T00:00:00.000Z", hasValidSession: true },
+    ];
+    expect(sortProjectSummaries(summaries).map((entry) => entry.projectId)).toEqual(["new", "old"]);
+  });
+});
 
 describe("projectRecordToSummary", () => {
   it("reflects session validity", () => {
@@ -27,7 +38,7 @@ describe("projectRecordToSummary", () => {
     });
 
     expect(projectRecordToSummary("demo", record)).toMatchObject({
-      id: "demo",
+      projectId: "demo",
       name: "Demo",
       hasValidSession: true,
     });
@@ -57,7 +68,12 @@ describe("snapshot-derived summary", () => {
     const record = buildProjectRecord({ definition, results, session }, "2026-06-28T12:30:00.000Z");
     const summary = summaryFromSnapshot(toProjectSnapshot("demo", record));
 
-    expect(summary).toEqual(projectRecordToSummary("demo", record));
+    expect({
+      projectId: summary.id,
+      name: summary.name,
+      updatedAt: summary.updatedAt,
+      hasValidSession: summary.hasValidSession ?? false,
+    }).toEqual(projectRecordToSummary("demo", record));
   }
 
   it("matches the record-derived summary with a valid session", () => {

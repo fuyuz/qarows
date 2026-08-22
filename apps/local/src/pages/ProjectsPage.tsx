@@ -13,9 +13,10 @@ import { ProjectImportPanel } from "@/components/ProjectImportPanel";
 import { ProjectList } from "@/components/ProjectList";
 import { NEW_PROJECT_SELECTION, projectPath, RunnerCardTransition } from "@qarows/runner-ui";
 import { useTranslation } from "@qarows/ui";
-import { sortProjectSummaries } from "@qarows/application";
 import { useApp } from "@/context/AppContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
+import { sortProjectSummaries } from "@/lib/project-summaries";
+import { getProject } from "@/lib/storage";
 import { readFileAsText, downloadText, downloadBlob } from "@/lib/utils";
 
 function resolveDefaultSelection(
@@ -23,10 +24,10 @@ function resolveDefaultSelection(
   lastOpenedProjectId: string | null,
 ): string {
   if (summaries.length === 0) return NEW_PROJECT_SELECTION;
-  if (lastOpenedProjectId && summaries.some((summary) => summary.id === lastOpenedProjectId)) {
+  if (lastOpenedProjectId && summaries.some((summary) => summary.projectId === lastOpenedProjectId)) {
     return lastOpenedProjectId;
   }
-  return sortProjectSummaries(summaries)[0].id;
+  return sortProjectSummaries(summaries)[0].projectId;
 }
 
 export function ProjectsPage() {
@@ -37,7 +38,6 @@ export function ProjectsPage() {
     projectSummaries,
     lastOpenedProjectId,
     activateProject,
-    getProjectSnapshot,
     mergeResultsIntoProject,
     clearResultsForProject,
     deleteProject,
@@ -58,7 +58,7 @@ export function ProjectsPage() {
   useEffect(() => {
     if (!ready || projectId == null) return;
     if (projectId === NEW_PROJECT_SELECTION) return;
-    const exists = projectSummaries.some((summary) => summary.id === projectId);
+    const exists = projectSummaries.some((summary) => summary.projectId === projectId);
     if (!exists) {
       void setProjectId(defaultSelection);
     }
@@ -66,7 +66,7 @@ export function ProjectsPage() {
 
   const selectedSummary = useMemo(() => {
     if (!projectId || projectId === NEW_PROJECT_SELECTION) return null;
-    return projectSummaries.find((summary) => summary.id === projectId) ?? null;
+    return projectSummaries.find((summary) => summary.projectId === projectId) ?? null;
   }, [projectId, projectSummaries]);
 
   const handleContinue = useCallback(
@@ -93,35 +93,35 @@ export function ProjectsPage() {
   );
 
   const handleExportYaml = useCallback(async (targetProjectId: string) => {
-    const snapshot = await getProjectSnapshot(targetProjectId);
-    if (!snapshot) throw new Error(t("project.notFound"));
-    downloadText(serializeTestsYaml(snapshot.definition), "tests.yml", "text/yaml");
-  }, [getProjectSnapshot, t]);
+    const record = await getProject(targetProjectId);
+    if (!record) throw new Error(t("project.notFound"));
+    downloadText(serializeTestsYaml(record.definition), "tests.yml", "text/yaml");
+  }, [t]);
 
   const handleExportResults = useCallback(async (targetProjectId: string) => {
-    const snapshot = await getProjectSnapshot(targetProjectId);
-    if (!snapshot) throw new Error(t("project.notFound"));
-    downloadText(serializeResultsJson(snapshot.results), "results.json", "application/json");
-  }, [getProjectSnapshot, t]);
+    const record = await getProject(targetProjectId);
+    if (!record) throw new Error(t("project.notFound"));
+    downloadText(serializeResultsJson(record.results), "results.json", "application/json");
+  }, [t]);
 
   const handleExportZip = useCallback(async (targetProjectId: string) => {
-    const snapshot = await getProjectSnapshot(targetProjectId);
-    if (!snapshot) throw new Error(t("project.notFound"));
+    const record = await getProject(targetProjectId);
+    if (!record) throw new Error(t("project.notFound"));
     const archive = packProjectArchive({
-      testsYaml: serializeTestsYaml(snapshot.definition),
-      resultsJson: serializeResultsJson(snapshot.results ?? createEmptyResults(targetProjectId)),
+      testsYaml: serializeTestsYaml(record.definition),
+      resultsJson: serializeResultsJson(record.results ?? createEmptyResults(targetProjectId)),
     });
     downloadBlob(projectArchiveToBlob(archive), projectArchiveFilename(targetProjectId));
-  }, [getProjectSnapshot, t]);
+  }, [t]);
 
   const handleDelete = useCallback(
     async (targetProjectId: string) => {
       await deleteProject(targetProjectId);
-      const remaining = projectSummaries.filter((summary) => summary.id !== targetProjectId);
+      const remaining = projectSummaries.filter((summary) => summary.projectId !== targetProjectId);
       const nextSelection =
         remaining.length === 0
           ? NEW_PROJECT_SELECTION
-          : sortProjectSummaries(remaining)[0].id;
+          : sortProjectSummaries(remaining)[0].projectId;
       void setProjectId(nextSelection);
     },
     [deleteProject, projectSummaries, setProjectId],
@@ -152,23 +152,23 @@ export function ProjectsPage() {
                       <ProjectImportPanel />
                     ) : selectedSummary ? (
                       <ProjectDetailPanel
-                        projectId={selectedSummary.id}
+                        projectId={selectedSummary.projectId}
                         name={selectedSummary.name}
                         updatedAt={selectedSummary.updatedAt}
-                        hasValidSession={selectedSummary.hasValidSession ?? false}
-                        isLastOpened={selectedSummary.id === lastOpenedProjectId}
+                        hasValidSession={selectedSummary.hasValidSession}
+                        isLastOpened={selectedSummary.projectId === lastOpenedProjectId}
                         onContinue={() =>
                           void handleContinue(
-                            selectedSummary.id,
-                            selectedSummary.hasValidSession ?? false,
+                            selectedSummary.projectId,
+                            selectedSummary.hasValidSession,
                           )
                         }
-                        onMerge={(files) => handleMerge(selectedSummary.id, files)}
-                        onClearResults={() => handleClearResults(selectedSummary.id)}
-                        onExportYaml={() => handleExportYaml(selectedSummary.id)}
-                        onExportResults={() => handleExportResults(selectedSummary.id)}
-                        onExportZip={() => handleExportZip(selectedSummary.id)}
-                        onDelete={() => handleDelete(selectedSummary.id)}
+                        onMerge={(files) => handleMerge(selectedSummary.projectId, files)}
+                        onClearResults={() => handleClearResults(selectedSummary.projectId)}
+                        onExportYaml={() => handleExportYaml(selectedSummary.projectId)}
+                        onExportResults={() => handleExportResults(selectedSummary.projectId)}
+                        onExportZip={() => handleExportZip(selectedSummary.projectId)}
+                        onDelete={() => handleDelete(selectedSummary.projectId)}
                       />
                     ) : null}
                   </RunnerCardTransition>

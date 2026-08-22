@@ -4,7 +4,7 @@ import {
   serializeResultsJson,
   type ResultsFile,
 } from "@qarows/shared";
-import { deleteProjectAttachments, purgeAttachmentCache } from "../attachments";
+import { attachmentPrefix, purgeAttachmentCache } from "../attachments";
 import { buildEmptyTestsYaml } from "../build-empty-tests";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -328,11 +328,17 @@ projectsRoutes.delete("/:projectId", async (c) => {
   const bucket = c.env.ATTACHMENTS;
   if (bucket) {
     try {
-      await deleteProjectAttachments(bucket, projectId, (objects) => {
-        // 削除済み添付を配信しない保証は配信側の R2 head が担う。
-        // これは無駄なキャッシュを抱えないための best-effort（呼び出し元 colo のみ）
-        c.executionCtx.waitUntil(purgeAttachmentCache(c.req.url, projectId, objects));
-      });
+      let cursor: string | undefined;
+      do {
+        const listing = await bucket.list({ prefix: attachmentPrefix(projectId), cursor });
+        if (listing.objects.length > 0) {
+          await bucket.delete(listing.objects.map((object) => object.key));
+          // 削除済み添付を配信しない保証は配信側の R2 head が担う。
+          // これは無駄なキャッシュを抱えないための best-effort（呼び出し元 colo のみ）
+          c.executionCtx.waitUntil(purgeAttachmentCache(c.req.url, projectId, listing.objects));
+        }
+        cursor = listing.truncated ? listing.cursor : undefined;
+      } while (cursor);
     } catch (err) {
       console.error(`[${c.get("requestId")}] Failed to delete project attachments`, err);
     }

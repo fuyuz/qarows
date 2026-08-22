@@ -115,7 +115,7 @@ export function ProjectImportPanel() {
       const resultsJson = await mergeResultsJsonStrings(yaml, jsons);
       const parsedDefinition = parseTestsYaml(yaml);
       const projectId = getProjectIdFromDefinition(parsedDefinition);
-      const existing = projectSummaries.find((summary) => summary.id === projectId);
+      const existing = projectSummaries.find((summary) => summary.projectId === projectId);
 
       if (existing) {
         setPendingImport({

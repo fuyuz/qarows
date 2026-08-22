@@ -11,13 +11,12 @@ import {
 import {
   affectedTestCaseFromCommand,
   applyProjectCommand,
-  sortProjectSummaries,
   summaryFromSnapshot,
   toProjectSnapshot,
   type ProjectCommand,
   type ProjectEvent,
   type ProjectSnapshot,
-  type ProjectSummary,
+  type ProjectSummary as ApplicationProjectSummary,
 } from "@qarows/application";
 import {
   createEmptyResults,
@@ -33,6 +32,8 @@ import {
   type TestResultEntry,
   type TestStatus,
 } from "@qarows/shared";
+import { getAppMeta, getProject, saveAppMeta, type ProjectSummary } from "@/lib/storage";
+import { sortProjectSummaries } from "@/lib/project-summaries";
 import { createLocalWorkspaceController } from "@/lib/adapters/create-local-workspace";
 import { IndexedDbProjectRepository } from "@/lib/adapters/indexed-db-project-repository";
 
@@ -48,7 +49,6 @@ interface AppContextValue {
   loadProject: (yaml: string, resultsJson?: string) => Promise<string>;
   activateProject: (projectId: string) => Promise<boolean>;
   hasProject: (projectId: string) => Promise<boolean>;
-  getProjectSnapshot: (projectId: string) => Promise<ProjectSnapshot | null>;
   mergeResultsFromFile: (json: string) => Promise<void>;
   mergeResultsFromFiles: (jsons: string[]) => Promise<void>;
   mergeResultsIntoProject: (projectId: string, jsons: string[]) => Promise<boolean>;
@@ -80,18 +80,27 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+function toV1Summary(summary: ApplicationProjectSummary): ProjectSummary {
+  return {
+    projectId: summary.id,
+    name: summary.name,
+    updatedAt: summary.updatedAt,
+    hasValidSession: summary.hasValidSession ?? false,
+  };
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
+  const workspaceRef = useRef<ReturnType<typeof createLocalWorkspaceController> | null>(null);
+  if (workspaceRef.current === null) {
+    workspaceRef.current = createLocalWorkspaceController();
+  }
+
   const repositoryRef = useRef<IndexedDbProjectRepository | null>(null);
   if (repositoryRef.current === null) {
     repositoryRef.current = new IndexedDbProjectRepository();
   }
-  const repository = repositoryRef.current;
-
-  const workspaceRef = useRef<ReturnType<typeof createLocalWorkspaceController> | null>(null);
-  if (workspaceRef.current === null) {
-    workspaceRef.current = createLocalWorkspaceController(repository);
-  }
   const workspace = workspaceRef.current;
+  const repository = repositoryRef.current;
 
   const [ready, setReady] = useState(false);
   const [definition, setDefinition] = useState<TestDefinition | null>(null);
@@ -136,7 +145,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProjectSummaries = useCallback(async () => {
-    setProjectSummaries(await workspace.listSummaries());
+    const summaries = await workspace.listSummaries();
+    setProjectSummaries(sortProjectSummaries(summaries.map(toV1Summary)));
   }, [workspace]);
 
   /**
@@ -145,9 +155,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
    * を走らせないため、必要な name / updatedAt / hasValidSession は手元の snapshot で足りる
    */
   const applySummaryFromSnapshot = useCallback((snapshot: ProjectSnapshot) => {
-    const summary = summaryFromSnapshot(snapshot);
+    const summary = toV1Summary(summaryFromSnapshot(snapshot));
     setProjectSummaries((prev) => {
-      const others = prev.filter((entry) => entry.id !== summary.id);
+      const others = prev.filter((entry) => entry.projectId !== summary.projectId);
       return sortProjectSummaries([...others, summary]);
     });
   }, []);
@@ -175,9 +185,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = workspace.subscribe(handleEvent);
     void (async () => {
-      const lastOpened = await repository.getLastOpenedProjectId();
+      const meta = await getAppMeta();
       if (cancelled) return;
-      setLastOpenedProjectId(lastOpened);
+      setLastOpenedProjectId(meta.lastOpenedProjectId);
       await refreshProjectSummaries();
       if (cancelled) return;
       setReady(true);
@@ -192,7 +202,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     applySummaryFromSnapshot,
     markTestUpdated,
     refreshProjectSummaries,
-    repository,
     workspace,
   ]);
 
@@ -211,20 +220,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const snapshot = workspace.getSnapshot();
       if (snapshot) applySnapshotToState(snapshot);
       setLastOpenedProjectId(projectId);
-      await repository.setLastOpenedProjectId(projectId);
+      await saveAppMeta({ lastOpenedProjectId: projectId });
       return true;
     },
-    [applySnapshotToState, repository, workspace],
+    [applySnapshotToState, workspace],
   );
 
   const checkHasProject = useCallback(async (projectId: string): Promise<boolean> => {
     return workspace.hasProject(projectId);
   }, [workspace]);
-
-  const getProjectSnapshot = useCallback(
-    (projectId: string): Promise<ProjectSnapshot | null> => repository.getSnapshot(projectId),
-    [repository],
-  );
 
   const loadProject = useCallback(async (yaml: string, resultsJson?: string) => {
     const parsedDefinition = parseTestsYaml(yaml);
@@ -279,12 +283,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const mergeResultsIntoProject = useCallback(
     async (projectId: string, jsons: string[]): Promise<boolean> => {
       if (jsons.length === 0) return true;
-      const loaded = await repository.getSnapshot(projectId);
-      if (!loaded) return false;
+      const record = await getProject(projectId);
+      if (!record) return false;
 
-      let snapshot = loaded;
+      let snapshot = toProjectSnapshot(projectId, record);
       for (const json of jsons) {
-        const incoming = parseResultsJson(json, { definition: loaded.definition });
+        const incoming = parseResultsJson(json, { definition: record.definition });
         snapshot = applyProjectCommand(snapshot, { type: "mergeResults", incoming }).snapshot;
       }
       await repository.saveSnapshot(snapshot);
@@ -329,10 +333,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearResultsForProject = useCallback(
     async (projectId: string): Promise<boolean> => {
-      const loaded = await repository.getSnapshot(projectId);
-      if (!loaded) return false;
+      const record = await getProject(projectId);
+      if (!record) return false;
 
-      const cleared = applyProjectCommand(loaded, { type: "clearResults" }).snapshot;
+      const cleared = applyProjectCommand(toProjectSnapshot(projectId, record), {
+        type: "clearResults",
+      }).snapshot;
       await repository.saveSnapshot(cleared);
       await refreshProjectSummaries();
       return true;
@@ -348,14 +354,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       await refreshProjectSummaries();
 
-      if ((await repository.getLastOpenedProjectId()) === projectId) {
+      const meta = await getAppMeta();
+      if (meta.lastOpenedProjectId === projectId) {
         const summaries = await workspace.listSummaries();
         const nextLastOpened = summaries[0]?.id ?? null;
         setLastOpenedProjectId(nextLastOpened);
-        await repository.setLastOpenedProjectId(nextLastOpened);
+        await saveAppMeta({ lastOpenedProjectId: nextLastOpened });
       }
     },
-    [clearActiveSnapshot, refreshProjectSummaries, repository, workspace],
+    [clearActiveSnapshot, refreshProjectSummaries, workspace],
   );
 
   const value = useMemo(
@@ -371,7 +378,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadProject,
       activateProject,
       hasProject: checkHasProject,
-      getProjectSnapshot,
       mergeResultsFromFile,
       mergeResultsFromFiles,
       mergeResultsIntoProject,
@@ -392,7 +398,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadProject,
       activateProject,
       checkHasProject,
-      getProjectSnapshot,
       mergeResultsFromFile,
       mergeResultsFromFiles,
       mergeResultsIntoProject,

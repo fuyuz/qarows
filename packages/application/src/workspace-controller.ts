@@ -1,6 +1,6 @@
 import type { ProjectCommand } from "./project-command";
 import type { ProjectEvent } from "./project-channel";
-import { isWritableProjectRepository, type ProjectRepository } from "./project-repository";
+import type { ProjectRepository } from "./project-repository";
 import type { ProjectChannel, CommandEnvelope } from "./project-channel";
 import type { ProjectSnapshot, ProjectSummary } from "./types";
 import { summaryFromSnapshot, sortProjectSummaries } from "./snapshot";
@@ -69,8 +69,11 @@ export class WorkspaceController {
       onEvent: (event) => this.handleChannelEvent(event),
     });
 
-    if (this.channel.loadSnapshot) {
-      this.channel.loadSnapshot(loaded, 0);
+    if ("loadSnapshot" in this.channel && typeof this.channel.loadSnapshot === "function") {
+      (this.channel as { loadSnapshot: (s: ProjectSnapshot, r?: number) => void }).loadSnapshot(
+        loaded,
+        0,
+      );
     } else {
       this.emit({ type: "snapshot", snapshot: loaded, revision: 0 });
     }
@@ -85,11 +88,7 @@ export class WorkspaceController {
     this.revision = 0;
   }
 
-  /** Repository が書き戻しに対応している版（Local 版）でのみ使える */
   async saveSnapshot(snapshot: ProjectSnapshot): Promise<void> {
-    if (!isWritableProjectRepository(this.repository)) {
-      throw new Error("この Repository は snapshot の書き戻しに対応していません");
-    }
     await this.repository.saveSnapshot(snapshot);
     this.snapshot = snapshot;
     if (this.activeProjectId === snapshot.id) {
@@ -124,7 +123,10 @@ export class WorkspaceController {
   }
 
   private getSnapshotFromChannel(): ProjectSnapshot | null {
-    return this.channel.getSnapshot();
+    if ("getSnapshot" in this.channel && typeof this.channel.getSnapshot === "function") {
+      return (this.channel as { getSnapshot: () => ProjectSnapshot | null }).getSnapshot();
+    }
+    return this.snapshot;
   }
 
   private handleChannelEvent(event: ProjectEvent): void {
