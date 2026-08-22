@@ -21,29 +21,27 @@ function fail(message: string): never {
   throw new ProjectCommandValidationError(message);
 }
 
-function environmentIds(definition: TestDefinition): Set<string> {
-  return new Set(definition.environments.map((env) => env.id));
-}
-
-function testCaseIds(definition: TestDefinition): Set<string> {
-  return new Set(definition.testCases.map((tc) => tc.id));
-}
-
+/** 1 件の照合なら Set を組むより走査のほうが安い（確保が要らない） */
 function assertKnownTestCase(definition: TestDefinition, testCaseId: string): void {
-  if (!testCaseIds(definition).has(testCaseId)) {
+  if (!definition.testCases.some((tc) => tc.id === testCaseId)) {
     fail(`Unknown testCaseId: ${testCaseId}`);
   }
 }
 
 function assertKnownEnvironment(definition: TestDefinition, envId: string): void {
-  if (!environmentIds(definition).has(envId)) {
+  if (!definition.environments.some((env) => env.id === envId)) {
     fail(`Unknown envId: ${envId}`);
   }
 }
 
+/** Set は 1 度だけ組む。以前は env ごとに作り直していた */
 function assertKnownEnvironments(definition: TestDefinition, envIds: string[]): void {
+  if (envIds.length === 0) return;
+  const known = new Set(definition.environments.map((env) => env.id));
   for (const envId of envIds) {
-    assertKnownEnvironment(definition, envId);
+    if (!known.has(envId)) {
+      fail(`Unknown envId: ${envId}`);
+    }
   }
 }
 
