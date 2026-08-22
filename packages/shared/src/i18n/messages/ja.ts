@@ -483,6 +483,9 @@ export const jaMessages = {
     noGenerationShort: "generation を取得できませんでした",
     noProjectId: "projectId がありません",
     applyDefinitionFailed: "定義の適用に失敗しました",
+    definitionConflict: "他のユーザーがテスト定義を更新したため保存しませんでした。編集内容は残っています。",
+    definitionConflictConfirm:
+      "他のユーザーがテスト定義を更新しています。この編集内容で上書きしますか？（相手の変更は失われます）",
     createProjectFailed: "プロジェクトの作成に失敗しました",
     enterProjectName: "プロジェクト名を入力してください",
     bugIdFailed: "バグ ID を生成できませんでした",
@@ -518,7 +521,7 @@ export const jaMessages = {
     proposalIdRequired: "proposalId が必要です",
     proposedYamlDeprecated: "proposedYaml は受け付けません。/ai/propose の proposalId を渡してください",
     workingFromProposalRequiresId: "workingFrom=proposal には baseProposalId または proposalYaml が必要です",
-    generationMismatch: "tests.yml が更新されたため結果の取り込みできません。最新の状態を取得して再試行してください",
+    generationMismatch: "tests.yml が更新されているため保存できません。最新の状態を取得して再試行してください",
     resultsJsonListRequired: "resultsJsonList が必要です",
     resultsJsonListMustBeArray: "resultsJsonList は配列である必要があります",
     resultsJsonListMustContainStrings: "resultsJsonList は文字列の配列である必要があります",

@@ -3,7 +3,8 @@ import type { ConnectionState } from "./connection-state";
 import type { ProjectSnapshot } from "./types";
 
 export type ProjectEvent =
-  | { type: "snapshot"; snapshot: ProjectSnapshot; revision: number }
+  /** generation は Team 版のみ（定義の世代。楽観ロックに使う） */
+  | { type: "snapshot"; snapshot: ProjectSnapshot; revision: number; generation?: string }
   | {
       type: "commandApplied";
       command: ProjectCommand;

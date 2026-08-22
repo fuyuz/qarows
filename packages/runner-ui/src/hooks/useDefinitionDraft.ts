@@ -44,6 +44,26 @@ function projectKey(definition: TestDefinition): string {
   return definition.project.id ?? definition.project.name;
 }
 
+/**
+ * draft を保存済み定義で再読み込みするか。
+ * - プロジェクトが変わったら必ず読み直す
+ * - 未保存の編集がなければ、リモートの定義変更（syncKey の移動、または
+ *   ランナー側 updateTestCase のように generation を動かさない変更）に追従する
+ * - 未保存の編集があるときは捨てない。draft を読み込んだ世代を Apply に送るので
+ *   server が 409 を返し、そこでユーザーに判断させる
+ */
+export function shouldReloadDraft(input: {
+  projectChanged: boolean;
+  syncChanged: boolean;
+  definitionChanged: boolean;
+  loaded: boolean;
+  hasChanges: boolean;
+}): boolean {
+  if (!input.loaded || input.projectChanged) return true;
+  if (input.hasChanges) return false;
+  return input.syncChanged || input.definitionChanged;
+}
+
 export function useDefinitionDraft(
   savedDefinition: TestDefinition | null,
   options?: { syncKey?: string | number | null },
@@ -52,7 +72,13 @@ export function useDefinitionDraft(
   const [baseline, setBaseline] = useState<TestDefinition | null>(null);
   const [draft, setDraft] = useState<TestDefinition | null>(null);
   const loadedKeyRef = useRef<string | null>(null);
-  const loadedSyncKeyRef = useRef<string | number | null | undefined>(undefined);
+  /** 直近に観測した syncKey。読み込んだ世代とは別に持つ */
+  const seenSyncKeyRef = useRef<string | number | null | undefined>(undefined);
+  /** baseline を読み込んだときの syncKey。Apply の expectedGeneration に使う */
+  const [baseSyncKey, setBaseSyncKey] = useState<string | number | null | undefined>(undefined);
+  const loadedDefinitionRef = useRef<TestDefinition | null>(null);
+  /** 未保存の編集を remote 更新で消さないための判定用（effect から state を読まない） */
+  const hasChangesRef = useRef(false);
   const syncKey = options?.syncKey;
 
   useEffect(() => {
@@ -60,23 +86,37 @@ export function useDefinitionDraft(
       setBaseline(null);
       setDraft(null);
       loadedKeyRef.current = null;
-      loadedSyncKeyRef.current = undefined;
+      seenSyncKeyRef.current = undefined;
+      loadedDefinitionRef.current = null;
+      setBaseSyncKey(undefined);
       return;
     }
     const key = projectKey(savedDefinition);
     const projectChanged = loadedKeyRef.current !== key;
     const syncChanged =
       syncKey !== undefined &&
-      loadedSyncKeyRef.current !== undefined &&
-      loadedSyncKeyRef.current !== syncKey;
+      seenSyncKeyRef.current !== undefined &&
+      seenSyncKeyRef.current !== syncKey;
+    const definitionChanged =
+      loadedDefinitionRef.current != null && loadedDefinitionRef.current !== savedDefinition;
 
-    if (!projectChanged && !syncChanged && loadedKeyRef.current != null) {
-      if (syncKey !== undefined) loadedSyncKeyRef.current = syncKey;
+    seenSyncKeyRef.current = syncKey;
+
+    if (
+      !shouldReloadDraft({
+        projectChanged,
+        syncChanged,
+        definitionChanged,
+        loaded: loadedKeyRef.current != null,
+        hasChanges: hasChangesRef.current,
+      })
+    ) {
       return;
     }
 
     loadedKeyRef.current = key;
-    loadedSyncKeyRef.current = syncKey;
+    loadedDefinitionRef.current = savedDefinition;
+    setBaseSyncKey(syncKey);
     setBaseline(cloneDefinition(savedDefinition));
     setDraft(cloneDefinition(savedDefinition));
   }, [savedDefinition, syncKey]);
@@ -87,17 +127,28 @@ export function useDefinitionDraft(
   }, [baseline, draft]);
 
   const hasChanges = diff?.hasChanges ?? false;
+  hasChangesRef.current = hasChanges;
   const changeSummary = diff ? definitionDiffSummary(diff, t) : "";
 
+  /** 編集を捨てる。リモートが進んでいれば baseline ごと最新に戻す */
   const discard = useCallback(() => {
-    if (!baseline) return;
-    setDraft(cloneDefinition(baseline));
-  }, [baseline]);
+    const latest = savedDefinition ?? baseline;
+    if (!latest) return;
+    loadedDefinitionRef.current = savedDefinition;
+    setBaseSyncKey(syncKey);
+    setBaseline(cloneDefinition(latest));
+    setDraft(cloneDefinition(latest));
+  }, [baseline, savedDefinition, syncKey]);
 
   const markApplied = useCallback((applied: TestDefinition) => {
     const next = cloneDefinition(applied);
     setBaseline(next);
     setDraft(cloneDefinition(next));
+  }, []);
+
+  /** Apply 後は次の snapshot を新しい baseline として受け入れる */
+  const rebaseOnNextSnapshot = useCallback(() => {
+    loadedDefinitionRef.current = null;
   }, []);
 
   /** Replace draft contents while keeping baseline (shows as pending changes). */
@@ -327,6 +378,9 @@ export function useDefinitionDraft(
   return {
     baseline,
     draft,
+    /** baseline を読み込んだ syncKey（Team 版 generation） */
+    baseSyncKey,
+    rebaseOnNextSnapshot,
     diff,
     hasChanges,
     changeSummary,

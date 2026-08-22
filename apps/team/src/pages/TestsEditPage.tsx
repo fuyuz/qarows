@@ -71,7 +71,7 @@ function loadAiPanelWidth(): number {
 export function TestsEditPage() {
   const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
-  const { definition, revision, syncNotice } = useProjectSync();
+  const { definition, generation, syncNotice } = useProjectSync();
   const { aiEnabled, loaded: aiLoaded } = useAiFeatures();
   const [draftState, setDraftState] = useState<TestsEditDraftState>({
     hasChanges: false,
@@ -123,23 +123,36 @@ export function TestsEditPage() {
   }, []);
 
   const onApply = useCallback(
-    async (next: TestDefinition) => {
+    async (next: TestDefinition, baseSyncKey?: string | number | null) => {
       if (!projectId) throw new Error(t("error.noProjectId"));
-      const snapshot = await getProject(projectId);
-      const generation = snapshot.generation;
-      if (!generation) throw new Error(t("error.noGeneration"));
+      const testsYaml = serializeTestsYaml(next);
+
+      // draft を読み込んだ世代を送る（直前に取り直すと楽観ロックが無効になる）。
+      // WebSocket 未接続で一度も generation を観測できていない場合だけ取りに行く
+      let expectedGeneration =
+        typeof baseSyncKey === "string" && baseSyncKey ? baseSyncKey : generation;
+      if (!expectedGeneration) {
+        expectedGeneration = (await getProject(projectId)).generation ?? null;
+      }
+      if (!expectedGeneration) throw new Error(t("error.noGeneration"));
+
       try {
-        await applyDefinitionEdit(projectId, {
-          testsYaml: serializeTestsYaml(next),
-          expectedGeneration: generation,
-        });
+        await applyDefinitionEdit(projectId, { testsYaml, expectedGeneration });
       } catch (err) {
-        throw new Error(err instanceof ApiError ? err.message : t("error.applyDefinitionFailed"), {
-          cause: err,
-        });
+        if (!(err instanceof ApiError)) throw err;
+        if (err.status !== 409) {
+          throw new Error(err.message || t("error.applyDefinitionFailed"), { cause: err });
+        }
+        // 競合は黙って上書きせず、上書きするかをユーザーに決めさせる
+        if (!window.confirm(t("error.definitionConflictConfirm"))) {
+          throw new Error(t("error.definitionConflict"), { cause: err });
+        }
+        const latest = (await getProject(projectId)).generation;
+        if (!latest) throw new Error(t("error.noGeneration"), { cause: err });
+        await applyDefinitionEdit(projectId, { testsYaml, expectedGeneration: latest });
       }
     },
-    [projectId, t],
+    [projectId, generation, t],
   );
 
   const handleLoadProposalIntoDraft = useCallback(() => {
@@ -272,7 +285,7 @@ export function TestsEditPage() {
     <TestsEditPageLayout
       definition={definition}
       onApply={onApply}
-      syncKey={revision}
+      syncKey={generation}
       draftImport={draftImport}
       onDraftImportConsumed={() => setDraftImport(null)}
       onDraftStateChange={setDraftState}

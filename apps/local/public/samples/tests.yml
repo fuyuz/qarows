@@ -1133,3 +1133,27 @@ testCases:
       配信レスポンスは immutable なのでブラウザキャッシュを避け、シークレットウィンドウか
       キャッシュ無効化リロードで確認する
     description: "削除後に同じ添付 URL を直接開くと 404 になる。プロジェクト削除・個別の添付削除のどちらでも、また削除を実行した拠点と別の回線・別端末から開いても 404 になる"
+
+  - id: TC-122
+    category:
+      major: "Team 版"
+      medium: "定義編集"
+      minor: "競合検知"
+    prerequisites: "同一プロジェクトのテスト定義画面を2ブラウザ（別ユーザー）で開き、B 側で未保存の編集をしている"
+    description: "A が定義を Apply した後、B が Apply すると上書き確認ダイアログが出る。キャンセルすると保存されず B の編集内容は残り、OK すると B の内容で上書きされる"
+
+  - id: TC-123
+    category:
+      major: "Team 版"
+      medium: "定義編集"
+      minor: "未保存編集の保持"
+    prerequisites: "テスト定義画面で draft を編集して未保存のまま、別ブラウザで同じプロジェクトを開いている"
+    description: "別ブラウザでテスト結果を入力しても編集中の draft が消えない。別ブラウザが定義を Apply した場合も draft は保持され、同期通知が出るだけで内容は失われない"
+
+  - id: TC-124
+    category:
+      major: "Team 版"
+      medium: "定義編集"
+      minor: "履歴を汚さない"
+    prerequisites: "AI パネルの復元履歴（definition_revisions）を表示できる状態で、TC-122 の競合または不正な YAML の Apply を起こす"
+    description: "409 / 400 で保存に失敗した Apply では復元履歴に項目が増えない（成功した Apply のみ履歴に残る）"

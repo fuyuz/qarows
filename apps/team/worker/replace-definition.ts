@@ -15,20 +15,24 @@ import {
 } from "./db";
 import { assertGenerationMatch, GenerationMismatchError } from "./merge-results";
 import type { Env } from "./env";
+import type { ProjectSnapshot } from "./db";
 
 function apiMessage(locale: Locale, key: string): string {
   return createI18n(locale).t(key);
 }
 
-export async function replaceProjectDefinitionInRoom(
+interface ReplaceDefinitionInput {
+  projectId: string;
+  testsYaml: string;
+  expectedGeneration?: string;
+}
+
+/** 置換前の検証をまとめる。checkpoint より前に通すことで 409 / 400 で履歴を汚さない */
+async function assertReplaceableDefinition(
   env: Env,
-  input: {
-    projectId: string;
-    testsYaml: string;
-    expectedGeneration?: string;
-  },
-  locale: Locale = DEFAULT_LOCALE,
-): Promise<{ generation: string }> {
+  input: ReplaceDefinitionInput,
+  locale: Locale,
+): Promise<ProjectSnapshot> {
   const existing = await getProject(env.DB, input.projectId);
   if (!existing) {
     throw new HTTPException(404, { message: apiMessage(locale, "api.projectNotFound") });
@@ -58,6 +62,14 @@ export async function replaceProjectDefinitionInRoom(
     throw new HTTPException(400, { message: apiMessage(locale, "api.projectIdMismatch") });
   }
 
+  return existing;
+}
+
+async function replaceInRoom(
+  env: Env,
+  input: ReplaceDefinitionInput,
+  locale: Locale,
+): Promise<{ generation: string }> {
   const stub = env.PROJECT.getByName(input.projectId);
   try {
     await stub.replaceProjectFromWorker({
@@ -82,6 +94,15 @@ export async function replaceProjectDefinitionInRoom(
   return { generation: snapshot.generation };
 }
 
+export async function replaceProjectDefinitionInRoom(
+  env: Env,
+  input: ReplaceDefinitionInput,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<{ generation: string }> {
+  await assertReplaceableDefinition(env, input, locale);
+  return replaceInRoom(env, input, locale);
+}
+
 export async function saveCheckpointAndReplaceDefinition(
   env: Env,
   input: {
@@ -94,10 +115,8 @@ export async function saveCheckpointAndReplaceDefinition(
   },
   locale: Locale = DEFAULT_LOCALE,
 ): Promise<{ generation: string; revisionId: string }> {
-  const existing = await getProject(env.DB, input.projectId);
-  if (!existing) {
-    throw new HTTPException(404, { message: apiMessage(locale, "api.projectNotFound") });
-  }
+  // validate -> checkpoint -> replace の順。409 / 400 で捨てる履歴を積まない
+  const existing = await assertReplaceableDefinition(env, input, locale);
 
   const revision = await insertDefinitionRevision(env.DB, {
     projectId: input.projectId,
@@ -107,7 +126,7 @@ export async function saveCheckpointAndReplaceDefinition(
     createdBy: input.createdBy,
   });
 
-  const { generation } = await replaceProjectDefinitionInRoom(
+  const { generation } = await replaceInRoom(
     env,
     {
       projectId: input.projectId,

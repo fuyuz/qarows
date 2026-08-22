@@ -479,6 +479,9 @@ export const enMessages = {
     noGenerationShort: "Could not get generation",
     noProjectId: "Missing projectId",
     applyDefinitionFailed: "Failed to apply definition",
+    definitionConflict: "Someone else updated the test definition, so nothing was saved. Your edits are kept.",
+    definitionConflictConfirm:
+      "Someone else has updated the test definition. Overwrite it with your edits? Their changes will be lost.",
     createProjectFailed: "Failed to create project",
     enterProjectName: "Enter project name",
     bugIdFailed: "Could not generate bug ID",
@@ -514,7 +517,7 @@ export const enMessages = {
     proposalIdRequired: "proposalId is required",
     proposedYamlDeprecated: "proposedYaml is no longer accepted; pass proposalId from /ai/propose",
     workingFromProposalRequiresId: "workingFrom=proposal requires baseProposalId or proposalYaml",
-    generationMismatch: "tests.yml was updated; reload the latest state and try again",
+    generationMismatch: "tests.yml has been updated; reload the latest state and try again",
     resultsJsonListRequired: "resultsJsonList is required",
     resultsJsonListMustBeArray: "resultsJsonList must be an array",
     resultsJsonListMustContainStrings: "resultsJsonList must contain strings",

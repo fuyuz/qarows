@@ -43,6 +43,7 @@ export class WebSocketProjectChannel implements ProjectChannel {
           type: "snapshot",
           snapshot: this.snapshot!,
           revision: this.revision,
+          generation: room.generation,
         });
         this.emitConnectionState();
       },

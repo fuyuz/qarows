@@ -156,6 +156,7 @@ export function useTestsYamlAiEdit({
       setSuccessMessage(null);
       setLastIntent(null);
       try {
+        // 復元は「この版に戻す」という明示操作なので LWW（最新世代で上書き）
         const generation = (await refreshGeneration()) ?? baseGeneration;
         if (!generation) throw new Error(t("error.noGenerationShort"));
         await restoreDefinitionRevision(projectId, revisionId, generation);

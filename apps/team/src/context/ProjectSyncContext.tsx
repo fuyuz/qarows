@@ -42,6 +42,8 @@ interface ProjectSyncContextValue {
   syncError: string | null;
   syncNotice: string | null;
   revision: number;
+  /** 定義の世代。本編集の expectedGeneration に使う */
+  generation: string | null;
   definition: TestDefinition | null;
   results: ResultsFile | null;
   session: SessionConfig | null;
@@ -86,6 +88,7 @@ export function ProjectSyncProvider({
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const [generation, setGeneration] = useState<string | null>(null);
   const [definition, setDefinition] = useState<TestDefinition | null>(null);
   const [results, setResults] = useState<ResultsFile | null>(null);
   const [session, setSessionState] = useState<SessionConfig | null>(null);
@@ -167,6 +170,7 @@ export function ProjectSyncProvider({
         case "snapshot": {
           const wasReady = readyRef.current;
           setRevision(event.revision);
+          if (event.generation) setGeneration(event.generation);
           applySnapshotState(event.snapshot);
           setReady(true);
           readyRef.current = true;
@@ -177,6 +181,7 @@ export function ProjectSyncProvider({
         }
         case "snapshotReplaced": {
           setRevision(event.revision);
+          setGeneration(event.generation);
           applySnapshotState(event.snapshot);
           const email = userEmailRef.current;
           if (email != null) {
@@ -347,6 +352,7 @@ export function ProjectSyncProvider({
       syncError,
       syncNotice,
       revision,
+      generation,
       definition,
       results,
       session,
@@ -370,6 +376,7 @@ export function ProjectSyncProvider({
       syncError,
       syncNotice,
       revision,
+      generation,
       definition,
       results,
       session,

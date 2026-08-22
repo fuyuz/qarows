@@ -49,10 +49,11 @@ export function TestsEditPageLayout({
   onDraftStateChange,
 }: {
   definition: TestDefinition;
-  onApply: (next: TestDefinition) => Promise<void>;
+  /** baseSyncKey は draft を読み込んだ世代（Team 版 generation）。楽観ロックに使う */
+  onApply: (next: TestDefinition, baseSyncKey?: string | number | null) => Promise<void>;
   navSlot?: ReactNode;
   asideSlot?: ReactNode;
-  /** When this changes (e.g. Team revision), reset draft from saved definition */
+  /** 定義の世代（Team 版 generation）。動いたときに draft を読み直す（未保存の編集があれば保持） */
   syncKey?: string | number | null;
   draftImport?: TestsEditDraftImport | null;
   onDraftImportConsumed?: () => void;
@@ -67,6 +68,7 @@ export function TestsEditPageLayout({
   const [applying, setApplying] = useState(false);
 
   const { draft, diff, hasChanges, changeSummary, discard, markApplied, replaceDraft } = draftApi;
+  const { baseSyncKey, rebaseOnNextSnapshot } = draftApi;
 
   useEffect(() => {
     onDraftStateChange?.({ hasChanges, draft });
@@ -112,15 +114,16 @@ export function TestsEditPageLayout({
     setApplying(true);
     try {
       const normalized = parseTestsYaml(serializeTestsYaml(draft));
-      await onApply(normalized);
+      await onApply(normalized, baseSyncKey);
       markApplied(normalized);
+      rebaseOnNextSnapshot();
       setDiffOpen(false);
     } catch (error) {
       setApplyError(error instanceof Error ? error.message : t("definition.applyFailed"));
     } finally {
       setApplying(false);
     }
-  }, [draft, markApplied, onApply]);
+  }, [draft, markApplied, onApply, baseSyncKey, rebaseOnNextSnapshot]);
 
   const handleDiscard = useCallback(() => {
     if (!hasChanges) return;
