@@ -148,7 +148,7 @@ function toAiModelError(err: unknown, fallbackMessage: string): AiModelError {
 export async function runAiModel(
   env: Env,
   input: AiRunInput,
-): Promise<{ result: AiRunResult; modelUsed: string }> {
+): Promise<{ result: AiRunResult; modelUsed: string; parsed: AiJsonResponse }> {
   if (!env.AI) {
     throw new AiModelError("AI binding is not configured");
   }
@@ -163,8 +163,8 @@ export async function runAiModel(
     try {
       const payload = buildModelPayload(model, input);
       const result = (await env.AI.run(model, payload)) as AiRunResult;
-      parseAiJsonResponse(result);
-      return { result, modelUsed: model };
+      // 検証結果をそのまま返す（呼び出し側で再パースすると大きな YAML を2回読む）
+      return { result, modelUsed: model, parsed: parseAiJsonResponse(result) };
     } catch (err) {
       lastError = err;
       console.error(`[ai] model failed: ${model}`, err);

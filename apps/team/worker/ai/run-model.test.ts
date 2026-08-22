@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { extractAiResponseText, parseAiJsonResponse } from "./run-model";
-import { DEFAULT_AI_MODEL, DEFAULT_AI_MODEL_FALLBACK, supportsJsonSchemaResponse } from "./models";
+import { AiModelError, extractAiResponseText, parseAiJsonResponse, runAiModel } from "./run-model";
+import {
+  DEFAULT_AI_MODEL,
+  DEFAULT_AI_MODEL_FALLBACK,
+  JSON_SCHEMA_AI_MODELS,
+  supportsJsonSchemaResponse,
+} from "./models";
 
 describe("AI model defaults", () => {
   it("uses json_schema-capable models", () => {
@@ -70,5 +75,70 @@ describe("parseAiJsonResponse", () => {
 
   it("throws on invalid JSON", () => {
     expect(() => parseAiJsonResponse({ response: '{"reply":' })).toThrow("not valid JSON");
+  });
+
+});
+
+describe("runAiModel", () => {
+  // json_schema 対応モデルでないと buildModelPayload が先に落ちる
+  const PRIMARY = JSON_SCHEMA_AI_MODELS[0]!;
+  const FALLBACK = JSON_SCHEMA_AI_MODELS[1]!;
+
+  function envWith(responses: Array<string | Error>) {
+    const calls: string[] = [];
+    return {
+      calls,
+      env: {
+        AI_MODEL: PRIMARY,
+        AI_MODEL_FALLBACK: FALLBACK,
+        AI: {
+          async run(model: string) {
+            calls.push(model);
+            const next = responses.shift();
+            if (next instanceof Error) throw next;
+            return { response: next };
+          },
+        },
+      } as never,
+    };
+  }
+
+  const input = {
+    messages: [{ role: "user" as const, content: "hi" }],
+    jsonSchema: {
+      type: "object",
+      properties: { reply: { type: "string" } },
+      required: ["reply"],
+    },
+  } as never;
+
+  it("returns the parsed response alongside the raw result", async () => {
+    const { env, calls } = envWith([JSON.stringify({ reply: "ok", patch: { a: 1 } })]);
+    const run = await runAiModel(env, input);
+
+    expect(calls).toEqual([PRIMARY]);
+    expect(run.modelUsed).toBe(PRIMARY);
+    expect(run.parsed.reply).toBe("ok");
+    // 呼び出し側が再パースしないため、result と parsed が必ず対応していること
+    expect(run.parsed).toEqual(parseAiJsonResponse(run.result));
+  });
+
+  it("returns the fallback model's parsed response, not the primary's", async () => {
+    const { env, calls } = envWith([
+      "{not json",
+      JSON.stringify({ reply: "from fallback" }),
+    ]);
+    const run = await runAiModel(env, input);
+
+    expect(calls).toEqual([PRIMARY, FALLBACK]);
+    expect(run.modelUsed).toBe(FALLBACK);
+    expect(run.parsed.reply).toBe("from fallback");
+    expect(run.parsed).toEqual(parseAiJsonResponse(run.result));
+  });
+
+  it("throws when every model fails", async () => {
+    const { env, calls } = envWith(["{not json", "{still not json"]);
+    await expect(runAiModel(env, input)).rejects.toThrow(AiModelError);
+    expect(calls).toEqual([PRIMARY, FALLBACK]);
   });
 });

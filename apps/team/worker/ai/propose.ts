@@ -14,7 +14,7 @@ import {
   parseDefinitionPatch,
 } from "./apply-patches";
 import { AI_ASSISTANT_INSTRUCTIONS, TESTS_YAML_AI_GUIDE } from "./prompt";
-import { AiModelError, parseAiJsonResponse, runAiModel } from "./run-model";
+import { AiModelError, runAiModel } from "./run-model";
 
 export { AiModelError } from "./run-model";
 
@@ -402,14 +402,13 @@ export async function proposeTestsYamlEdit(
 
   const messages = buildMessages(workingYaml, history, message, editingDisabled);
 
-  const { result, modelUsed } = await runAiModel(env, {
+  const { modelUsed, parsed } = await runAiModel(env, {
     messages,
     temperature: 0.2,
     maxTokens: 4096,
     jsonSchema: AI_PROPOSE_JSON_SCHEMA,
   });
 
-  const parsed = parseAiJsonResponse(result);
   const reply = parsed.reply?.trim();
   if (!reply) {
     throw new AiModelError("AI reply is empty");
@@ -463,7 +462,7 @@ export async function proposeTestsYamlEdit(
       jsonSchema: AI_EDIT_JSON_SCHEMA,
     });
     latestModelUsed = repaired.modelUsed;
-    latestParsed = parseAiJsonResponse(repaired.result);
+    latestParsed = repaired.parsed;
     if (!latestParsed.reply?.trim()) {
       lastError = "AI reply is empty";
       break;
