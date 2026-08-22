@@ -1168,3 +1168,21 @@ testCases:
       改行入りの名前は単一行 Input では入力できないため curl 等で
       POST /api/projects に {"name": "a\nb"} を直接送って確認する
     description: "引用符・末尾バックスラッシュ・コロン・日本語・1e3 のような数値に見える名前でも tests.yml なしで作成でき、一覧とテスト定義画面に入力した名前がそのまま表示される"
+
+  - id: TC-126
+    category:
+      major: "ファイル読み込み"
+      medium: "zip"
+      minor: "上限"
+    prerequisites: |
+      高圧縮率の zip bomb を用意する（例: 200MB のゼロ埋めファイル 1 本を zip 圧縮すると
+      数百 KB になる）。あわせて yml/json を 33 本含む zip と 32 本ちょうどの zip も用意する
+    description: "zip bomb は即座にエラー表示され、タブが固まらない（展開前に弾かれる）。33 本の zip も拒否され、32 本ちょうどは正常に取り込める"
+
+  - id: TC-127
+    category:
+      major: "Team 版"
+      medium: "zip インポート"
+      minor: "無関係ファイルの混入"
+    prerequisites: "添付付きプロジェクトの zip を macOS / Windows で展開し再圧縮して（attachments/ に .DS_Store や Thumbs.db が混ざった状態で）Team 版にインポートする"
+    description: "attachments/ 配下の無関係ファイルは無視され、添付と tests.yml / results.json が通常どおり取り込まれる（インポート全体が失敗しない）"
