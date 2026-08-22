@@ -11,11 +11,10 @@ import {
 import { ProjectDetailPanel } from "@/components/ProjectDetailPanel";
 import { ProjectImportPanel } from "@/components/ProjectImportPanel";
 import { ProjectList } from "@/components/ProjectList";
-import { RunnerCardTransition } from "@qarows/runner-ui";
+import { NEW_PROJECT_SELECTION, projectPath, RunnerCardTransition } from "@qarows/runner-ui";
 import { useTranslation } from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
-import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";
 import { sortProjectSummaries } from "@/lib/project-summaries";
 import { getProject } from "@/lib/storage";
 import { readFileAsText, downloadText, downloadBlob } from "@/lib/utils";

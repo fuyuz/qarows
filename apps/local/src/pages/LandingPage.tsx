@@ -15,7 +15,7 @@ import {
 } from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { GITHUB_REPO_URL } from "@/lib/site-links";
-import { projectPath } from "@/lib/project-routes";
+import { projectPath } from "@qarows/runner-ui";
 
 const FEATURE_KEYS = [
   "landing.feature1",

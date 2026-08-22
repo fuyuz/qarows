@@ -4,7 +4,7 @@ import { DocumentTitleSync, useTranslation } from "@qarows/ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
 import { ProjectSyncProvider, useProjectSync } from "@/context/ProjectSyncContext";
-import type { ProjectPage } from "@/lib/project-routes";
+import type { ProjectPage } from "@qarows/runner-ui";
 
 const SessionPageRoute = lazy(() =>
   import("@/pages/SessionPage").then((m) => ({ default: m.SessionPageRoute })),

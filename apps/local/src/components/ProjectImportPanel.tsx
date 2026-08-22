@@ -19,7 +19,7 @@ import {
   useTranslation,
 } from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
-import { projectPath } from "@/lib/project-routes";
+import { projectPath } from "@qarows/runner-ui";
 import { readFileAsText, appendUniqueFiles, fileKey } from "@/lib/utils";
 
 async function mergeResultsJsonStrings(yaml: string, jsons: string[]): Promise<string | undefined> {

@@ -26,13 +26,15 @@ export { ProgressRow, progressBucketBgClass, progressBucketTextClass } from "./c
 export { RunnerCardTransition } from "./components/RunnerCardTransition";
 
 export { useRunnerQueryState } from "./hooks/useRunnerQueryState";
-export { useProjectRoutes } from "./hooks/useProjectRoutes";
+export { useProjectRoutes, useProjectRoutesFor } from "./hooks/useProjectRoutes";
 export { useDefinitionDraft } from "./hooks/useDefinitionDraft";
 
 export type { ProjectPage } from "./lib/project-routes";
 export {
+  NEW_PROJECT_SELECTION,
   inheritsRunnerQueryFromLocation,
   projectPath,
+  projectsHubPath,
   resolveProjectId,
 } from "./lib/project-routes";
 

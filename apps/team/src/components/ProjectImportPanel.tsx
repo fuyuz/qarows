@@ -24,7 +24,7 @@ import { useAiFeatures } from "@/context/AiFeaturesContext";
 import { useProjects } from "@/context/ProjectsContext";
 import { uploadAttachment } from "@/lib/api/attachments";
 import { ApiError } from "@/lib/api/client";
-import { projectPath } from "@/lib/project-routes";
+import { projectPath } from "@qarows/runner-ui";
 import { appendUniqueFiles, fileKey, readFileAsText } from "@/lib/file-utils";
 
 /** results.json 群から添付キー → メタデータの対応を作る（再アップロード時の MIME・名前解決用） */

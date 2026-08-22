@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 import { I18nProvider, StatusBadge } from "@qarows/ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { projectPath } from "@/lib/project-routes";
+import { projectPath } from "@qarows/runner-ui";
 
 function renderWithI18n(ui: ReactElement) {
   return render(<I18nProvider initialLocale="ja">{ui}</I18nProvider>);

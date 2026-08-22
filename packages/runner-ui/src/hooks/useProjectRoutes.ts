@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import type { RunnerFilters } from "@qarows/shared";
+import type { RunnerFilters, TestDefinition } from "@qarows/shared";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import {
   inheritsRunnerQueryFromLocation,
@@ -11,8 +11,11 @@ import {
 } from "../lib/project-routes";
 import { parseRunnerSearchParams } from "../lib/runner-query";
 
-export function useProjectRoutes() {
-  const { definition } = useRunnerWorkspace();
+/**
+ * definition を引数で受ける版。Local 版は SessionPage / RunPage が
+ * RunnerWorkspace の provider の外にいるため、自前の context から渡す
+ */
+export function useProjectRoutesFor(definition: TestDefinition | null) {
   const { projectId: routeProjectId } = useParams();
   const location = useLocation();
   const loadedProjectId = definition ? resolveProjectId(definition) : null;
@@ -59,4 +62,9 @@ export function useProjectRoutes() {
   );
 
   return { projectId, loadedProjectId, path };
+}
+
+export function useProjectRoutes() {
+  const { definition } = useRunnerWorkspace();
+  return useProjectRoutesFor(definition);
 }

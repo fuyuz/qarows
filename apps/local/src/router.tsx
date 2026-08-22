@@ -12,8 +12,11 @@ import { DocumentTitleSync, projectIdFromPathname } from "@qarows/ui";
 import { useApp } from "@/context/AppContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RunnerWorkspaceBridge } from "@/components/RunnerWorkspaceBridge";
-import { projectPath } from "@/lib/project-routes";
-import { runnerSearchChanged, sanitizeRunnerSearchParams } from "@qarows/runner-ui";
+import {
+  projectPath,
+  runnerSearchChanged,
+  sanitizeRunnerSearchParams,
+} from "@qarows/runner-ui";
 
 const HomePage = lazy(() =>
   import("@/pages/HomePage").then((m) => ({ default: m.HomePage })),

@@ -1,7 +1,7 @@
 import { ProjectListShell, type ProjectListItem } from "@qarows/ui";
 import { useProjects } from "@/context/ProjectsContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
-import { NEW_PROJECT_SELECTION } from "@/lib/project-routes";
+import { NEW_PROJECT_SELECTION } from "@qarows/runner-ui";
 
 export function ProjectList() {
   const { projectSummaries, lastOpenedProjectId } = useProjects();

@@ -15,7 +15,7 @@ import { ProjectList } from "@/components/ProjectList";
 import { RunnerCardTransition } from "@/components/RunnerCardTransition";
 import { useProjects } from "@/context/ProjectsContext";
 import { useProjectsQueryState } from "@/hooks/useProjectsQueryState";
-import { NEW_PROJECT_SELECTION, projectPath } from "@/lib/project-routes";
+import { NEW_PROJECT_SELECTION, projectPath } from "@qarows/runner-ui";
 import { getProject } from "@/lib/api/projects";
 import { fetchProjectArchiveAttachments } from "@/lib/export-archive";
 import { downloadText, downloadBlob, readFileAsText } from "@/lib/file-utils";
