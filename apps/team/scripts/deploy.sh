@@ -3,6 +3,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# AUTH_DEV_BYPASS は localhost:8787 でのみ効くので本番に届いても無視されるが、
+# 設定したまま deploy するのは事故なので落とす（多層防御を env var 任せにしない）
+if grep -Eq '^[[:space:]]*AUTH_DEV_BYPASS[[:space:]]*=[[:space:]]*"true"' wrangler.toml; then
+  echo "Refusing to deploy: AUTH_DEV_BYPASS is enabled in wrangler.toml." >&2
+  echo "Comment it out (it is only for local wrangler on localhost:8787)." >&2
+  exit 1
+fi
+
 bun run build
 DEPLOY_OUTPUT="$(bunx wrangler deploy --config wrangler.toml 2>&1)"
 printf '%s\n' "$DEPLOY_OUTPUT"

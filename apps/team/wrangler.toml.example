@@ -7,9 +7,16 @@ compatibility_flags = ["nodejs_compat"]
 # Copy to wrangler.toml and fill in before deploy:
 # account_id = "YOUR_ACCOUNT_ID"
 
+# カスタムドメインで運用するなら false にして workers.dev のオリジンを露出させない。
+# true（既定）のままにする場合は、Access Application に *.workers.dev のホストも
+# 含めること（docs/deploy-team.md 4.3）。含め忘れると JWT なしで直接叩ける
+workers_dev = false
+
 [observability]
 enabled = true
 
+# 全リクエストのログを保持する。エラーログには YAML の parse エラーなど
+# プロジェクトの内容が混ざりうる（ログは自分の Cloudflare アカウント内）
 [observability.logs]
 head_sampling_rate = 1
 

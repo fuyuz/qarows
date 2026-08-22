@@ -362,7 +362,10 @@ Browser
 - `wrangler.toml`（account_id 等）、`.dev.vars`、API トークンは **コミットしない**
 - 本番は `ACCESS_TEAM_DOMAIN` + JWT 検証必須。allow guard は Method A（`ACCESS_ALLOWED_EMAILS`）または B（`ACCESS_ALLOWED_EMAIL_DOMAIN`）を推奨
 - workers.dev とカスタムドメイン **両方** を Access Application に登録する
-- `AUTH_DEV_BYPASS` はローカル `wrangler`（`localhost` / `127.0.0.1:8787`）でのみ有効。本番ホストでは設定しても無視される
+- `AUTH_DEV_BYPASS` はローカル `wrangler`（`localhost` / `127.0.0.1:8787`）でのみ有効。本番ホストでは設定しても無視される。
+  加えて `bun run deploy:team` は `wrangler.toml` に有効な `AUTH_DEV_BYPASS` があると deploy を中止する
+- `workers_dev` はテンプレートで `false`。カスタムドメイン運用なら露出を減らせる。`true` にする場合は
+  Access Application に `*.workers.dev` のホストも含める（[4.3](#43-access-アプリケーションdashboard)）
 - 状態変更 API は Origin（または `Sec-Fetch-Site: same-origin`）を検証する。`clear-results` は JSON + `expectedGeneration` 必須
 - AI propose はメール単位の簡易レート制限あり（isolate 内）。本番では Cloudflare Rate Limiting の併用を推奨
 - Access JWT は `email` claim 必須（`common_name` は使わない）
