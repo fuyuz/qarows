@@ -111,7 +111,13 @@ export function parseAiJsonResponse(result: AiRunResult): AiJsonResponse {
   try {
     return JSON.parse(extractJsonCandidate(raw)) as AiJsonResponse;
   } catch (err) {
-    console.error("[ai] invalid JSON response snippet:", raw.slice(0, 500));
+    // JSON.parse のメッセージが「途中で切れた」か「壊れている」かを決定づける。
+    // 応答本体はプロジェクトの YAML なので、長さと末尾だけに絞る
+    console.error(
+      `[ai] invalid JSON response: ${raw.length} chars, parse=${
+        err instanceof Error ? err.message : String(err)
+      }, tail=${JSON.stringify(raw.slice(-80))}`,
+    );
     throw new AiModelError(
       "AI response was not valid JSON (応答が長すぎて途切れた可能性があります)",
       err,

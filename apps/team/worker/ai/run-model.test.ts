@@ -77,6 +77,28 @@ describe("parseAiJsonResponse", () => {
     expect(() => parseAiJsonResponse({ response: '{"reply":' })).toThrow("not valid JSON");
   });
 
+  it("bounds how much of the response reaches the log", () => {
+    // 応答にはプロジェクトの YAML が入るので、丸ごとはログに出さない。
+    // 切り分けに要るのは長さと JSON.parse のメッセージ、そして末尾
+    const logged: string[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    };
+    const body = "a".repeat(120) + "社外秘プロジェクト" + "b".repeat(2000);
+    const raw = `{"reply": "${body}`;
+    try {
+      expect(() => parseAiJsonResponse({ response: raw } as never)).toThrow();
+    } finally {
+      console.error = original;
+    }
+
+    expect(logged).toHaveLength(1);
+    expect(logged[0]!.length).toBeLessThan(300);
+    expect(logged[0]).not.toContain("社外秘");
+    expect(logged[0]).toContain(`${raw.length} chars`);
+    expect(logged[0]).toContain("parse=");
+  });
 });
 
 describe("runAiModel", () => {

@@ -15,6 +15,11 @@ jobs:
         with:
           bun-version: latest
 
+      # vitest は node で動く。node:sqlite（>= 22.13）を使うテストがあるため固定する
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
