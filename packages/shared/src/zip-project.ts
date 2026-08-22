@@ -54,11 +54,12 @@ export function projectArchiveFilename(projectId: string): string {
   return `${projectId}.zip`;
 }
 
-export function projectArchiveToBlob(archive: Uint8Array): Blob {
-  return new Blob([archive.slice()], { type: "application/zip" });
+export function projectArchiveToBlob(archive: Uint8Array<ArrayBuffer>): Blob {
+  // Blob は渡した view の範囲をコピーするので、ここで slice() すると 1 回余分に複製される
+  return new Blob([archive], { type: "application/zip" });
 }
 
-export function packProjectArchive(input: PackProjectArchiveInput): Uint8Array {
+function archiveEntries(input: PackProjectArchiveInput): Zippable {
   const entries: Zippable = {
     [PROJECT_ARCHIVE_TESTS_NAME]: strToU8(input.testsYaml),
     [PROJECT_ARCHIVE_RESULTS_NAME]: strToU8(input.resultsJson),
@@ -69,7 +70,11 @@ export function packProjectArchive(input: PackProjectArchiveInput): Uint8Array {
     // 画像・動画は圧縮済みのため STORE で詰める
     entries[name] = [attachment.data, { level: 0 }];
   }
-  return zipSync(entries);
+  return entries;
+}
+
+export function packProjectArchive(input: PackProjectArchiveInput): Uint8Array<ArrayBuffer> {
+  return zipSync(archiveEntries(input));
 }
 
 function basename(entryPath: string): string {
