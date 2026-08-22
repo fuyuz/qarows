@@ -13,7 +13,7 @@ Local 版と Team 版は **別アプリ**（`apps/local` / `apps/team`）とし�
 | パッケージ | 役割 |
 |---|---|
 | `packages/shared` | 型・スキーマ・パース・マージルール（`tests.yml` / `results.json`） |
-| `packages/application` | `ProjectCommand` / `ProjectSnapshot`、`applyProjectCommand`、`WorkspaceController`、Repository / Channel インターフェース |
+| `packages/application` | `ProjectCommand` / `ProjectSnapshot`、`applyProjectCommand`、`WorkspaceController`、Repository / Channel のインターフェース（port） |
 | `packages/ui` | プロジェクト一覧・セッション設定・同期ステータス等のワークスペース UI |
 | `packages/runner-ui` | テスト実行 UI（FilterBar、TestRunner、進捗バー等）。Local / Team 版で同一レイアウト |
 
@@ -38,6 +38,10 @@ flowchart LR
 
 - **Local 版**: `IndexedDbProjectRepository` + `LocalProjectChannel`（即時適用）
 - **Team 版**: `HttpProjectRepository` + `WebSocketProjectChannel`（DO へ command 送信）
+
+Repository は読み出し・削除の `ProjectRepository` と、snapshot を丸ごと書き戻せる
+`WritableProjectRepository` に分かれる。Team 版は定義を HTTP、結果を WebSocket command で
+更新するため **書き戻しを実装しない**（`saveSnapshot` を持たない）。
 
 `ProjectCommand` の例: `updateResult`, `updateResultsBatch`, `setSession`, `updateTestCase`, `addBug`, `mergeResults`（Local 版 のみ） 等。
 
@@ -311,3 +315,4 @@ flowchart LR
 |---|---|
 | 2026-06-28 | 初版 |
 | 2026-06-28 | Command モデル・共有パッケージ（application / ui / runner-ui）を追記 |
+| 2026-08-22 | Repository port を読み出し / 書き戻しに分割。R2 添付アクセスを `worker/attachments.ts` に集約 |

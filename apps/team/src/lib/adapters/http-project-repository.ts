@@ -25,6 +25,7 @@ function apiSnapshotToApplication(snapshot: ApiProjectSnapshot): ProjectSnapshot
   );
 }
 
+/** 定義更新は PUT /definition + WebSocket snapshotReplaced が担うため saveSnapshot は持たない */
 export class HttpProjectRepository implements ProjectRepository {
   async listSummaries(): Promise<ProjectSummary[]> {
     const projects = await listProjects();
@@ -45,11 +46,6 @@ export class HttpProjectRepository implements ProjectRepository {
       }
       throw err;
     }
-  }
-
-  async saveSnapshot(snapshot: ProjectSnapshot): Promise<void> {
-    // Team 版の definition 更新は PUT /definition + WebSocket snapshotReplaced。
-    void snapshot;
   }
 
   async deleteProject(projectId: string): Promise<void> {

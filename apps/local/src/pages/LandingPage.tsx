@@ -33,10 +33,10 @@ export function LandingPage() {
   const { projectSummaries, lastOpenedProjectId } = useApp();
 
   const lastProject = projectSummaries.find(
-    (summary) => summary.projectId === lastOpenedProjectId,
+    (summary) => summary.id === lastOpenedProjectId,
   );
   const continuePath = lastProject
-    ? projectPath(lastProject.projectId, lastProject.hasValidSession ? "run" : "session")
+    ? projectPath(lastProject.id, lastProject.hasValidSession ? "run" : "session")
     : null;
 
   return (

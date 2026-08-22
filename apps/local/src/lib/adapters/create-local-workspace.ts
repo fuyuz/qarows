@@ -1,12 +1,12 @@
 import {
   LocalProjectChannel,
   WorkspaceController,
-  type ProjectRepository,
+  type WritableProjectRepository,
 } from "@qarows/application";
 import { IndexedDbProjectRepository } from "./indexed-db-project-repository";
 
 export function createLocalWorkspaceController(
-  repository: ProjectRepository = new IndexedDbProjectRepository(),
+  repository: WritableProjectRepository = new IndexedDbProjectRepository(),
 ): WorkspaceController {
   const channel = new LocalProjectChannel({
     onPersist: async (snapshot) => {

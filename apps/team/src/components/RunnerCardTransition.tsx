@@ -40,16 +40,31 @@ export function RunnerCardTransition({
     return () => window.clearTimeout(id);
   }, [exiting, reducedMotion]);
 
-  if (reducedMotion || !exiting) {
-    return <div className="relative h-full min-h-0">{children}</div>;
-  }
+  const crossfading = !reducedMotion && exiting != null;
 
+  // 入場側は crossfade の開始・終了で位置とキーを変えない。
+  // 以前は crossfade 終了時に木の形が変わって子が unmount され、
+  // カード内の一時的な状態（成功メッセージ等）が 400ms 後に消えていた
   return (
-    <div className="runner-card-crossfade relative grid h-full min-h-0 [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:h-full [&>*]:min-h-0">
-      <div className="runner-card-crossfade__exit pointer-events-none" key={`exit-${exiting.key}`}>
-        {exiting.node}
-      </div>
-      <div className="runner-card-crossfade__enter" key={`enter-${slideKey}`}>
+    <div
+      className={
+        crossfading
+          ? "runner-card-crossfade relative grid h-full min-h-0 [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:h-full [&>*]:min-h-0"
+          : "relative h-full min-h-0"
+      }
+    >
+      {crossfading ? (
+        <div
+          className="runner-card-crossfade__exit pointer-events-none"
+          key={`exit-${exiting.key}`}
+        >
+          {exiting.node}
+        </div>
+      ) : null}
+      <div
+        className={crossfading ? "runner-card-crossfade__enter" : "h-full min-h-0"}
+        key={`enter-${slideKey}`}
+      >
         {children}
       </div>
     </div>

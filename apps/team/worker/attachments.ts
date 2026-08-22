@@ -137,3 +137,98 @@ export function parseRangeHeader(header: string | undefined, size: number): Pars
   if (!Number.isInteger(end) || end < start) return null;
   return { offset: start, length: end - start + 1 };
 }
+
+/**
+ * ここから下が R2 への読み書き。オブジェクトキーの組み立てと
+ * customMetadata の詰め替えはこのモジュールの外に出さない
+ */
+
+/** ヘッダ / R2 メタデータのファイル名を復号する。制御文字は落とす */
+export function decodeAttachmentFilename(raw: string | undefined): string {
+  if (!raw) return "";
+  try {
+    return decodeURIComponent(raw).replace(/[\p{Cc}]/gu, "").slice(0, 255);
+  } catch {
+    return "";
+  }
+}
+
+/** 保存時にエンコードした customMetadata.filename を読み戻す */
+export function attachmentFilename(object: R2Object): string {
+  return decodeAttachmentFilename(object.customMetadata?.filename);
+}
+
+export async function attachmentExists(
+  bucket: R2Bucket,
+  projectId: string,
+  key: string,
+): Promise<boolean> {
+  return (await bucket.head(attachmentObjectKey(projectId, key))) != null;
+}
+
+export function headAttachment(
+  bucket: R2Bucket,
+  projectId: string,
+  key: string,
+): Promise<R2Object | null> {
+  return bucket.head(attachmentObjectKey(projectId, key));
+}
+
+export function getAttachment(
+  bucket: R2Bucket,
+  projectId: string,
+  key: string,
+  options?: { range?: ParsedRange },
+): Promise<R2ObjectBody | null> {
+  const objectKey = attachmentObjectKey(projectId, key);
+  return options?.range ? bucket.get(objectKey, { range: options.range }) : bucket.get(objectKey);
+}
+
+/**
+ * put の Promise を await せずに返す。
+ * 呼び出し側は body へ書き込みながらこの Promise を待つ必要がある
+ */
+export function putAttachment(
+  bucket: R2Bucket,
+  projectId: string,
+  key: string,
+  body: ReadableStream,
+  options: { contentType: string; filename: string; uploadedBy: string },
+): Promise<R2Object | null> {
+  return bucket.put(attachmentObjectKey(projectId, key), body, {
+    httpMetadata: { contentType: options.contentType },
+    customMetadata: {
+      filename: encodeURIComponent(options.filename),
+      uploadedBy: options.uploadedBy,
+      projectId,
+    },
+  });
+}
+
+export function deleteAttachment(
+  bucket: R2Bucket,
+  projectId: string,
+  key: string,
+): Promise<void> {
+  return bucket.delete(attachmentObjectKey(projectId, key));
+}
+
+/**
+ * プロジェクト配下の添付を prefix で一括削除する。
+ * 1 バッチ削除するたび onDeleted を呼ぶ（エッジキャッシュの purge は呼び出し側の責務）
+ */
+export async function deleteProjectAttachments(
+  bucket: R2Bucket,
+  projectId: string,
+  onDeleted?: (objects: Array<{ key: string }>) => void,
+): Promise<void> {
+  let cursor: string | undefined;
+  do {
+    const listing = await bucket.list({ prefix: attachmentPrefix(projectId), cursor });
+    if (listing.objects.length > 0) {
+      await bucket.delete(listing.objects.map((object) => object.key));
+      onDeleted?.(listing.objects);
+    }
+    cursor = listing.truncated ? listing.cursor : undefined;
+  } while (cursor);
+}

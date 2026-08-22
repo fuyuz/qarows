@@ -1,30 +1,23 @@
 import {
-  type ProjectRepository,
   type ProjectSnapshot,
   type ProjectSummary,
-  normalizeProjectSummary,
+  type WritableProjectRepository,
   toProjectSnapshot,
 } from "@qarows/application";
 import { buildProjectRecord } from "@/lib/project-record";
 import {
   deleteProjectFromStorage,
+  getAppMeta,
   getProject,
   hasProject,
   listProjectSummaries,
+  saveAppMeta,
   saveProject,
 } from "@/lib/storage";
 
-export class IndexedDbProjectRepository implements ProjectRepository {
+export class IndexedDbProjectRepository implements WritableProjectRepository {
   async listSummaries(): Promise<ProjectSummary[]> {
-    const summaries = await listProjectSummaries();
-    return summaries.map((summary) =>
-      normalizeProjectSummary({
-        id: summary.projectId,
-        name: summary.name,
-        updatedAt: summary.updatedAt,
-        hasValidSession: summary.hasValidSession,
-      }),
-    );
+    return listProjectSummaries();
   }
 
   async getSnapshot(projectId: string): Promise<ProjectSnapshot | null> {
@@ -43,5 +36,14 @@ export class IndexedDbProjectRepository implements ProjectRepository {
 
   async hasProject(projectId: string): Promise<boolean> {
     return hasProject(projectId);
+  }
+
+  /** 最後に開いたプロジェクト。IndexedDB の meta ストアに持つ Local 版固有の状態 */
+  async getLastOpenedProjectId(): Promise<string | null> {
+    return (await getAppMeta()).lastOpenedProjectId;
+  }
+
+  async setLastOpenedProjectId(projectId: string | null): Promise<void> {
+    await saveAppMeta({ lastOpenedProjectId: projectId });
   }
 }

@@ -36,4 +36,11 @@ export interface ProjectChannel {
   disconnect(): void;
   send(envelope: CommandEnvelope): Promise<void>;
   getConnectionState(): ConnectionState;
+  /** channel が保持している最新 snapshot。未ロードなら null */
+  getSnapshot(): ProjectSnapshot | null;
+  /**
+   * ローカル適用型 channel に初期 snapshot を渡す。
+   * snapshot をサーバーから受け取る channel は実装しない（接続時に届く）
+   */
+  loadSnapshot?(snapshot: ProjectSnapshot, revision?: number): void;
 }
