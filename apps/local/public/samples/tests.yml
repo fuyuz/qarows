@@ -1111,3 +1111,13 @@ testCases:
       minor: "最終更新の追従"
     prerequisites: "テスト実行画面で結果を1件入力し、その後 /projects へ戻る"
     description: "一覧の最終更新が直前の入力時刻に更新されている（1操作前の古い時刻が残らない）。セッション開始直後もセッションバッジが即座に反映される"
+
+  - id: TC-120
+    category:
+      major: "Team 版"
+      medium: "定義の保持"
+      minor: "D1 の tests_yaml"
+    prerequisites: |
+      コメント・独自のキー順を含む tests.yml を Team 版にアップロードし、テスト結果を1件以上入力した後。
+      確認は wrangler d1 execute <DB> --remote --command "select tests_yaml from projects where id='<ID>'" で行う
+    description: "結果入力では D1 の tests_yaml が書き換わらず、アップロードしたコメント・キー順・project.version がそのまま残る。テスト定義の編集（定義編集画面での保存、実行画面でのテストケース編集）を行ったときだけ再直列化される"

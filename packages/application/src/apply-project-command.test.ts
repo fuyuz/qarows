@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
 import { createEmptyResults, type ResultsFile } from "@qarows/shared";
 import { applyProjectCommand } from "./apply-project-command";
+import type { ProjectCommand } from "./project-command";
 import type { ProjectSnapshot } from "./types";
 
 const NOW = "2026-06-28T12:00:00.000Z";
@@ -349,5 +350,77 @@ describe("applyProjectCommand parity", () => {
 
     expect(a.results).toEqual(b.results);
     expect(a.updatedAt).toBe(b.updatedAt);
+  });
+});
+
+describe("definitionChanged", () => {
+  /**
+   * Team 版はこのフラグだけを見て tests_yaml を書き直すか決める。
+   * false のはずのコマンドで true になれば整形が失われ、逆なら定義編集が D1 に届かない
+   */
+  it("is false for commands that only touch results or session", () => {
+    const snapshot = makeSnapshot({
+      session: { executorName: "qa", selectedEnvironmentIds: ["chrome"] },
+    });
+
+    const cases: ProjectCommand[] = [
+      { type: "setSession", session: { executorName: "qa", selectedEnvironmentIds: ["chrome"] } },
+      {
+        type: "updateResult",
+        testCaseId: "TC-001",
+        envId: "chrome",
+        entry: { status: "OK" },
+      },
+      {
+        type: "updateResultsBatch",
+        testCaseId: "TC-001",
+        envIds: ["chrome"],
+        partial: { status: "OK" },
+      },
+      { type: "updateTestMemo", testCaseId: "TC-001", memo: "note" },
+      { type: "clearTestResult", testCaseId: "TC-001", envId: "chrome" },
+      { type: "clearResults" },
+      {
+        type: "addBug",
+        bug: { id: "BUG-1", title: "x", severity: "medium", status: "open" },
+      },
+      { type: "mergeResults", incoming: createEmptyResults(snapshot.id) },
+    ];
+
+    for (const command of cases) {
+      const result = applyProjectCommand(snapshot, command, { now: NOW });
+      expect(result.definitionChanged, command.type).toBe(false);
+      expect(result.snapshot.definition, command.type).toBe(snapshot.definition);
+    }
+  });
+
+  it("is true for commands that replace the definition", () => {
+    const snapshot = makeSnapshot();
+
+    const patched = applyProjectCommand(
+      snapshot,
+      { type: "updateTestCase", testCaseId: "TC-001", patch: { description: "changed" } },
+      { now: NOW },
+    );
+    expect(patched.definitionChanged).toBe(true);
+
+    const replaced = applyProjectCommand(
+      snapshot,
+      { type: "replaceDefinition", definition: makeDefinition() },
+      { now: NOW },
+    );
+    expect(replaced.definitionChanged).toBe(true);
+
+    const swapped = applyProjectCommand(
+      snapshot,
+      {
+        type: "replaceSnapshot",
+        definition: makeDefinition(),
+        results: createEmptyResults(snapshot.id),
+        session: null,
+      },
+      { now: NOW },
+    );
+    expect(swapped.definitionChanged).toBe(true);
   });
 });

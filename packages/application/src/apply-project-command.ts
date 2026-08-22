@@ -60,6 +60,19 @@ export function applyProjectCommand(
   command: ProjectCommand,
   options: ApplyProjectCommandOptions = {},
 ): ApplyProjectCommandResult {
+  const applied = applyCommandToSnapshot(snapshot, command, options);
+  return {
+    ...applied,
+    // 呼び出し側が定義の永続化要否を判断するため（Team 版は tests.yml を書き直すか決める）
+    definitionChanged: applied.snapshot.definition !== snapshot.definition,
+  };
+}
+
+function applyCommandToSnapshot(
+  snapshot: ProjectSnapshot,
+  command: ProjectCommand,
+  options: ApplyProjectCommandOptions,
+): Omit<ApplyProjectCommandResult, "definitionChanged"> {
   const now = options.now ?? new Date().toISOString();
   const actor = options.actor?.trim();
   validateProjectCommand(snapshot, command);

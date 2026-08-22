@@ -135,6 +135,11 @@ export async function insertProject(
   return (await getProject(db, projectId))!;
 }
 
+/**
+ * 結果・セッションの更新は tests_yaml に触らない。
+ * 定義が変わっていないのに再直列化すると、ユーザーがアップロードした tests.yml の
+ * コメント・並び・整形が結果入力 1 件で失われる
+ */
 export async function updateProjectSnapshot(
   db: D1Database,
   projectId: string,
@@ -144,15 +149,14 @@ export async function updateProjectSnapshot(
     sessionStarted?: boolean;
     updatedAt?: string;
   },
-): Promise<ProjectSnapshot | null> {
+): Promise<void> {
+  // 結果入力ごとに tests_yaml まで読み戻さないよう、必要な列だけ引く
   const existing = await db
-    .prepare("SELECT * FROM projects WHERE id = ?")
+    .prepare("SELECT results_json, session_started FROM projects WHERE id = ?")
     .bind(projectId)
-    .first<ProjectRow>();
-  if (!existing) return null;
+    .first<Pick<ProjectRow, "results_json" | "session_started">>();
+  if (!existing) return;
 
-  const testsYaml = input.testsYaml ?? existing.tests_yaml;
-  const definition = parseTestsYaml(testsYaml);
   const resultsJson =
     input.resultsJson ??
     existing.results_json ??
@@ -161,6 +165,20 @@ export async function updateProjectSnapshot(
     input.sessionStarted !== undefined ? (input.sessionStarted ? 1 : 0) : existing.session_started;
   const updatedAt = input.updatedAt ?? new Date().toISOString();
 
+  if (input.testsYaml === undefined) {
+    await db
+      .prepare(
+        `UPDATE projects
+         SET results_json = ?, session_started = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .bind(resultsJson, sessionStarted, updatedAt, projectId)
+      .run();
+    return;
+  }
+
+  // name は tests.yml 由来の非正規化コピーなので、YAML を書くときだけ引き直す
+  const definition = parseTestsYaml(input.testsYaml);
   await db
     .prepare(
       `UPDATE projects
@@ -169,15 +187,13 @@ export async function updateProjectSnapshot(
     )
     .bind(
       definition.project.name,
-      testsYaml,
+      input.testsYaml,
       resultsJson,
       sessionStarted,
       updatedAt,
       projectId,
     )
     .run();
-
-  return getProject(db, projectId);
 }
 
 /** tests.yml 置換: 既存 results を reconcile して同一行を更新 */
@@ -528,19 +544,25 @@ export async function markAiProposalConsumed(
   }
 }
 
-export function snapshotToPersisted(row: {
-  definition: TestDefinition;
-  results: ResultsFile;
-  session: SessionConfig | null;
-  updatedAt: string;
-}): {
-  testsYaml: string;
+export function snapshotToPersisted(
+  row: {
+    definition: TestDefinition;
+    results: ResultsFile;
+    session: SessionConfig | null;
+    updatedAt: string;
+  },
+  /** 定義が D1 と一致しているなら includeTestsYaml: false。YAML の再直列化ごと省く */
+  options: { includeTestsYaml?: boolean } = {},
+): {
+  testsYaml?: string;
   resultsJson: string;
   sessionStarted: boolean;
   updatedAt: string;
 } {
   return {
-    testsYaml: serializeTestsYaml(row.definition),
+    ...(options.includeTestsYaml !== false
+      ? { testsYaml: serializeTestsYaml(row.definition) }
+      : {}),
     resultsJson: serializeResultsJson(row.results),
     sessionStarted: row.session != null,
     updatedAt: row.updatedAt,

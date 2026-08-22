@@ -147,6 +147,64 @@ describe("room command flow", () => {
     expect(bugAdd.state.results.bugs[0]?.id).toBe("BUG-001");
   });
 
+  /**
+   * persistToD1 は definition の参照が変わったかどうかで tests_yaml を書くか決める。
+   * 結果系コマンドが definition を作り直すと、ユーザーの tests.yml の整形が毎回失われる
+   */
+  it("keeps the definition identical for result-only commands", () => {
+    const state = makeRoomState();
+    const processed = new Map<string, { revision: number; user: string }>();
+
+    const resultUpdate = applyRoomCommand(
+      state,
+      processed,
+      "cmd-result",
+      {
+        type: "updateResultsBatch",
+        testCaseId: "TC-001",
+        envIds: ["chrome"],
+        partial: { status: "OK" },
+      },
+      "qa@example.com",
+      projectId,
+    );
+    expect(resultUpdate.state.definition).toBe(state.definition);
+
+    const bugAdd = applyRoomCommand(
+      resultUpdate.state,
+      processed,
+      "cmd-bug",
+      {
+        type: "addBug",
+        bug: { id: "BUG-001", title: "x", severity: "medium" as const, status: "open" as const },
+      },
+      "qa@example.com",
+      projectId,
+    );
+    expect(bugAdd.state.definition).toBe(state.definition);
+
+    const memo = applyRoomCommand(
+      bugAdd.state,
+      processed,
+      "cmd-memo",
+      { type: "updateTestMemo", testCaseId: "TC-001", memo: "note" },
+      "qa@example.com",
+      projectId,
+    );
+    expect(memo.state.definition).toBe(state.definition);
+
+    // 定義を触るコマンドは別参照になる（= tests_yaml を書き直す必要がある）
+    const patched = applyRoomCommand(
+      memo.state,
+      processed,
+      "cmd-case",
+      { type: "updateTestCase", testCaseId: "TC-001", patch: { description: "changed" } },
+      "qa@example.com",
+      projectId,
+    );
+    expect(patched.state.definition).not.toBe(state.definition);
+  });
+
   it("applies sequential distinct commands with rising revision", () => {
     let state = makeRoomState();
     const processed = new Map<string, { revision: number; user: string }>();

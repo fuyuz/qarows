@@ -22,7 +22,16 @@ import {
 import { persistThenBroadcast } from "./room-sync";
 import { hasValidRoomGeneration, resolveProjectIdFromRoomCache } from "./room-load";
 
-interface StoredRoomState extends RoomSnapshot {}
+interface StoredRoomState extends RoomSnapshot {
+  /**
+   * definition が D1 の tests_yaml に未反映（updateTestCase 等）。
+   * DO storage に載せてハイバネーションを跨がせる。
+   * 省略はこのフラグ導入前のレガシー状態で、反映済みとして扱う。
+   * 導入前は毎コマンド YAML を書いていたため未反映のまま残るのは永続化失敗時だけで、
+   * 逆に未反映扱いにすると未編集プロジェクトの整形を初回入力で壊してしまう
+   */
+  definitionDirty?: boolean;
+}
 
 interface ProcessedCommandRecord {
   revision: number;
@@ -118,6 +127,7 @@ export class ProjectRoom extends DurableObject<Env> {
       definition: snapshot.definition,
       results: snapshot.results,
       session: snapshot.session,
+      definitionDirty: false,
     };
     await this.ctx.storage.put("state", this.state);
     await this.ctx.storage.delete(PROCESSED_COMMANDS_KEY);
@@ -355,6 +365,7 @@ export class ProjectRoom extends DurableObject<Env> {
       definition: snapshot.definition,
       results: snapshot.results,
       session: snapshot.session,
+      definitionDirty: false,
     };
     await this.ctx.storage.put("state", this.state);
   }
@@ -411,8 +422,12 @@ export class ProjectRoom extends DurableObject<Env> {
 
     // now を appliedAt に固定: クライアントが同じ actor/now で差分再適用しても同一状態になる
     const appliedAt = new Date().toISOString();
-    const { snapshot: next } = applyProjectCommand(snapshot, command, { actor: user, now: appliedAt });
+    const { snapshot: next, definitionChanged } = applyProjectCommand(snapshot, command, {
+      actor: user,
+      now: appliedAt,
+    });
     state.revision += 1;
+    if (definitionChanged) state.definitionDirty = true;
     state.definition = next.definition;
     state.results = next.results;
     state.session = next.session;
@@ -446,17 +461,22 @@ export class ProjectRoom extends DurableObject<Env> {
 
   private async persistToD1(): Promise<void> {
     if (!this.state || !this.projectId) return;
-    const { testsYaml, resultsJson, sessionStarted, updatedAt } = snapshotToPersisted({
-      definition: this.state.definition,
-      results: this.state.results,
-      session: this.state.session,
-      updatedAt: new Date().toISOString(),
-    });
-    await updateProjectSnapshot(this.env.DB, this.projectId, {
-      testsYaml,
-      resultsJson,
-      sessionStarted,
-      updatedAt,
-    });
+    const definitionDirty = this.state.definitionDirty === true;
+    const persisted = snapshotToPersisted(
+      {
+        definition: this.state.definition,
+        results: this.state.results,
+        session: this.state.session,
+        updatedAt: new Date().toISOString(),
+      },
+      { includeTestsYaml: definitionDirty },
+    );
+    const serialized = this.state.definition;
+    await updateProjectSnapshot(this.env.DB, this.projectId, persisted);
+    // D1 の await 中に別コマンドが定義を変えていたら未反映のまま残す
+    if (definitionDirty && this.state?.definition === serialized) {
+      this.state.definitionDirty = false;
+      await this.ctx.storage.put("state", this.state);
+    }
   }
 }

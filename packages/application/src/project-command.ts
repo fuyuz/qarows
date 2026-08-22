@@ -71,4 +71,6 @@ export interface ApplyProjectCommandResult {
   snapshot: ProjectSnapshot;
   /** 更新があったテストケース ID（UI ハイライト用）。なければ null */
   affectedTestCaseId: string | null;
+  /** definition を差し替えたか。結果・セッションのみの更新なら false */
+  definitionChanged: boolean;
 }
