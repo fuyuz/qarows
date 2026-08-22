@@ -1,6 +1,7 @@
 import { normalizeBugAttachments } from "./attachment";
 import { normalizeBugSeverity, normalizeBugStatus } from "./bug";
 import type { Bug, ResultsFile, TestDefinition, TestMemos, TestResultEntry, TestResults } from "./types";
+import { assertSafeObjectKey } from "./safe-object-key";
 import { normalizeStatus } from "./status";
 import { parseIsoTimestamp, parseOptionalIsoTimestamp } from "./validate-iso-timestamp";
 
@@ -45,11 +46,14 @@ function parseResults(raw: unknown): TestResults {
   if (typeof raw !== "object" || raw === null) return {};
   const results: TestResults = {};
   for (const [testCaseId, envMap] of Object.entries(raw as Record<string, unknown>)) {
+    assertSafeObjectKey(testCaseId, "results のキー");
     if (typeof envMap !== "object" || envMap === null) continue;
-    results[testCaseId] = {};
+    const byEnv: Record<string, TestResultEntry> = {};
     for (const [envId, entry] of Object.entries(envMap as Record<string, unknown>)) {
-      results[testCaseId][envId] = parseResultEntry(entry, `results.${testCaseId}.${envId}`);
+      assertSafeObjectKey(envId, `results.${testCaseId} のキー`);
+      byEnv[envId] = parseResultEntry(entry, `results.${testCaseId}.${envId}`);
     }
+    results[testCaseId] = byEnv;
   }
   return results;
 }
@@ -58,6 +62,7 @@ function parseMemos(raw: unknown): TestMemos {
   if (typeof raw !== "object" || raw === null) return {};
   const memos: TestMemos = {};
   for (const [testCaseId, value] of Object.entries(raw as Record<string, unknown>)) {
+    assertSafeObjectKey(testCaseId, "memos のキー");
     if (typeof value !== "string") continue;
     if (value.trim()) memos[testCaseId] = value;
   }

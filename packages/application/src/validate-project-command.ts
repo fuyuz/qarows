@@ -158,9 +158,18 @@ export function validateProjectCommand(snapshot: ProjectSnapshot, command: Proje
       return;
     }
 
+    case "replaceSnapshot": {
+      // definition をそのまま採用する経路なので、replaceDefinition と同じ検証を通す
+      try {
+        parseTestsYaml(serializeTestsYaml(command.definition));
+      } catch (error) {
+        fail(error instanceof Error ? error.message : "Invalid test definition");
+      }
+      return;
+    }
+
     case "clearResults":
     case "mergeResults":
-    case "replaceSnapshot":
       return;
 
     default: {

@@ -424,3 +424,32 @@ describe("definitionChanged", () => {
     expect(swapped.definitionChanged).toBe(true);
   });
 });
+
+describe("replaceSnapshot validation", () => {
+  it("rejects a definition carrying a __proto__ test case id", () => {
+    const snapshot = makeSnapshot();
+    expect(() =>
+      applyProjectCommand(snapshot, {
+        type: "replaceSnapshot",
+        definition: {
+          ...snapshot.definition,
+          testCases: [{ id: "__proto__", category: { major: "A" }, description: "d" }],
+        },
+        results: snapshot.results,
+        session: null,
+      }),
+    ).toThrow(/__proto__/);
+  });
+
+  it("still accepts a valid replaceSnapshot", () => {
+    const snapshot = makeSnapshot();
+    const { snapshot: next, definitionChanged } = applyProjectCommand(snapshot, {
+      type: "replaceSnapshot",
+      definition: makeDefinition(),
+      results: snapshot.results,
+      session: null,
+    });
+    expect(definitionChanged).toBe(true);
+    expect(next.definition.testCases).toHaveLength(3);
+  });
+});

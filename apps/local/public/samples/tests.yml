@@ -1205,3 +1205,14 @@ testCases:
       minor: "添付のマージ"
     prerequisites: "添付付きバグのあるプロジェクトを Team 版で zip エクスポートし、同じ bug.id を持つが添付を持たない results.json を用意する"
     description: "results.json をマージしても既存の添付が残り、バグ画面で引き続き表示・再生できる"
+
+  - id: TC-130
+    category:
+      major: "ファイル読み込み"
+      medium: "results.json"
+      minor: "不正なキー"
+    prerequisites: |
+      手書きで "__proto__" をキーに持つ results.json を用意する
+      （例: {"projectId":"qarows","results":{"__proto__":{"chrome-desktop":{"status":"OK"}}},"bugs":[]}）。
+      あわせて testCases の id に __proto__ を持つ tests.yml も用意する
+    description: "どちらもエラーメッセージ付きで読み込みが拒否され、アプリの状態が壊れない（エラー表示のまま操作を続けられる）"

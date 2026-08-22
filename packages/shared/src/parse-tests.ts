@@ -1,4 +1,5 @@
 import yaml from "js-yaml";
+import { assertSafeObjectKey } from "./safe-object-key";
 import type {
   CategoryTarget,
   Environment,
@@ -82,6 +83,7 @@ function parseEnvironment(raw: unknown, index: number): Environment {
   if (typeof raw === "string") {
     const id = raw.trim();
     if (!id) throw new Error(`environments[${index}] の id は空にできません`);
+    assertSafeObjectKey(id, `environments[${index}].id`);
     return { id, name: id };
   }
   if (typeof raw === "object" && raw !== null) {
@@ -92,6 +94,7 @@ function parseEnvironment(raw: unknown, index: number): Environment {
     } else {
       id = String(obj.id).trim();
       if (!id) throw new Error(`environments[${index}].id は空にできません`);
+      assertSafeObjectKey(id, `environments[${index}].id`);
     }
     const name = String(obj.name ?? id).trim() || id;
     return { id, name };
@@ -138,6 +141,7 @@ function parseTestCase(raw: unknown, index: number): TestCase {
   const id = String(obj.id ?? "");
   const description = String(obj.description ?? "");
   if (!id) throw new Error(`testCases[${index}].id は必須です`);
+  assertSafeObjectKey(id, `testCases[${index}].id`);
   if (!description) throw new Error(`testCases[${index}].description は必須です`);
 
   const categoryRaw = obj.category;
@@ -187,6 +191,7 @@ function parseScenario(raw: unknown, index: number): TestScenario {
   const id = String(obj.id ?? "").trim();
   const name = String(obj.name ?? "").trim();
   if (!id) throw new Error(`scenarios[${index}].id は必須です`);
+  assertSafeObjectKey(id, `scenarios[${index}].id`);
   if (!name) throw new Error(`scenarios[${index}].name は必須です`);
 
   const stepsRaw = obj.steps;

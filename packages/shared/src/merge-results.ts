@@ -1,3 +1,4 @@
+import { isUnsafeObjectKey } from "./safe-object-key";
 import { strongerStatus } from "./status";
 import { getResultEntryVersion } from "./test-case-version";
 import type { Bug, ResultsFile, TestMemos, TestResultEntry } from "./types";
@@ -23,6 +24,7 @@ function mergeMemos(a?: string, b?: string): string | undefined {
 function mergeTestMemos(base: TestMemos, incoming: TestMemos): TestMemos {
   const out: TestMemos = { ...base };
   for (const [testCaseId, memo] of Object.entries(incoming)) {
+    if (isUnsafeObjectKey(testCaseId)) continue;
     const merged = mergeMemos(out[testCaseId], memo);
     if (merged) out[testCaseId] = merged;
     else delete out[testCaseId];
@@ -126,10 +128,19 @@ export function mergeResultsFiles(base: ResultsFile, incoming: ResultsFile): Res
   const results = structuredClone(base.results);
 
   for (const [testCaseId, envMap] of Object.entries(incoming.results)) {
-    if (!results[testCaseId]) results[testCaseId] = {};
+    // hasOwnProperty で見る: `__proto__` だと `results[testCaseId]` が継承アクセサを
+    // 読んで truthy になり、代入が Object.prototype 自体に飛ぶ。
+    // 入口（parseResultsJson / parseTestsYaml）で弾いているが、ここは影響が
+    // プロセス全体に及ぶので単体でも安全にしておく
+    if (isUnsafeObjectKey(testCaseId)) continue;
+    if (!Object.prototype.hasOwnProperty.call(results, testCaseId)) {
+      results[testCaseId] = {};
+    }
+    const target = results[testCaseId]!;
     for (const [envId, entry] of Object.entries(envMap)) {
-      const existing = results[testCaseId][envId];
-      results[testCaseId][envId] = existing ? mergeEntry(existing, entry) : entry;
+      if (isUnsafeObjectKey(envId)) continue;
+      const existing = target[envId];
+      target[envId] = existing ? mergeEntry(existing, entry) : entry;
     }
   }
 
