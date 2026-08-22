@@ -1157,3 +1157,14 @@ testCases:
       minor: "履歴を汚さない"
     prerequisites: "AI パネルの復元履歴（definition_revisions）を表示できる状態で、TC-122 の競合または不正な YAML の Apply を起こす"
     description: "409 / 400 で保存に失敗した Apply では復元履歴に項目が増えない（成功した Apply のみ履歴に残る）"
+
+  - id: TC-125
+    category:
+      major: "Team 版"
+      medium: "プロジェクト作成"
+      minor: "名前のエスケープ"
+    prerequisites: |
+      Team 版のプロジェクト一覧で「新規作成」を開いている。
+      改行入りの名前は単一行 Input では入力できないため curl 等で
+      POST /api/projects に {"name": "a\nb"} を直接送って確認する
+    description: "引用符・末尾バックスラッシュ・コロン・日本語・1e3 のような数値に見える名前でも tests.yml なしで作成でき、一覧とテスト定義画面に入力した名前がそのまま表示される"

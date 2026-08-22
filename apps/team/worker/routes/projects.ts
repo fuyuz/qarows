@@ -6,6 +6,7 @@ import {
   type ResultsFile,
 } from "@qarows/shared";
 import { attachmentPrefix, purgeAttachmentCache } from "../attachments";
+import { buildEmptyTestsYaml } from "../build-empty-tests";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Context } from "hono";
@@ -81,30 +82,6 @@ function serializeSnapshot(snapshot: NonNullable<Awaited<ReturnType<typeof getPr
     updatedAt: snapshot.updatedAt,
     createdAt: snapshot.createdAt,
   };
-}
-
-function buildEmptyTestsYaml(name: string): string {
-  const id = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48) || "project";
-  return `project:
-  name: "${name.replace(/"/g, '\\"')}"
-  id: ${id}
-  version: 1
-
-environments:
-  - id: default
-    name: "Default"
-
-testCases:
-  - id: TC-001
-    category:
-      major: "サンプル"
-    description: "最初のテストケース"
-`;
 }
 
 export const projectsRoutes = new Hono<AppEnv>();
