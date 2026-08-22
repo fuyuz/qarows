@@ -990,7 +990,7 @@ testCases:
       medium: "AI"
       minor: "提案適用"
     prerequisites: "Team 版で AI が有効、テスト定義画面を開いている"
-    description: "AI 編集案を得たあと、編集画面に反映→Apply で保存できる。サーバーは proposalId 付き提案を保持する（手書き YAML の /ai/apply は拒否）"
+    description: "AI 編集案を得たあと、編集画面に反映→Diff で確認→Apply で保存できる。提案そのものを直接適用する経路はなく、必ず定義編集の Apply（generation 照合あり）を通る"
 
   - id: TC-105
     category:

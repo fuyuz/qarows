@@ -7,7 +7,6 @@ export interface AiSessionState {
   chatMessages: AiChatMessage[];
   proposal: AiProposal | null;
   workingFrom: "definition" | "proposal";
-  baseGeneration: string;
 }
 
 export function loadAiSession(projectId: string): AiSessionState | null {

@@ -167,11 +167,6 @@ export class ProjectRoom extends DurableObject<Env> {
 
     this.projectId = projectId;
 
-    if (request.method === "DELETE") {
-      await this.destroyRoom();
-      return Response.json({ ok: true });
-    }
-
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response(t("api.expectedWebSocket"), { status: 426 });
     }

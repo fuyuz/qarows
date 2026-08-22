@@ -372,7 +372,7 @@ export async function getDefinitionRevision(
 
 /** How long an AI proposal can be applied after propose. */
 export const AI_PROPOSAL_TTL_MS = 30 * 60 * 1000;
-/** Max proposals retained per project (including consumed/expired until pruned). */
+/** Max proposals retained per project (expired ones count until pruned). */
 const AI_PROPOSAL_RETENTION = 20;
 
 export interface AiProposalRow {
@@ -396,7 +396,6 @@ export interface AiProposalRecord {
   createdBy: string | null;
   createdAt: string;
   expiresAt: string;
-  consumedAt: string | null;
 }
 
 function rowToAiProposal(row: AiProposalRow): AiProposalRecord {
@@ -409,7 +408,6 @@ function rowToAiProposal(row: AiProposalRow): AiProposalRecord {
     createdBy: row.created_by,
     createdAt: row.created_at,
     expiresAt: row.expires_at,
-    consumedAt: row.consumed_at,
   };
 }
 
@@ -418,6 +416,7 @@ export async function insertAiProposal(
   input: {
     projectId: string;
     proposedYaml: string;
+    /** 提案の生成元世代。記録のみ（適用は定義編集画面の generation で照合する） */
     baseGeneration: string;
     instruction?: string | null;
     createdBy?: string | null;
@@ -476,11 +475,10 @@ export async function insertAiProposal(
     createdBy: input.createdBy ?? null,
     createdAt,
     expiresAt,
-    consumedAt: null,
   };
 }
 
-export async function getAiProposal(
+async function getAiProposal(
   db: D1Database,
   projectId: string,
   proposalId: string,
@@ -493,9 +491,9 @@ export async function getAiProposal(
 }
 
 export class AiProposalError extends Error {
-  readonly status: 400 | 404 | 409 | 410;
+  readonly status: 404 | 410;
 
-  constructor(status: 400 | 404 | 409 | 410, message: string) {
+  constructor(status: 404 | 410, message: string) {
     super(message);
     this.name = "AiProposalError";
     this.status = status;
@@ -503,39 +501,12 @@ export class AiProposalError extends Error {
 }
 
 export function assertAiProposalUsable(proposal: AiProposalRecord, now = new Date()): void {
-  if (proposal.consumedAt) {
-    throw new AiProposalError(409, "AI proposal already applied");
-  }
   if (Date.parse(proposal.expiresAt) <= now.getTime()) {
     throw new AiProposalError(410, "AI proposal expired");
   }
 }
 
-/** Mark a proposal consumed after a successful apply. */
-export async function markAiProposalConsumed(
-  db: D1Database,
-  input: {
-    projectId: string;
-    proposalId: string;
-    now?: Date;
-  },
-): Promise<void> {
-  const consumedAt = (input.now ?? new Date()).toISOString();
-  const result = await db
-    .prepare(
-      `UPDATE ai_proposals
-       SET consumed_at = ?
-       WHERE id = ? AND project_id = ? AND consumed_at IS NULL`,
-    )
-    .bind(consumedAt, input.proposalId, input.projectId)
-    .run();
-
-  if ((result.meta.changes ?? 0) === 0) {
-    throw new AiProposalError(409, "AI proposal already applied");
-  }
-}
-
-/** Load a proposal and ensure it is still usable (not consumed / not expired). */
+/** Load a proposal and ensure it has not expired. */
 export async function requireUsableAiProposal(
   db: D1Database,
   input: {

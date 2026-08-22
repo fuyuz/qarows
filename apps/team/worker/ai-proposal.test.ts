@@ -15,7 +15,6 @@ function sampleProposal(overrides: Partial<AiProposalRecord> = {}): AiProposalRe
     createdBy: "dev@local",
     createdAt: "2026-07-11T00:00:00.000Z",
     expiresAt: "2026-07-11T00:30:00.000Z",
-    consumedAt: null,
     ...overrides,
   };
 }
@@ -27,18 +26,13 @@ describe("assertAiProposalUsable", () => {
     ).not.toThrow();
   });
 
-  it("rejects consumed proposals", () => {
-    expect(() =>
-      assertAiProposalUsable(
-        sampleProposal({ consumedAt: "2026-07-11T00:05:00.000Z" }),
-        new Date("2026-07-11T00:10:00.000Z"),
-      ),
-    ).toThrow(AiProposalError);
-  });
-
   it("rejects expired proposals", () => {
+    // TTL は /ai/propose の提案チェーンで効く（適用専用 API は無い）
     expect(() =>
       assertAiProposalUsable(sampleProposal(), new Date("2026-07-11T00:31:00.000Z")),
+    ).toThrow(AiProposalError);
+    expect(() =>
+      assertAiProposalUsable(sampleProposal(), new Date("2026-07-11T00:30:00.000Z")),
     ).toThrow(AiProposalError);
   });
 });

@@ -10,13 +10,9 @@ import {
   getProject,
   insertAiProposal,
   listDefinitionRevisions,
-  markAiProposalConsumed,
   requireUsableAiProposal,
 } from "../db";
-import {
-  restoreDefinitionRevision,
-  saveCheckpointAndReplaceDefinition,
-} from "../replace-definition";
+import { restoreDefinitionRevision } from "../replace-definition";
 import { BodyTooLargeError, MAX_AI_PROPOSE_BODY_BYTES, readRequestTextWithLimit } from "../request-body";
 import { apiError, requestT } from "../i18n";
 import type { AppEnv } from "../types";
@@ -30,14 +26,6 @@ interface ProposeBody {
   /** Server-stored proposal to continue editing from (avoids resending YAML). */
   baseProposalId?: string;
   baseYaml?: string;
-}
-
-interface ApplyBody {
-  proposalId?: string;
-  expectedGeneration?: string;
-  instruction?: string;
-  /** @deprecated Client YAML is ignored — proposals are server-stored. */
-  proposedYaml?: string;
 }
 
 interface RestoreBody {
@@ -188,56 +176,6 @@ export function createAiRoutes(): Hono<AppEnv> {
           expiresAt: stored.expiresAt,
         },
       });
-    } catch (err) {
-      handleAiRouteError(c, err);
-    }
-  });
-
-  ai.post("/:projectId/ai/apply", async (c) => {
-    try {
-      const projectId = c.req.param("projectId");
-      let body: ApplyBody;
-      try {
-        const raw = await readRequestTextWithLimit(c.req.raw, 4096);
-        body = JSON.parse(raw) as ApplyBody;
-      } catch (err) {
-        if (err instanceof BodyTooLargeError) {
-          apiError(c, 413, "api.requestBodyTooLarge");
-        }
-        apiError(c, 400, "api.invalidJsonBody");
-      }
-
-      if (body.proposedYaml != null) {
-        apiError(c, 400, "api.proposedYamlDeprecated");
-      }
-
-      const proposalId = body.proposalId?.trim();
-      const expectedGeneration = body.expectedGeneration?.trim();
-      if (!proposalId) {
-        apiError(c, 400, "api.proposalIdRequired");
-      }
-      if (!expectedGeneration) {
-        apiError(c, 400, "api.expectedGenerationRequired");
-      }
-
-      const proposal = await requireUsableAiProposal(c.env.DB, { projectId, proposalId });
-
-      const result = await saveCheckpointAndReplaceDefinition(
-        c.env,
-        {
-          projectId,
-          testsYaml: proposal.proposedYaml,
-          expectedGeneration,
-          source: "ai_apply",
-          instruction: body.instruction?.trim() || proposal.instruction,
-          createdBy: c.get("user").email,
-        },
-        c.get("locale"),
-      );
-
-      await markAiProposalConsumed(c.env.DB, { projectId, proposalId });
-
-      return c.json({ ok: true, ...result });
     } catch (err) {
       handleAiRouteError(c, err);
     }

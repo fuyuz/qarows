@@ -31,7 +31,6 @@ export function useTestsYamlAiEdit({
   const [chatMessages, setChatMessages] = useState<AiChatMessage[]>([]);
   const [proposal, setProposal] = useState<AiProposal | null>(null);
   const [workingFrom, setWorkingFrom] = useState<"definition" | "proposal">("definition");
-  const [baseGeneration, setBaseGeneration] = useState("");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -49,11 +48,10 @@ export function useTestsYamlAiEdit({
     }
   }, [enabled, projectId]);
 
-  const refreshGeneration = useCallback(async () => {
+  /** 復元は「この版に戻す」という明示操作なので、その時点の世代で LWW 上書きする */
+  const currentGeneration = useCallback(async () => {
     if (!enabled || !projectId) return null;
-    const snapshot = await getProject(projectId);
-    setBaseGeneration(snapshot.generation ?? "");
-    return snapshot.generation ?? "";
+    return (await getProject(projectId)).generation ?? null;
   }, [enabled, projectId]);
 
   useEffect(() => {
@@ -61,28 +59,21 @@ export function useTestsYamlAiEdit({
     const saved = loadAiSession(projectId);
     if (saved) {
       setChatMessages(saved.chatMessages);
-      // Drop legacy proposals without server proposalId (cannot be applied via /ai/apply).
+      // Drop legacy proposals without a server proposalId (cannot be chained by /ai/propose).
       const savedProposal =
         saved.proposal && typeof saved.proposal.proposalId === "string"
           ? saved.proposal
           : null;
       setProposal(savedProposal);
       setWorkingFrom(savedProposal ? saved.workingFrom : "definition");
-      setBaseGeneration(saved.baseGeneration);
     }
-    void refreshGeneration();
     void loadRevisions();
-  }, [enabled, projectId, refreshGeneration, loadRevisions]);
+  }, [enabled, projectId, loadRevisions]);
 
   useEffect(() => {
     if (!enabled || !projectId) return;
-    saveAiSession(projectId, {
-      chatMessages,
-      proposal,
-      workingFrom,
-      baseGeneration,
-    });
-  }, [enabled, projectId, chatMessages, proposal, workingFrom, baseGeneration]);
+    saveAiSession(projectId, { chatMessages, proposal, workingFrom });
+  }, [enabled, projectId, chatMessages, proposal, workingFrom]);
 
   const handleSend = useCallback(async () => {
     if (!enabled || !projectId || !definition || !input.trim() || busy) return;
@@ -144,8 +135,7 @@ export function useTestsYamlAiEdit({
     setSuccessMessage(null);
     setLastIntent(null);
     clearAiSession(projectId);
-    void refreshGeneration();
-  }, [enabled, projectId, refreshGeneration]);
+  }, [enabled, projectId]);
 
   const handleRestore = useCallback(
     async (revisionId: string) => {
@@ -156,14 +146,12 @@ export function useTestsYamlAiEdit({
       setSuccessMessage(null);
       setLastIntent(null);
       try {
-        // 復元は「この版に戻す」という明示操作なので LWW（最新世代で上書き）
-        const generation = (await refreshGeneration()) ?? baseGeneration;
+        const generation = await currentGeneration();
         if (!generation) throw new Error(t("error.noGenerationShort"));
         await restoreDefinitionRevision(projectId, revisionId, generation);
         setProposal(null);
         setWorkingFrom("definition");
         setSuccessMessage(t("ai.restoredYaml"));
-        await refreshGeneration();
         await loadRevisions();
       } catch (err) {
         setErrorMessage(err instanceof ApiError ? err.message : t("ai.restoreFailed"));
@@ -171,7 +159,7 @@ export function useTestsYamlAiEdit({
         setBusy(false);
       }
     },
-    [enabled, projectId, refreshGeneration, baseGeneration, loadRevisions],
+    [enabled, projectId, currentGeneration, loadRevisions],
   );
 
   const acceptProposalIntoDraft = useCallback(() => {
@@ -211,7 +199,6 @@ export function useTestsYamlAiEdit({
     handleReset,
     handleRestore,
     acceptProposalIntoDraft,
-    refreshGeneration,
     loadRevisions,
   };
 }

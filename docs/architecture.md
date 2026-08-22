@@ -204,12 +204,15 @@ Local 版 のファイルマージルール（OK &lt; SKIP &lt; NG）は **Local
 
 | 経路 | 典型 UI | 同期 | `generation` | `definition_revisions` |
 |---|---|---|---|---|
-| **本編集** | テスト定義画面（draft → Diff → Apply）、YAML 取込、AI apply | HTTP（`definition/apply` / `PUT /definition` / `/ai/apply` 等） | **bump**（楽観ロック） | **checkpoint**（復元用） |
+| **本編集** | テスト定義画面（draft → Diff → Apply）、YAML 取込 | HTTP（`definition/apply` / `PUT /definition` / `definition-revisions/:id/restore`） | **bump**（楽観ロック） | **checkpoint**（復元用） |
 | **実行中の軽微修正** | ランナーのテストケース編集ダイアログ | WebSocket `updateTestCase` | **変更しない** | **作らない** |
 
 - WS `updateTestCase` は説明・前提・分類などのその場修正向け。`revision` は増えリアルタイム同期されるが、YAML 本編集用の generation / 復元履歴とは別レイヤ。
-- 本編集（HTTP apply）は `expectedGeneration` で競合検知する。ランナー側で直した直後に、古い generation のまま HTTP apply すると **ランナー側の変更は上書きされ得る**（LWW。意図どおり）。
+- 本編集（HTTP apply）は `expectedGeneration` で競合検知する。ただし復元（`definition-revisions/:id/restore`）は
+  「この版に戻す」という明示操作なので、その時点の generation を取り直して LWW で上書きする。ランナー側で直した直後に、古い generation のまま HTTP apply すると **ランナー側の変更は上書きされ得る**（LWW。意図どおり）。
 - 破壊的な一括置換（`replaceDefinition` / `mergeResults` / `clearResults`）は WS クライアントからは受理しない（HTTP / Worker RPC のみ）。
+- AI の提案は **エディタの draft に読み込むだけ**。適用は通常の本編集（`definition/apply`）を通るので、
+  提案から適用までの競合検知も定義編集画面の generation で行う。専用の適用 API は持たない。
 
 ### データフロー（リアルタイム同期）
 

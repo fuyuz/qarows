@@ -53,21 +53,6 @@ export async function proposeAiEdit(
   });
 }
 
-export async function applyAiProposal(
-  projectId: string,
-  body: {
-    proposalId: string;
-    expectedGeneration: string;
-    instruction?: string;
-  },
-): Promise<{ ok: true; generation: string; revisionId: string }> {
-  return apiJson(`/api/projects/${encodeURIComponent(projectId)}/ai/apply`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
 export async function listDefinitionRevisions(
   projectId: string,
 ): Promise<{ revisions: DefinitionRevisionSummary[] }> {
