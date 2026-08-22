@@ -1,6 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import { getProjectIdFromDefinition, type ResultsFile, type SessionConfig, type TestDefinition } from "@qarows/shared";
-import { projectRecordToSummary, sortProjectSummaries } from "@/lib/project-summaries";
+import { sortProjectSummaries, type ProjectSummary } from "@qarows/application";
+import { projectRecordToSummary } from "@/lib/project-summaries";
 
 /** @deprecated v1 single-project blob — migrated to v2 on first load */
 interface LegacyPersistedState {
@@ -18,13 +19,6 @@ export interface ProjectRecord {
 
 export interface AppMeta {
   lastOpenedProjectId: string | null;
-}
-
-export interface ProjectSummary {
-  projectId: string;
-  name: string;
-  updatedAt: string;
-  hasValidSession: boolean;
 }
 
 interface QarowsDB extends DBSchema {
@@ -103,10 +97,6 @@ async function migrateFromV1(): Promise<void> {
   await db.delete("meta", "state");
 }
 
-function recordToSummary(projectId: string, record: ProjectRecord): ProjectSummary {
-  return projectRecordToSummary(projectId, record);
-}
-
 export async function listProjectSummaries(): Promise<ProjectSummary[]> {
   await ensureMigrated();
   const db = await getDb();
@@ -115,7 +105,7 @@ export async function listProjectSummaries(): Promise<ProjectSummary[]> {
   const [keys, records] = await Promise.all([store.getAllKeys(), store.getAll()]);
   await tx.done;
   const summaries = keys.map((projectId, index) =>
-    recordToSummary(projectId, records[index]!),
+    projectRecordToSummary(projectId, records[index]!),
   );
   return sortProjectSummaries(summaries);
 }

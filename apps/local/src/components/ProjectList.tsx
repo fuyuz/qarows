@@ -8,7 +8,7 @@ export function ProjectList() {
   const { projectId, setProjectId } = useProjectsQueryState();
 
   const summaries: ProjectListItem[] = projectSummaries.map((summary) => ({
-    id: summary.projectId,
+    id: summary.id,
     name: summary.name,
     updatedAt: summary.updatedAt,
     hasValidSession: summary.hasValidSession,
