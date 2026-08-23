@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { isBugClosed } from "@qarows/shared";
-import { useTranslation } from "@qarows/ui";
+import { isKeyboardTypingTarget, useTranslation } from "@qarows/ui";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  Kbd,
   Select,
   SelectContent,
   SelectItem,
@@ -30,6 +31,12 @@ function countOpenBugs(bugs: { status: Parameters<typeof isBugClosed>[0] }[]): n
 
 type DashboardScope = "all" | "session";
 
+/** 集計対象の切り替えキー（s: セッション / a: 全体） */
+const SCOPE_KEYBINDINGS: Record<string, DashboardScope> = {
+  s: "session",
+  a: "all",
+};
+
 export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
   const { t, locale } = useTranslation();
   const navigate = useNavigate();
@@ -44,6 +51,20 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
     if (!location.search || !projectId) return;
     navigate(projectPath(projectId, "dashboard"), { replace: true });
   }, [location.search, navigate, projectId]);
+
+  useEffect(() => {
+    if (!session) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isKeyboardTypingTarget(e.target)) return;
+      const nextScope = SCOPE_KEYBINDINGS[e.key];
+      if (!nextScope) return;
+      e.preventDefault();
+      setScope(nextScope);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [session]);
 
   const { overallStats, categoryRows } = useMemo(() => {
     if (!definition || !results) {
@@ -95,22 +116,29 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
       <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-bold tracking-tight">{t("nav.dashboard")}</h1>
-          <Select
-            value={effectiveScope}
-            onValueChange={(value) => setScope(value as DashboardScope)}
-            disabled={!session}
-          >
-            <SelectTrigger
-              aria-label={t("runner.dashboardScopeAria")}
-              className="h-auto w-auto px-2.5 py-1.5 text-sm font-semibold"
+          <div className="flex items-center gap-2">
+            {session && (
+              <span className="text-xs text-muted-foreground">
+                <Kbd>s</Kbd> / <Kbd>a</Kbd>
+              </span>
+            )}
+            <Select
+              value={effectiveScope}
+              onValueChange={(value) => setScope(value as DashboardScope)}
+              disabled={!session}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="session">{t("runner.dashboardScopeSession")}</SelectItem>
-              <SelectItem value="all">{t("runner.dashboardScopeAll")}</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                aria-label={t("runner.dashboardScopeAria")}
+                className="h-auto w-auto px-2.5 py-1.5 text-sm font-semibold"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="session">{t("runner.dashboardScopeSession")}</SelectItem>
+                <SelectItem value="all">{t("runner.dashboardScopeAll")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <section className="mb-8 grid gap-4 sm:grid-cols-2">

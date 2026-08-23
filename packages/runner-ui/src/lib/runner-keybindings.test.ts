@@ -4,6 +4,7 @@ import {
   isRunnerNextKey,
   isRunnerPrevKey,
   isRunnerTypingTarget,
+  matchRunnerSingleStatusKey,
   matchRunnerStatusKey,
 } from "./runner-keybindings";
 
@@ -12,6 +13,13 @@ describe("runner keybindings", () => {
     expect(matchRunnerStatusKey("o")).toBe("OK");
     expect(matchRunnerStatusKey("n")).toBe("NG");
     expect(matchRunnerStatusKey("x")).toBeNull();
+  });
+
+  it("maps single-status keys", () => {
+    expect(matchRunnerSingleStatusKey("0")).toBe("OK");
+    expect(matchRunnerSingleStatusKey("9")).toBe("NG");
+    expect(matchRunnerSingleStatusKey("8")).toBe("SKIP");
+    expect(matchRunnerSingleStatusKey("o")).toBeNull();
   });
 
   it("detects navigation keys", () => {

@@ -22,6 +22,12 @@ const STATUS_LABELS: Record<TestStatus, string> = {
   SKIP: "SKIP",
 };
 
+const SINGLE_STATUS_KEYS: Record<TestStatus, string> = {
+  OK: RUNNER_KEYBINDINGS.singleOk[0],
+  NG: RUNNER_KEYBINDINGS.singleNg[0],
+  SKIP: RUNNER_KEYBINDINGS.singleSkip[0],
+};
+
 function formatCategory(tc: TestCase): string {
   const parts = [tc.category.major];
   if (tc.category.medium) parts.push(tc.category.medium);
@@ -161,11 +167,17 @@ export function TestCard({
             </Badge>
           </h2>
           <ul className="flex flex-col gap-2">
-            {envTargets.environmentIds.map((envId) => {
+            {envTargets.environmentIds.map((envId, index) => {
               const env = definition.environments.find((e) => e.id === envId);
               const entry = results[testCase.id]?.[envId];
               const isValid = isResultEntryValid(entry, testCase);
               const isIncomplete = !isValid;
+              // 0/9/8 キーは未入力の先頭の端末に効く（TestRunner 側と同じ判定）
+              const isSingleKeyTarget =
+                isIncomplete &&
+                envTargets.environmentIds
+                  .slice(0, index)
+                  .every((prevId) => isResultEntryValid(results[testCase.id]?.[prevId], testCase));
 
               return (
                 <li
@@ -202,6 +214,9 @@ export function TestCard({
                         onClick={() => onSingle(envId, status)}
                       >
                         {STATUS_LABELS[status]}
+                        {isSingleKeyTarget && (
+                          <Kbd className="ml-1">{SINGLE_STATUS_KEYS[status]}</Kbd>
+                        )}
                       </Button>
                     ))}
                   </div>

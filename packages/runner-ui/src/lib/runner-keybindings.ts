@@ -7,6 +7,9 @@ export const RUNNER_KEYBINDINGS = {
   ok: ["o"],
   ng: ["n"],
   skip: ["s"],
+  singleOk: ["0"],
+  singleNg: ["9"],
+  singleSkip: ["8"],
   bug: ["b"],
 } as const;
 
@@ -14,6 +17,13 @@ const STATUS_BY_KEY: Record<string, TestStatus> = {
   o: "OK",
   n: "NG",
   s: "SKIP",
+};
+
+/** 未入力の端末 1 件だけに結果をつけるキー（0/9/8） */
+const SINGLE_STATUS_BY_KEY: Record<string, TestStatus> = {
+  "0": "OK",
+  "9": "NG",
+  "8": "SKIP",
 };
 
 export function isRunnerTypingTarget(target: EventTarget | null): boolean {
@@ -24,6 +34,10 @@ export function isRunnerTypingTarget(target: EventTarget | null): boolean {
 
 export function matchRunnerStatusKey(key: string): TestStatus | null {
   return STATUS_BY_KEY[key] ?? null;
+}
+
+export function matchRunnerSingleStatusKey(key: string): TestStatus | null {
+  return SINGLE_STATUS_BY_KEY[key] ?? null;
 }
 
 export function isRunnerPrevKey(key: string): boolean {

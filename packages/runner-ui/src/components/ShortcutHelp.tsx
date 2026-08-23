@@ -26,6 +26,9 @@ export function ShortcutHelp({
     { label: t("runner.batchOk"), keys: RUNNER_KEYBINDINGS.ok },
     { label: t("runner.batchNg"), keys: RUNNER_KEYBINDINGS.ng },
     { label: t("runner.batchSkip"), keys: RUNNER_KEYBINDINGS.skip },
+    { label: t("runner.singleOk"), keys: RUNNER_KEYBINDINGS.singleOk },
+    { label: t("runner.singleNg"), keys: RUNNER_KEYBINDINGS.singleNg },
+    { label: t("runner.singleSkip"), keys: RUNNER_KEYBINDINGS.singleSkip },
   ] as const;
 
   return (

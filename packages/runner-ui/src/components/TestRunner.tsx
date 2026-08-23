@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getTestCaseVersion,
+  isResultEntryValid,
   nextBugId,
   resolveSessionTestTargets,
   testCaseNeedsRetest,
@@ -23,6 +24,7 @@ import {
   isRunnerNextKey,
   isRunnerPrevKey,
   isRunnerTypingTarget,
+  matchRunnerSingleStatusKey,
   matchRunnerStatusKey,
 } from "../lib/runner-keybindings";
 import { resolveRunnerTargets } from "../lib/runner-targets";
@@ -89,6 +91,16 @@ export function TestRunner() {
     if (!current || !definition || !session) return null;
     return resolveSessionTestTargets(current, definition, session.selectedEnvironmentIds);
   }, [current, definition, session]);
+
+  // 0/9/8 キーの適用先: 未入力（ハイライト表示中）の先頭の端末
+  const nextIncompleteEnvId = useMemo(() => {
+    if (!current || !envTargets || !results) return null;
+    return (
+      envTargets.environmentIds.find(
+        (envId) => !isResultEntryValid(results.results[current.id]?.[envId], current),
+      ) ?? null
+    );
+  }, [current, envTargets, results]);
 
   const relatedBugs = useMemo(() => {
     if (!results || !current) return [];
@@ -432,12 +444,21 @@ export function TestRunner() {
       if (status) {
         e.preventDefault();
         void applyBatch(status);
+        return;
+      }
+
+      const singleStatus = matchRunnerSingleStatusKey(e.key);
+      if (singleStatus && nextIncompleteEnvId) {
+        e.preventDefault();
+        applySingle(nextIncompleteEnvId, singleStatus);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     applyBatch,
+    applySingle,
+    nextIncompleteEnvId,
     bugDialogOpen,
     relatedBugsDialogOpen,
     testCaseEditDialogOpen,
