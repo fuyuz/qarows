@@ -566,6 +566,14 @@ testCases:
     prerequisites: "tests.yml 読み込み済み"
     description: "Compass メニューからマトリクス画面へ遷移し、全環境列を含む表が表示される"
 
+  - id: TC-137
+    category:
+      major: "閲覧"
+      medium: "マトリクス"
+      minor: "列固定"
+    prerequisites: "マトリクス画面を表示中、環境列がはみ出す幅（ウィンドウを狭める、または環境が多いプロジェクト）"
+    description: "横スクロールしても ID・大項目・中項目・小項目の4列は左端に固定されたまま残り、小項目の右端に影が出る。確認内容と環境列はスクロールに追従する"
+
   - id: TC-043
     category:
       major: "閲覧"

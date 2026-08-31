@@ -1,10 +1,14 @@
 import { useMemo, useRef, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  columnOrderingFeature,
+  columnPinningFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
   createColumnHelper,
   flexRender,
-  getCoreRowModel,
-  useReactTable,
+  tableFeatures,
+  useTable,
   type Column,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -23,8 +27,18 @@ import { cn } from "@qarows/ui";
 
 const ROW_HEIGHT = 40;
 
-/** 左固定は ID・分類のみ。確認内容は横スクロールで環境列を優先表示 */
-const PINNED_LEFT = ["id", "major", "medium", "minor"] as const;
+/** 列幅・固定・getIsLastColumn だけを使う。行の並べ替えや絞り込みは表側で済ませている */
+const features = tableFeatures({
+  columnSizingFeature,
+  columnPinningFeature,
+  columnOrderingFeature,
+  columnVisibilityFeature,
+});
+
+type MatrixColumn = Column<typeof features, TestCase, unknown>;
+
+/** 先頭固定は ID・分類のみ。確認内容は横スクロールで環境列を優先表示 */
+const PINNED_START = ["id", "major", "medium", "minor"] as const;
 
 const COLUMN_SIZES = {
   id: 76,
@@ -35,7 +49,7 @@ const COLUMN_SIZES = {
   env: 92,
 } as const;
 
-function cellWidthStyle(column: Column<TestCase, unknown>): CSSProperties {
+function cellWidthStyle(column: MatrixColumn): CSSProperties {
   const size = column.getSize();
   return {
     width: size,
@@ -44,10 +58,7 @@ function cellWidthStyle(column: Column<TestCase, unknown>): CSSProperties {
   };
 }
 
-function pinningStyles(
-  column: Column<TestCase, unknown>,
-  isHeader = false,
-): CSSProperties {
+function pinningStyles(column: MatrixColumn, isHeader = false): CSSProperties {
   const pinned = column.getIsPinned();
   if (!pinned) {
     return {
@@ -56,17 +67,17 @@ function pinningStyles(
     };
   }
 
-  const isLeft = pinned === "left";
-  const isLastLeftPinned = isLeft && column.getIsLastColumn("left");
+  const isStart = pinned === "start";
+  const isLastStartPinned = isStart && column.getIsLastColumn("start");
 
   return {
     position: "sticky",
-    left: isLeft ? `${column.getStart("left")}px` : undefined,
-    right: !isLeft ? `${column.getAfter("right")}px` : undefined,
+    left: isStart ? `${column.getStart("start")}px` : undefined,
+    right: !isStart ? `${column.getAfter("end")}px` : undefined,
     zIndex: isHeader ? 2 : 1,
     backgroundColor: "var(--card)",
     width: column.getSize(),
-    ...(isLastLeftPinned
+    ...(isLastStartPinned
       ? { boxShadow: "2px 0 4px -2px color-mix(in oklab, var(--foreground) 12%, transparent)" }
       : {}),
   };
@@ -121,7 +132,7 @@ export function TestMatrixTable({
   const columns = useMemo(() => {
     if (!definition) return [];
 
-    const helper = createColumnHelper<TestCase>();
+    const helper = createColumnHelper<typeof features, TestCase>();
 
     const metaColumns = [
       helper.accessor("id", {
@@ -187,16 +198,17 @@ export function TestMatrixTable({
       }),
     );
 
-    return [...metaColumns, ...envColumns];
+    return helper.columns([...metaColumns, ...envColumns]);
   }, [definition, results, t, targetEnvIdsByTestCase]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: testCases,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     state: {
       columnPinning: {
-        left: [...PINNED_LEFT],
+        start: [...PINNED_START],
+        end: [],
       },
     },
     defaultColumn: {
