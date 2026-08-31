@@ -10,7 +10,7 @@
     "dev:worker": "wrangler dev --config wrangler.toml --port 8787",
     "db:migrate:local": "wrangler d1 migrations apply qarows-v2 --local --config wrangler.toml",
     "preview": "vite preview",
-    "types:worker": "wrangler types --config wrangler.toml.example --env-interface CloudflareEnv worker-configuration.d.ts",
+    "check:worker-env": "bash scripts/check-worker-env.sh",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
     "test": "vitest run",
     "deploy": "bash scripts/deploy.sh"
