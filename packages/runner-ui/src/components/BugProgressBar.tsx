@@ -86,7 +86,7 @@ function BugStatusRow({
 
 export function BugProgressBar() {
   const { t } = useTranslation();
-  const { definition, results, session } = useRunnerWorkspace();
+  const { definition, results } = useRunnerWorkspace();
   const { runnerFilters, bugFilters } = useRunnerQueryState();
 
   const allEnvIds = useMemo(
@@ -104,11 +104,10 @@ export function BugProgressBar() {
       results.bugs,
       results.results,
       allEnvIds,
-      session,
       bugFilters,
     );
     return { overall: results.bugs, filtered: filteredBugs };
-  }, [allEnvIds, bugFilters, definition, results, runnerFilters, session]);
+  }, [allEnvIds, bugFilters, definition, results, runnerFilters]);
 
   if (!definition || !results || overall.length === 0) return null;
 

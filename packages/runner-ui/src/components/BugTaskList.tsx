@@ -199,7 +199,7 @@ function BugListPanel({
 
 export function BugTaskList() {
   const { t } = useTranslation();
-  const { definition, results, session } = useRunnerWorkspace();
+  const { definition, results } = useRunnerWorkspace();
   const { runnerFilters, bugId, setBugId, bugFilters } = useRunnerQueryState();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
@@ -217,10 +217,9 @@ export function BugTaskList() {
       results.bugs,
       results.results,
       allEnvIds,
-      session,
       bugFilters,
     );
-  }, [allEnvIds, bugFilters, definition, results, runnerFilters, session]);
+  }, [allEnvIds, bugFilters, definition, results, runnerFilters]);
 
   const bugIndex = useMemo(() => {
     if (!bugId) return -1;

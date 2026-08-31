@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Bug, BugStatus } from "@qarows/shared";
-import { getNextBugStatus, isValidSession } from "@qarows/shared";
+import { getNextBugStatus } from "@qarows/shared";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useProjectRoutes } from "../hooks/useProjectRoutes";
 import { BugCard } from "./BugCard";
@@ -44,11 +44,6 @@ export function BugViewer() {
     [definition],
   );
 
-  const availableEnvironmentIds = useMemo(() => {
-    if (session && isValidSession(session)) return session.selectedEnvironmentIds;
-    return allEnvIds;
-  }, [allEnvIds, session]);
-
   const targets = useMemo(() => {
     if (!definition || !results) return [];
     return resolveFilteredBugs(
@@ -57,10 +52,9 @@ export function BugViewer() {
       results.bugs,
       results.results,
       allEnvIds,
-      session,
       bugFilters,
     );
-  }, [allEnvIds, bugFilters, definition, results, runnerFilters, session]);
+  }, [allEnvIds, bugFilters, definition, results, runnerFilters]);
 
   const bugIndex = useMemo(() => {
     if (!bugId) return -1;
@@ -230,7 +224,7 @@ export function BugViewer() {
           open={editDialogOpen}
           bug={current}
           definition={definition}
-          availableEnvironmentIds={availableEnvironmentIds}
+          availableEnvironmentIds={allEnvIds}
           busy={busy}
           onSave={handleEditSave}
           onClose={() => setEditDialogOpen(false)}

@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveFilteredBugs } from "./bug-filter";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
-import type { Bug, SessionConfig } from "@qarows/shared";
-
-const session: SessionConfig = {
-  executorName: "qa",
-  selectedEnvironmentIds: ["chrome"],
-};
+import type { Bug } from "@qarows/shared";
 
 const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false };
 
@@ -37,7 +32,6 @@ describe("resolveFilteredBugs", () => {
       bugs,
       {},
       definition.environments.map((env) => env.id),
-      session,
     );
     expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001"]);
   });
@@ -49,7 +43,6 @@ describe("resolveFilteredBugs", () => {
       bugs,
       {},
       definition.environments.map((env) => env.id),
-      session,
     );
     expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001", "BUG-002", "BUG-003"]);
   });
@@ -61,7 +54,6 @@ describe("resolveFilteredBugs", () => {
       bugs,
       {},
       definition.environments.map((env) => env.id),
-      session,
       { priorities: ["high"], statuses: [] },
     );
     expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001"]);
@@ -78,9 +70,29 @@ describe("resolveFilteredBugs", () => {
       scopedBugs,
       {},
       definition.environments.map((env) => env.id),
-      session,
       { priorities: [], statuses: ["fixed"] },
     );
     expect(filtered.map((bug) => bug.id)).toEqual(["BUG-002"]);
+  });
+
+  it("keeps bugs on test cases outside the current device selection", () => {
+    const scopedDefinition = makeDefinition({
+      testCases: [
+        {
+          id: "TC-001",
+          category: { major: "Auth", medium: "Login" },
+          description: "Can log in",
+          targetEnvironments: { required: "all", targets: ["safari"] },
+        },
+      ],
+    });
+    const filtered = resolveFilteredBugs(
+      scopedDefinition,
+      defaultScopeFilters,
+      [bugs[0]!],
+      {},
+      scopedDefinition.environments.map((env) => env.id),
+    );
+    expect(filtered.map((bug) => bug.id)).toEqual(["BUG-001"]);
   });
 });

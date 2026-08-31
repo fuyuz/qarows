@@ -2,25 +2,27 @@ import {
   getRunnerTargetMode,
   type Bug,
   type RunnerFilters,
-  type SessionConfig,
   type TestDefinition,
   type TestResults,
 } from "@qarows/shared";
 import { type BugFilters, matchesBugFilters } from "./bug-query";
 import { resolveMatrixTestCases } from "./matrix-test-cases";
 
+/**
+ * バグ一覧はセッションの端末選択で絞り込まない。
+ * バグ対応は端末をまたいで行うため、常に全端末を対象にする
+ */
 export function resolveFilteredBugs(
   definition: TestDefinition,
   runnerFilters: RunnerFilters,
   bugs: Bug[],
   results: TestResults,
   environmentIds: string[],
-  session: SessionConfig | null,
   bugFilters: BugFilters = { priorities: [], statuses: [] },
 ): Bug[] {
   const scopeFilters: RunnerFilters = { ...runnerFilters, onlyIncomplete: false };
   const filteredTestCaseIds = new Set(
-    resolveMatrixTestCases(definition, scopeFilters, results, environmentIds, session).map(
+    resolveMatrixTestCases(definition, scopeFilters, results, environmentIds, null).map(
       (testCase) => testCase.id,
     ),
   );
