@@ -32,6 +32,10 @@ Team 版でバグ添付がある場合、zip には `attachments/<key>.<ext>` �
 
 インポート時、`parseResultsJson` は `tests.yml` 読み込み済みなら `testCaseId` / `environmentId` / `projectId` を定義と照合する。
 
+スキーマとパーサは二重管理なので、`apps/local/src/lib/schema-parser-agreement.test.ts` が
+サンプル `tests.yml` を ajv でスキーマ検証しつつ `parseTestsYaml` にも通し、両者が食い違ったら
+落ちるようにしている。片方だけ直すとここで気づける。
+
 ---
 
 ## tests.yml
