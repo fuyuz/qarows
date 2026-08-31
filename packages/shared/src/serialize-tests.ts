@@ -1,4 +1,4 @@
-import yaml from "js-yaml";
+import { dump } from "js-yaml";
 import type {
   CategoryTarget,
   Environment,
@@ -83,5 +83,5 @@ export function serializeTestsYaml(definition: TestDefinition): string {
     payload.scenarios = definition.scenarios.map(serializeScenario);
   }
 
-  return `${yaml.dump(payload, { lineWidth: 120, noRefs: true })}`;
+  return `${dump(payload, { lineWidth: 120, noRefs: true })}`;
 }

@@ -1,4 +1,4 @@
-import yaml from "js-yaml";
+import { load } from "js-yaml";
 import { assertSafeObjectKey } from "./safe-object-key";
 import type {
   CategoryTarget,
@@ -10,7 +10,7 @@ import type {
   TestScenario,
 } from "./types";
 
-/** Nesting limit for js-yaml 4.3+ (default in library is 100). */
+/** Nesting limit for js-yaml (default in library is 100). */
 export const MAX_YAML_DEPTH = 32;
 /** Max unique object/array nodes after parse (DoS guard). */
 export const MAX_YAML_NODES = 50_000;
@@ -225,8 +225,8 @@ function validateTargetEnvironmentIds(
 }
 
 export function parseTestsYaml(content: string): TestDefinition {
-  // js-yaml 4.3+: maxDepth limits nesting; node budget limits graph size after load.
-  const data = yaml.load(content, { maxDepth: MAX_YAML_DEPTH } as yaml.LoadOptions);
+  // maxDepth limits nesting; node budget limits graph size after load.
+  const data = load(content, { maxDepth: MAX_YAML_DEPTH });
   assertYamlNodeBudget(data, MAX_YAML_NODES);
   if (typeof data !== "object" || data === null) {
     throw new Error("tests.yml のルートはオブジェクトである必要があります");
