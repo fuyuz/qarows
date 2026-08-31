@@ -10,6 +10,10 @@
     "react-hooks/exhaustive-deps": "warn",
     "react/react-in-jsx-scope": "off",
     "react/no-unstable-nested-components": ["warn", { "allowAsProps": true }],
+    "react/set-state-in-effect": "warn",
+    "react/refs": "warn",
+    "react/preserve-manual-memoization": "warn",
+    "react/incompatible-library": "warn",
     "no-underscore-dangle": "off"
   },
   "overrides": [
