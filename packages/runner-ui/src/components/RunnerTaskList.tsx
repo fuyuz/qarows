@@ -128,7 +128,7 @@ function TaskListPanel({
         </p>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:block!">
         <ul className="py-1">
           {targets.length === 0 ? (
             <li className="px-3.5 py-4 text-sm text-muted-foreground">{t("runner.noTests")}</li>
@@ -192,12 +192,17 @@ function TaskListPanel({
                     >
                       {statusSymbol(status)}
                     </span>
-                    <span className="min-w-0">
-                      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <span className="text-[0.72rem] font-bold text-primary">{testCase.id}</span>
-                        <span className="text-[0.68rem] text-muted-foreground">{formatCategory(testCase)}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline gap-x-2">
+                        <span className="shrink-0 text-[0.72rem] font-bold text-primary">{testCase.id}</span>
+                        <span
+                          className="min-w-0 flex-1 truncate text-[0.68rem] text-muted-foreground"
+                          title={formatCategory(testCase)}
+                        >
+                          {formatCategory(testCase)}
+                        </span>
                       </span>
-                      <span className="mt-0.5 line-clamp-3 text-xs leading-relaxed text-foreground/80">
+                      <span className="mt-0.5 line-clamp-3 break-words text-xs leading-relaxed text-foreground/80">
                         {testCase.description}
                       </span>
                     </span>
