@@ -101,6 +101,8 @@ Use to set default required/targets for a category subtree without repeating on 
 
 Predefined ordered test runs (filter mode alternative in UI).
 
+Create a scenario to group test cases that share the same prerequisites, or that should be run in a specific order (e.g. later steps depend on the state left by earlier ones). List \`steps\` in execution order.
+
 \`\`\`yaml
 scenarios:
   - id: smoke                 # required, unique
@@ -129,7 +131,7 @@ Every \`steps\` entry must reference an existing \`testCases[].id\`.
 - Write \`description\` as a concrete, testable observation (not "check login")
 - Put shared environment rules in \`categoryTargets\`; override only exceptions on cases
 - Use \`required: all\` unless the case genuinely needs only one environment (\`any\`)
-- Add \`scenarios\` for common QA flows (smoke, regression, release checklist)
+- Add \`scenarios\` to bundle cases with the same prerequisites or cases meant to run in sequence (e.g. smoke, regression, release checklist flows)
 - Keep \`prerequisites\` short: screen, data state, role, feature flags
 
 ## Minimal valid example
