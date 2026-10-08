@@ -105,13 +105,13 @@ Create a scenario to group test cases that share the same prerequisites, or that
 
 \`\`\`yaml
 scenarios:
-  - id: smoke                 # required, unique
-    name: "スモーク"           # required
+  - id: login-flow            # required, unique
+    name: "ログイン"           # required
     description: |            # optional
-      Short explanation.
-    steps:                    # required, ≥1 testCase id
-      - TC-001
+      未ログイン状態から、失敗ケース → 成功ケースの順で確認する。
+    steps:                    # required, ≥1 testCase id, in execution order
       - TC-002
+      - TC-001
 \`\`\`
 
 Every \`steps\` entry must reference an existing \`testCases[].id\`.
@@ -167,6 +167,15 @@ testCases:
       medium: "ログイン"
     prerequisites: "未ログイン状態"
     description: "誤ったパスワードではログインできない"
+
+scenarios:
+  - id: login-flow
+    name: "ログイン"
+    description: |
+      未ログイン状態から、失敗ケース → 成功ケースの順で確認する。
+    steps:
+      - TC-002
+      - TC-001
 
 ## Task template (fill in for the user)
 
