@@ -316,7 +316,7 @@ testCases:
       medium: "バグ"
       minor: "NG連動"
     prerequisites: "テスト実行画面を表示中、使い方カードを過ぎていること"
-    description: "NG 入力後にバグ起票 Dialog が開き、起票は任意（キャンセルで Dialog を閉じられる）。Dialog 完全クローズ後に自動移動する"
+    description: "NG を入力するたび（一括・端末単位どちらも）バグ起票 Dialog が開き、起票は任意（キャンセルで閉じられる）。その NG でテストが完了したときだけ、Dialog が閉じたあとに次のテストへ自動移動する。未入力の端末が残っていれば同じテストに留まる"
 
   - id: TC-034
     category:

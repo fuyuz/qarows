@@ -358,21 +358,21 @@ export function TestRunner() {
         nextByEnv,
       );
 
-      if (isComplete) {
-        const nextSlide =
-          testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
+      const nextSlide =
+        testSlideIndex < targets.length - 1 ? testSlideIndex + 2 : targets.length + 1;
 
-        if (status === "NG") {
-          pendingAdvanceSlideRef.current = nextSlide;
-          openBugDialog({
-            initialTestCaseLinked: true,
-            initialEnvironmentIds: [envId],
-            fromNg: true,
-          });
-          return;
-        }
-        void advanceAfterComplete(nextSlide);
+      // NG は一括入力・マトリクスと同じく毎回バグ起票を促す。
+      // テストが完了したときだけ、ダイアログを閉じたあとに次へ進む
+      if (status === "NG") {
+        pendingAdvanceSlideRef.current = isComplete ? nextSlide : null;
+        openBugDialog({
+          initialTestCaseLinked: true,
+          initialEnvironmentIds: [envId],
+          fromNg: true,
+        });
+        return;
       }
+      if (isComplete) void advanceAfterComplete(nextSlide);
     },
     [
       cancelPendingAdvance,
