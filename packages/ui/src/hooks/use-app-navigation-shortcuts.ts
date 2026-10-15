@@ -42,6 +42,8 @@ export function useAppNavigationShortcuts({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (isKeyboardTypingTarget(event.target)) return;
+      // ダイアログ（バグ起票・編集など）を開いている間は画面移動しない。移動すると入力中の内容が消える
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
 
       const page = matchAppNavigationPage(event);
       if (!page) return;

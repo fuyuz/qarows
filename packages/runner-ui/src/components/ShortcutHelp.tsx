@@ -29,6 +29,7 @@ export function ShortcutHelp({
     { label: t("runner.singleOk"), keys: RUNNER_KEYBINDINGS.singleOk },
     { label: t("runner.singleNg"), keys: RUNNER_KEYBINDINGS.singleNg },
     { label: t("runner.singleSkip"), keys: RUNNER_KEYBINDINGS.singleSkip },
+    { label: t("runner.reportBug"), keys: RUNNER_KEYBINDINGS.bug },
   ] as const;
 
   return (

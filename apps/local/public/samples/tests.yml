@@ -460,7 +460,7 @@ testCases:
       medium: "操作"
       minor: "ショートカットヘルプ"
     prerequisites: "テスト実行画面 (/run) を表示中"
-    description: "画面右下の ? にホバーするとキーボードショートカット一覧（ランナー操作と画面移動）が表示される"
+    description: "画面右下の ? にホバーするとキーボードショートカット一覧（ランナー操作・バグ報告 b と画面移動）が英語表示でも翻訳された名前で表示される"
 
   - id: TC-145
     category:
@@ -476,7 +476,7 @@ testCases:
       medium: "操作"
       minor: "画面移動"
     prerequisites: "プロジェクト読み込み済み、メモ欄フォーカス外"
-    description: "⌘⇧P / Ctrl+Shift+P でプロジェクト一覧、⌘⇧R / Ctrl+Shift+R でテスト実行、⌘⇧S / Ctrl+Shift+S でセッション設定、⌘⇧D / Ctrl+Shift+D でダッシュボード、⌘⇧B / Ctrl+Shift+B でバグ、⌘⇧M / Ctrl+Shift+M でマトリクスへ遷移できる"
+    description: "⌘⇧P / Ctrl+Shift+P でプロジェクト一覧、⌘⇧R / Ctrl+Shift+R でテスト実行、⌘⇧S / Ctrl+Shift+S でセッション設定、⌘⇧D / Ctrl+Shift+D でダッシュボード、⌘⇧B / Ctrl+Shift+B でバグ、⌘⇧M / Ctrl+Shift+M でマトリクス、⌘⇧O / Ctrl+Shift+O で概要、⌘⇧T / Ctrl+Shift+T でテスト定義へ遷移できる（ブラウザが横取りするキーを除く）。バグ起票などのダイアログを開いている間は遷移しない"
 
   - id: TC-023
     category:
