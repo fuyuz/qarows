@@ -333,7 +333,7 @@ export function TestMatrixTable({
               {info.getValue()}
             </span>
           ) : (
-            <span className={cn("block text-xs", wrapTextClass)}>{info.getValue()}</span>
+            <span className={cn("block text-xs", wrapTextClass)}>{info.getValue().trimEnd()}</span>
           ),
       }),
     ];
