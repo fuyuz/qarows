@@ -24,10 +24,9 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 
   return (
     <div className="group relative my-3">
-      {/* react-markdown 10 は code にインラインかどうかを渡さないので、ブロック内ではインライン用の装飾を打ち消す */}
       <pre
         ref={preRef}
-        className="overflow-x-auto rounded-md bg-muted p-3 pr-20 font-mono text-sm leading-relaxed [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[1em]"
+        className="overflow-x-auto rounded-md bg-muted p-3 pr-20 font-mono text-sm leading-relaxed"
       >
         {children}
       </pre>
@@ -46,6 +45,39 @@ function CodeBlock({ children }: { children?: ReactNode }) {
         {copied ? t("common.copied") : t("common.copy")}
       </button>
     </div>
+  );
+}
+
+/** インラインコード。アカウント名や URL など短い値をクリックでコピーできるようにする */
+function InlineCode({ children }: { children?: ReactNode }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(String(children ?? ""));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleCopy()}
+      title={copied ? t("common.copied") : t("runner.clickToCopy")}
+      className={cn(
+        "inline-flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 align-baseline font-mono text-[0.85em] transition-colors",
+        copied
+          ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+          : "bg-muted hover:bg-muted-foreground/15",
+      )}
+    >
+      <code>{children}</code>
+      {copied && <Check className="size-3" aria-label={t("common.copied")} />}
+    </button>
   );
 }
 
@@ -72,9 +104,13 @@ const markdownComponents: Components = {
   blockquote: ({ children }) => (
     <blockquote className="my-3 border-l-4 border-border pl-4 text-muted-foreground">{children}</blockquote>
   ),
-  code: ({ children, className }) => (
-    <code className={className ?? "rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]"}>{children}</code>
-  ),
+  // フェンスのコードブロックは言語指定（className）か末尾の改行を持つ。インラインは改行を含まない
+  code: ({ children, className }) =>
+    className || String(children ?? "").includes("\n") ? (
+      <code className={className}>{children}</code>
+    ) : (
+      <InlineCode>{children}</InlineCode>
+    ),
   pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
   hr: () => <hr className="my-6 border-border" />,
   table: ({ children }) => (

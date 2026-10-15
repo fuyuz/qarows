@@ -214,6 +214,7 @@ export const enMessages = {
     matrixHint: "Scroll right for environment columns. Click a cell of an environment selected in your session to enter a result",
     matrixNotEntered: "Not entered",
     overviewEmpty: "This project has no overview",
+    clickToCopy: "Click to copy",
     overviewEmptyHint: "Write Markdown in the overview key of tests.yml to show it here (what to share before testing, accounts to use, etc.)",
     matrixScopeAria: "Matrix scope",
     matrixCompact: "Compact",

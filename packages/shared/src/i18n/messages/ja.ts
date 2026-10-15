@@ -216,6 +216,7 @@ export const jaMessages = {
     matrixHint: "環境列は右方向へスクロールして確認できます。セッションで選択した端末のセルをクリックすると結果を入力できます",
     matrixNotEntered: "未入力",
     overviewEmpty: "このプロジェクトには概要がありません",
+    clickToCopy: "クリックでコピー",
     overviewEmptyHint: "tests.yml の overview に Markdown で書くと、ここに表示されます（テスト前に共有したいこと・使うアカウントなど）",
     matrixScopeAria: "マトリクスの表示対象",
     matrixCompact: "コンパクト表示",
