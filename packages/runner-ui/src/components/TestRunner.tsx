@@ -135,19 +135,30 @@ export function TestRunner() {
 
   const savedMemo = current && results ? (results.memos?.[current.id] ?? "") : "";
 
+  // 保存完了時点の表示中テストと入力値。Team 版は保存がサーバー往復を待つため、
+  // 完了前に次のテストへ進んだり追記したりしていることがある
+  const currentIdRef = useRef<string | undefined>(undefined);
+  const latestMemoRef = useRef("");
+  useEffect(() => {
+    currentIdRef.current = current?.id;
+  }, [current?.id]);
+
   useEffect(() => {
     if (!current) {
       setMemo("");
+      latestMemoRef.current = "";
       setMemoDirty(false);
       return;
     }
     if (memoDirty) return;
     setMemo(savedMemo);
+    latestMemoRef.current = savedMemo;
   }, [current, memoDirty, savedMemo]);
 
   const handleMemoChange = useCallback(
     (value: string) => {
       setMemo(value);
+      latestMemoRef.current = value;
       setMemoDirty(value !== savedMemo);
     },
     [savedMemo],
@@ -155,10 +166,16 @@ export function TestRunner() {
 
   const handleMemoSave = useCallback(async () => {
     if (!current || !memoDirty) return;
+    const testCaseId = current.id;
+    const savingMemo = memo;
     setMemoSaving(true);
     try {
-      await updateTestMemo(current.id, memo);
-      setMemoDirty(false);
+      await updateTestMemo(testCaseId, savingMemo);
+      // 別のテストに移っていたり保存中に追記していたりしたら dirty を解除しない。
+      // 解除すると上の effect が入力欄を保存済みの値で上書きし、入力中の文字が消える
+      if (currentIdRef.current === testCaseId && latestMemoRef.current === savingMemo) {
+        setMemoDirty(false);
+      }
     } finally {
       setMemoSaving(false);
     }
