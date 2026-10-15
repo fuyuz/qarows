@@ -52,7 +52,7 @@ project:
 # project.id は URL パス・ストレージキーに使うため、
 # 英数字で始まる 64 文字以内の英数字・ハイフン・アンダースコア（^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$）に限る
 
-# 端末/環境（プロジェクト固定リスト）
+# 端末 / 環境（プロジェクト固定リスト）
 environments:
   - id: chrome-desktop
     name: "Chrome (Desktop)"
@@ -88,14 +88,14 @@ overview: |
 
 ```yaml
 category:
-  major: "認証"      # 大項目（必須）
-  medium: "ログイン" # 中項目（任意）
-  minor: "OAuth"     # 小項目（任意）
+  major: "認証"      # 大分類（必須）
+  medium: "ログイン" # 中分類（任意）
+  minor: "OAuth"     # 小分類（任意）
 ```
 
 ### 対象端末（TargetEnvironmentSpec）
 
-ケース単位・カテゴリ単位で「どの端末/環境をテスト対象とするか」を指定する。
+ケース単位・カテゴリ単位で「どの端末 / 環境をテスト対象とするか」を指定する。
 `required` と `targets` を分けて記述する。
 
 ```yaml
@@ -128,7 +128,7 @@ targets:        # 省略可。environment id のリスト
 
 ### カテゴリ別デフォルト（categoryTargets）
 
-大項目 → 中項目 → 小項目の順に、上位で絞った範囲へ下位の指定をネスト適用する。
+大分類 → 中分類 → 小分類の順に、上位で絞った範囲へ下位の指定をネスト適用する。
 下位は上位の範囲を**広げられない**。
 
 ```yaml
@@ -157,9 +157,9 @@ categoryTargets:
 
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
-| `match.major` | string | ✓ | 大項目 |
-| `match.medium` | string | | 中項目 |
-| `match.minor` | string | | 小項目 |
+| `match.major` | string | ✓ | 大分類 |
+| `match.medium` | string | | 中分類 |
+| `match.minor` | string | | 小分類 |
 | `required` | `"all"` \| `"any"` | | 省略時 `all` |
 | `targets` | string[] | | 省略時は有効プール全体 |
 
@@ -195,9 +195,9 @@ testCases:
 1. 有効プール ← プロジェクトの全 `environments`
 2. `required` ← `all`（デフォルト）
 3. 次の順で、該当する `categoryTargets` とケースの `targetEnvironments` を適用:
-   - 大項目（`match.major` のみ）
-   - 中項目（`match.major` + `match.medium`）
-   - 小項目（`match.major` + `match.medium` + `match.minor`）
+   - 大分類（`match.major` のみ）
+   - 中分類（`match.major` + `match.medium`）
+   - 小分類（`match.major` + `match.medium` + `match.minor`）
    - ケース（`targetEnvironments`）
 4. 各ステップで:
    - `targets` 指定があれば `有効プール = 有効プール ∩ targets`
@@ -208,13 +208,13 @@ testCases:
 | ステップ | 指定 | 有効プール | required |
 |---|---|---|---|
 | 初期 | — | {a,b,c,d} | all |
-| 大項目 | `any` + targets [a,b,c,d] | {a,b,c,d} | any |
-| 中項目 | `any` + targets [b,c] | {b,c} | any |
+| 大分類 | `any` + targets [a,b,c,d] | {a,b,c,d} | any |
+| 中分類 | `any` + targets [b,c] | {b,c} | any |
 | ケース | 省略 | {b,c} | any |
 
 ### セッションとの交差
 
-テスト実行時は、解決済み有効プールとセッションで選んだ端末/環境の**積**を実行対象とする。
+テスト実行時は、解決済み有効プールとセッションで選んだ端末 / 環境の**積**を実行対象とする。
 
 - 実行対象が空 … そのセッションでは対象外（ランナーに出さない）
 - 未実施フィルタ … 上記「完了条件」に従い判定
@@ -225,9 +225,9 @@ testCases:
 |---|---|---|---|
 | `id` | string | ✓ | 一意識別子 |
 | `version` | number | | テスト定義の版。省略時 `1`。内容変更でインクリメントし、旧版の結果は未実施扱い |
-| `category.major` | string | ✓ | 大項目 |
-| `category.medium` | string | | 中項目 |
-| `category.minor` | string | | 小項目 |
+| `category.major` | string | ✓ | 大分類 |
+| `category.medium` | string | | 中分類 |
+| `category.minor` | string | | 小分類 |
 | `prerequisites` | string | | テスト前提条件 |
 | `description` | string | ✓ | 確認内容 |
 | `targetEnvironments.required` | `"all"` \| `"any"` | | ケース単位の完了条件 |
