@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
+  isResultEntryValid,
   nextBugId,
   resolveSessionTestTargets,
   resolveTestTargets,
@@ -171,10 +172,15 @@ function EnvCell({
   }
 
   const entry = results[testCase.id]?.[envId];
-  const display = entry?.status ? (
-    <StatusBadge status={entry.status} className="text-[0.65rem]" />
+  // ランナー・ダッシュボードと同じく、テストケースの version が上がる前の結果は未実施として扱う
+  const validStatus = isResultEntryValid(entry, testCase) ? entry?.status : undefined;
+  const stale = entry != null && validStatus == null;
+  const display = validStatus ? (
+    <StatusBadge status={validStatus} className="text-[0.65rem]" />
   ) : (
-    <span className="text-xs text-muted-foreground">—</span>
+    <span className={cn("block truncate text-xs text-muted-foreground", stale && "text-destructive")}>
+      {stale ? t("runner.retestNeeded") : "—"}
+    </span>
   );
 
   if (!editable) return display;
@@ -188,7 +194,7 @@ function EnvCell({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuRadioGroup
-          value={entry?.status ?? NOT_ENTERED}
+          value={validStatus ?? NOT_ENTERED}
           onValueChange={(value) => {
             if (value === NOT_ENTERED) {
               if (entry) onClear(testCase.id, envId);
