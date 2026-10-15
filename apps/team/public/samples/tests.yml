@@ -25,7 +25,7 @@ overview: |
   bun run dev:team   # Team 版 http://localhost:5177
   ```
 
-  詳しい手順は [docs/deploy-team.md](https://github.com/fuyuz/qarows/blob/main/docs/deploy-team.md) を参照してください。
+  詳しい手順は [`docs/deploy-team.md`](https://github.com/fuyuz/qarows/blob/main/docs/deploy-team.md) を参照してください。
 
 environments:
   - id: chrome-desktop

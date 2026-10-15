@@ -1,9 +1,16 @@
-import { useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Check, Copy } from "lucide-react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn, useTranslation } from "@qarows/ui";
 import { useRunnerWorkspace } from "../context/runner-workspace";
+
+/**
+ * リンクやコードブロックの中では code をコピーボタンにしない。
+ * <a> の中にボタンを入れると不正な入れ子になり、クリックでリンクも開いてしまう。
+ * 空のコードブロックは改行も className も持たずインラインと見分けられないため、こちらで判定する
+ */
+const PlainCodeContext = createContext(false);
 
 /** コードブロック。コマンドや設定値をそのまま貼れるようコピーボタンを付ける */
 function CodeBlock({ children }: { children?: ReactNode }) {
@@ -28,7 +35,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
         ref={preRef}
         className="overflow-x-auto rounded-md bg-muted p-3 pr-12 font-mono text-sm leading-relaxed"
       >
-        {children}
+        <PlainCodeContext.Provider value>{children}</PlainCodeContext.Provider>
       </pre>
       <button
         type="button"
@@ -85,6 +92,19 @@ function InlineCode({ children }: { children?: ReactNode }) {
   );
 }
 
+function MarkdownCode({ children, className }: { children?: ReactNode; className?: string }) {
+  const plain = useContext(PlainCodeContext);
+  if (plain) {
+    // リンク内のインラインコードには見た目だけ付ける（コードブロック内は pre 側で装飾済み）
+    return className ? (
+      <code className={className}>{children}</code>
+    ) : (
+      <code className="font-mono text-[0.85em]">{children}</code>
+    );
+  }
+  return <InlineCode>{children}</InlineCode>;
+}
+
 /** Tailwind Typography を入れていないので、要素ごとに最低限の体裁を当てる */
 const markdownComponents: Components = {
   h1: ({ children }) => <h2 className="mt-8 mb-3 text-xl font-bold tracking-tight first:mt-0">{children}</h2>,
@@ -102,19 +122,13 @@ const markdownComponents: Components = {
       rel="noopener noreferrer"
       className="break-all text-primary underline underline-offset-2 hover:text-primary/80"
     >
-      {children}
+      <PlainCodeContext.Provider value>{children}</PlainCodeContext.Provider>
     </a>
   ),
   blockquote: ({ children }) => (
     <blockquote className="my-3 border-l-4 border-border pl-4 text-muted-foreground">{children}</blockquote>
   ),
-  // フェンスのコードブロックは言語指定（className）か末尾の改行を持つ。インラインは改行を含まない
-  code: ({ children, className }) =>
-    className || String(children ?? "").includes("\n") ? (
-      <code className={className}>{children}</code>
-    ) : (
-      <InlineCode>{children}</InlineCode>
-    ),
+  code: ({ children, className }) => <MarkdownCode className={className}>{children}</MarkdownCode>,
   pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
   hr: () => <hr className="my-6 border-border" />,
   table: ({ children }) => (
