@@ -35,7 +35,7 @@ import {
   StatusBadge,
 } from "@qarows/ui";
 import { useTranslation } from "@qarows/ui";
-import { canJumpToRunner } from "../lib/jump-to-runner";
+import { canJumpToRunner, runnerFiltersForJump } from "../lib/jump-to-runner";
 import { cn } from "@qarows/ui";
 
 const ROW_HEIGHT = 40;
@@ -377,7 +377,11 @@ export function TestMatrixTable({
             onSetStatus: handleSetStatus,
             onClear: (testCaseId, envId) => void clearTestResult(testCaseId, envId),
             canJump: (testCaseId) => canJumpToRunner(testCaseId, definition, session),
-            onJump: (testCaseId) => navigate(path("run", runnerFilters, testCaseId)),
+            onJump: (testCaseId) =>
+              session &&
+              navigate(
+                path("run", runnerFiltersForJump(testCaseId, definition, session, results, runnerFilters), testCaseId),
+              ),
           }
         : null,
     [clearTestResult, definition, handleSetStatus, navigate, path, results, runnerFilters, session],

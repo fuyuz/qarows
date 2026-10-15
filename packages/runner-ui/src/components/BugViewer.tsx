@@ -10,7 +10,7 @@ import { BugFixNoteDialog } from "./BugFixNoteDialog";
 import { RunnerCardTransition } from "./RunnerCardTransition";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
 import { resolveFilteredBugs } from "../lib/bug-filter";
-import { canJumpToRunner } from "../lib/jump-to-runner";
+import { canJumpToRunner, runnerFiltersForJump } from "../lib/jump-to-runner";
 import { getAllEnvironmentIds } from "../lib/run-progress";
 import { isRunnerNextKey, isRunnerPrevKey, isRunnerTypingTarget } from "../lib/runner-keybindings";
 import { useTranslation } from "@qarows/ui";
@@ -76,9 +76,15 @@ export function BugViewer() {
 
   const handleNavigateToTestCase = useCallback(() => {
     if (!relatedTestCase || !definition) return;
-    if (!canJumpToRunner(relatedTestCase.id, definition, session)) return;
-    navigate(path("run", runnerFilters, relatedTestCase.id));
-  }, [definition, navigate, path, relatedTestCase, runnerFilters, session]);
+    if (!canJumpToRunner(relatedTestCase.id, definition, session) || !session || !results) return;
+    navigate(
+      path(
+        "run",
+        runnerFiltersForJump(relatedTestCase.id, definition, session, results, runnerFilters),
+        relatedTestCase.id,
+      ),
+    );
+  }, [definition, navigate, path, relatedTestCase, results, runnerFilters, session]);
 
   useEffect(() => {
     setEditDialogOpen(false);
