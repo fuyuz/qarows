@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Environment } from "@qarows/shared";
-import { useTranslation } from "@qarows/ui";
+import { useConfirm, useTranslation } from "@qarows/ui";
 import { Button, Input, Label, cn } from "@qarows/ui";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 
@@ -18,6 +18,7 @@ export function DefinitionEnvironmentsPanel({
   className?: string;
 }) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [newId, setNewId] = useState("");
   const [newName, setNewName] = useState("");
@@ -74,9 +75,11 @@ export function DefinitionEnvironmentsPanel({
                 className="size-8 shrink-0 text-muted-foreground"
                 disabled={environments.length <= 1}
                 onClick={() => {
-                  if (window.confirm(t("definition.deleteEnvConfirm", { name: env.name }))) {
-                    onRemove(env.id);
-                  }
+                  void confirm({
+                    message: t("definition.deleteEnvConfirm", { name: env.name }),
+                    confirmLabel: t("common.delete"),
+                    destructive: true,
+                  }).then((ok) => ok && onRemove(env.id));
                 }}
                 aria-label={t("definition.deleteEnvAria", { name: env.name })}
               >

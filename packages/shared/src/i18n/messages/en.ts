@@ -7,6 +7,8 @@ export const enMessages = {
     brandSubtitle: "QA sheet tool",
     loading: "Loading…",
     cancel: "Cancel",
+    ok: "OK",
+    confirmTitle: "Confirm",
     close: "Close",
     save: "Save",
     saving: "Saving…",

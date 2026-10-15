@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TestCase, TestScenario } from "@qarows/shared";
-import { useTranslation } from "@qarows/ui";
+import { useConfirm, useTranslation } from "@qarows/ui";
 import {
   Button,
   Input,
@@ -229,6 +229,7 @@ function ScenarioEditor({
   onAddStep: (scenario: TestScenario, stepId: string) => void;
 }) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [idDraft, setIdDraft] = useState(scenario.id);
   const [addStepId, setAddStepId] = useState("");
   const [idError, setIdError] = useState<string | null>(null);
@@ -294,9 +295,11 @@ function ScenarioEditor({
           variant="ghost"
           className="size-8 shrink-0 text-muted-foreground"
           onClick={() => {
-            if (window.confirm(t("definition.deleteScenarioConfirm", { name: scenario.name }))) {
-              onRemove(scenario.id);
-            }
+            void confirm({
+              message: t("definition.deleteScenarioConfirm", { name: scenario.name }),
+              confirmLabel: t("common.delete"),
+              destructive: true,
+            }).then((ok) => ok && onRemove(scenario.id));
           }}
           aria-label={t("definition.deleteEnvAria", { name: scenario.name })}
         >

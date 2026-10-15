@@ -17,7 +17,7 @@ import {
   SheetTitle,
   cn,
 } from "@qarows/ui";
-import { useTranslation } from "@qarows/ui";
+import { useConfirm, useTranslation } from "@qarows/ui";
 import { useDefinitionDraft } from "../hooks/useDefinitionDraft";
 import {
   DefinitionEditFilterBar,
@@ -60,6 +60,7 @@ export function TestsEditPageLayout({
   onDraftStateChange?: (state: TestsEditDraftState) => void;
 }) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const draftApi = useDefinitionDraft(definition, { syncKey });
   const [filters, setFilters] = useDefinitionEditFilters();
   const [compact, setCompact] = useState(false);
@@ -89,14 +90,24 @@ export function TestsEditPageLayout({
 
   useEffect(() => {
     if (blocker.state !== "blocked") return;
-    const ok = window.confirm(t("definition.confirmLeave"));
-    if (ok) {
-      discard();
-      blocker.proceed();
-    } else {
-      blocker.reset();
-    }
-  }, [blocker, discard]);
+    let cancelled = false;
+    void confirm({
+      message: t("definition.confirmLeave"),
+      confirmLabel: t("common.discard"),
+      destructive: true,
+    }).then((ok) => {
+      if (cancelled) return;
+      if (ok) {
+        discard();
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [blocker, confirm, discard, t]);
 
   useEffect(() => {
     if (!hasChanges) return;
@@ -125,12 +136,17 @@ export function TestsEditPageLayout({
     }
   }, [draft, markApplied, onApply, baseSyncKey, rebaseOnNextSnapshot]);
 
-  const handleDiscard = useCallback(() => {
+  const handleDiscard = useCallback(async () => {
     if (!hasChanges) return;
-    if (!window.confirm(t("definition.confirmDiscardAll"))) return;
+    const ok = await confirm({
+      message: t("definition.confirmDiscardAll"),
+      confirmLabel: t("common.discard"),
+      destructive: true,
+    });
+    if (!ok) return;
     discard();
     setApplyError(null);
-  }, [discard, hasChanges]);
+  }, [confirm, discard, hasChanges, t]);
 
   if (!draft) return null;
 
@@ -239,7 +255,7 @@ export function TestsEditPageLayout({
             size="sm"
             variant="ghost"
             disabled={!hasChanges || applying}
-            onClick={handleDiscard}
+            onClick={() => void handleDiscard()}
           >
             {t("common.discard")}
           </Button>

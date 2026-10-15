@@ -5,7 +5,7 @@ import {
   type TestsEditDraftImport,
   type TestsEditDraftState,
 } from "@qarows/runner-ui";
-import { Button, cn, useTranslation } from "@qarows/ui";
+import { Button, cn, useConfirm, useTranslation } from "@qarows/ui";
 import { Sparkles } from "lucide-react";
 import { AppNav } from "@/components/AppNav";
 import { TestsYamlAiChatPanel } from "@/components/TestsYamlAiChatPanel";
@@ -70,6 +70,7 @@ function loadAiPanelWidth(): number {
 
 export function TestsEditPage() {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const { projectId } = useParams<{ projectId: string }>();
   const { definition, generation, syncNotice } = useProjectSync();
   const { aiEnabled, loaded: aiLoaded } = useAiFeatures();
@@ -144,7 +145,7 @@ export function TestsEditPage() {
           throw new Error(err.message || t("error.applyDefinitionFailed"), { cause: err });
         }
         // 競合は黙って上書きせず、上書きするかをユーザーに決めさせる
-        if (!window.confirm(t("error.definitionConflictConfirm"))) {
+        if (!(await confirm({ message: t("error.definitionConflictConfirm"), destructive: true }))) {
           throw new Error(t("error.definitionConflict"), { cause: err });
         }
         const latest = (await getProject(projectId)).generation;
@@ -152,12 +153,12 @@ export function TestsEditPage() {
         await applyDefinitionEdit(projectId, { testsYaml, expectedGeneration: latest });
       }
     },
-    [projectId, generation, t],
+    [projectId, generation, confirm, t],
   );
 
-  const handleLoadProposalIntoDraft = useCallback(() => {
+  const handleLoadProposalIntoDraft = useCallback(async () => {
     if (draftState.hasChanges) {
-      const ok = window.confirm(t("ai.overwriteConfirm"));
+      const ok = await confirm({ message: t("ai.overwriteConfirm"), destructive: true });
       if (!ok) return;
     }
     const accepted = ai.acceptProposalIntoDraft();
@@ -167,7 +168,7 @@ export function TestsEditPage() {
     setDraftImport({ definition: accepted, token });
     // Optimistic: next AI turn can use post-diff YAML before draftImport useEffect lands.
     setDraftState({ hasChanges: true, draft: accepted });
-  }, [ai, draftState.hasChanges, importToken, t]);
+  }, [ai, confirm, draftState.hasChanges, importToken, t]);
 
   const handleResizePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -273,7 +274,7 @@ export function TestsEditPage() {
             errorMessage={ai.errorMessage}
             revisions={ai.revisions}
             applyLabel={t("ai.reflectToEditor")}
-            onApply={handleLoadProposalIntoDraft}
+            onApply={() => void handleLoadProposalIntoDraft()}
             onDiscard={ai.handleDiscardProposal}
             onRestore={(revisionId) => void ai.handleRestore(revisionId)}
           />

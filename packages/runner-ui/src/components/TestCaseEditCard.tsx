@@ -20,6 +20,7 @@ import {
   SelectValue,
   Textarea,
   cn,
+  useConfirm,
   useTranslation,
 } from "@qarows/ui";
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
@@ -50,6 +51,7 @@ export function TestCaseEditCard({
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [detailsOpen, setDetailsOpen] = useState(isNew);
   const resolved = resolveTestTargets(testCase, definition);
   const envNames = Object.fromEntries(definition.environments.map((e) => [e.id, e.name]));
@@ -110,7 +112,11 @@ export function TestCaseEditCard({
           variant="ghost"
           className={cn("shrink-0 text-muted-foreground", compact ? "size-6" : "size-8")}
           onClick={() => {
-            if (window.confirm(t("definition.deleteCaseConfirm", { id: testCase.id }))) onRemove();
+            void confirm({
+              message: t("definition.deleteCaseConfirm", { id: testCase.id }),
+              confirmLabel: t("common.delete"),
+              destructive: true,
+            }).then((ok) => ok && onRemove());
           }}
           aria-label={t("definition.deleteCaseAria", { id: testCase.id })}
         >

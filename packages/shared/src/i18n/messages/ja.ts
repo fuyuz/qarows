@@ -7,6 +7,8 @@ export const jaMessages = {
     brandSubtitle: "QA シート特化ツール",
     loading: "読み込み中…",
     cancel: "キャンセル",
+    ok: "OK",
+    confirmTitle: "確認",
     close: "閉じる",
     save: "保存",
     saving: "保存中…",

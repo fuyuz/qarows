@@ -126,3 +126,4 @@ export {
 } from "./workspace";
 export { UpdateAvailableBanner } from "./components/update-available-banner";
 export { installStaleChunkReload } from "./lib/stale-build";
+export { ConfirmProvider, useConfirm, type ConfirmOptions } from "./components/confirm-dialog";
