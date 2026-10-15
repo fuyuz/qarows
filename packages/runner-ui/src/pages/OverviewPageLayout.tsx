@@ -68,6 +68,7 @@ function InlineCode({ children }: { children?: ReactNode }) {
       type="button"
       onClick={() => void handleCopy()}
       title={copied ? t("common.copied") : t("runner.clickToCopy")}
+      aria-label={`${String(children ?? "")} — ${copied ? t("common.copied") : t("runner.clickToCopy")}`}
       className={cn(
         "inline-flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 align-baseline font-mono text-[0.85em] transition-colors",
         copied
@@ -76,7 +77,11 @@ function InlineCode({ children }: { children?: ReactNode }) {
       )}
     >
       <code>{children}</code>
-      {copied && <Check className="size-3" aria-label={t("common.copied")} />}
+      {copied ? (
+        <Check className="size-3 shrink-0" aria-hidden />
+      ) : (
+        <Copy className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+      )}
     </button>
   );
 }
