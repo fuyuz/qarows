@@ -32,7 +32,7 @@ export function SessionSetupForm({
   initialSelectedEnvIds = [],
   onSubmit,
   syncError,
-  disableSubmitUntilValid = true,
+  disableSubmitUntilValid = false,
   idleSubmitLabel,
   submittingSubmitLabel,
   showEmptyEnvHint = true,
