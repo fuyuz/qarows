@@ -16,10 +16,10 @@
   },
   "dependencies": {
     "fflate": "^0.8.3",
-    "js-yaml": "^5.4.1"
+    "js-yaml": "^5.4.3"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.19.2",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }

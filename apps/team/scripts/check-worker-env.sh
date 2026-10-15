@@ -20,7 +20,7 @@ mkdir -p "$WORK"
 trap 'rm -rf "$WORK"' EXIT
 
 cat > "$WORK/check.ts" <<'TS'
-import type { InferEnv, UnwrapConfig } from "wrangler/experimental-config";
+import type { InferEnv, UnwrapConfig } from "cf/config";
 import type config from "../../cloudflare.config.example";
 
 type ExampleWorker = UnwrapConfig<UnwrapConfig<typeof config>["worker"]>;
