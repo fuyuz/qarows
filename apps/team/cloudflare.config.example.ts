@@ -2,7 +2,12 @@
 //   cp cloudflare.config.example.ts cloudflare.config.ts
 import { bindings, defineConfig, exports } from "cf/config";
 
-export default defineConfig({
+// カスタムドメイン（任意）。例: ["qarows.example.com"]。Access Application にもこのホストを含めること
+const CUSTOM_DOMAINS: string[] = [];
+
+// mode は `bun run deploy:team`（cf deploy --mode production）のときだけ "production"。
+// cf dev では undefined になる
+export default defineConfig(({ mode }) => ({
 	// Or set CLOUDFLARE_ACCOUNT_ID instead
 	accountId: "YOUR_ACCOUNT_ID",
 	worker: {
@@ -14,8 +19,9 @@ export default defineConfig({
 		// true にする場合は、Access Application に *.workers.dev のホストも
 		// 含めること（docs/deploy-team.md 4.3）。含め忘れると JWT なしで直接叩ける
 		workersDev: false,
-		// カスタムドメイン（任意）。Access Application にもこのホストを含めること
-		// domains: ["qarows.example.com"],
+		// ローカル開発では付けない: 付けると cf dev でもリクエストの URL がこのドメインになり、
+		// localhost:8787 限定の AUTH_DEV_BYPASS が効かず API がすべて 401 になる
+		domains: mode === "production" ? CUSTOM_DOMAINS : [],
 		observability: {
 			enabled: true,
 			// 全リクエストのログを保持する。エラーログには YAML の parse エラーなど
@@ -67,4 +73,4 @@ export default defineConfig({
 			ProjectRoom: exports.durableObject({ storage: "sqlite" }),
 		},
 	},
-});
+}));

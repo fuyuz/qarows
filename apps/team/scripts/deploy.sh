@@ -18,4 +18,6 @@ if grep -Eq '^[^/]*AUTH_DEV_BYPASS' cloudflare.config.ts; then
 fi
 
 bun run build
-cf deploy --message "qarows-team deploy"
+# --mode production: cloudflare.config.ts はこのときだけカスタムドメインを付ける（example 参照）。
+# mode なしでデプロイするとカスタムドメインが外れるので、直接 cf deploy しないこと
+cf deploy --mode production --message "qarows-team deploy"

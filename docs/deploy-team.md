@@ -170,7 +170,7 @@ Access Application に登録するため、公開するホストを先に決め�
 
 | ホスト | 設定 |
 |---|---|
-| カスタムドメイン（推奨） | `worker.domains: ["qarows.example.com"]`。Cloudflare 上のゾーンのホストなら、デプロイ時に DNS と証明書が自動で用意される（2 階層のサブドメインでも可） |
+| カスタムドメイン（推奨） | `cloudflare.config.ts` 冒頭の `CUSTOM_DOMAINS` に `["qarows.example.com"]` のように書く（`worker.domains` に本番デプロイ時だけ入る）。Cloudflare 上のゾーンのホストなら、デプロイ時に DNS と証明書が自動で用意される（2 階層のサブドメインでも可） |
 | workers.dev | `worker.workersDev: true` で `<worker-name>.<your-subdomain>.workers.dev` が有効になる。プレビュー URL `*-<worker-name>.<your-subdomain>.workers.dev` も同じ Access に含める |
 
 `<your-subdomain>` は Dashboard の Workers & Pages、または既存 Worker があれば `bunx cf workers list` の `subdomain.url` で確認できる。
@@ -187,7 +187,11 @@ Access Application に登録するため、公開するホストを先に決め�
 bun run deploy:team
 ```
 
-`apps/team/scripts/deploy.sh` が `bun run build` → `cf deploy` を実行する。`cf deploy` はアップロードしたバージョンをそのまま 100% に切り替える（Wrangler 時代の `versions deploy` は不要）。`cloudflare.config.ts` に `AUTH_DEV_BYPASS` が書かれていると deploy を中止する。
+`apps/team/scripts/deploy.sh` が `bun run build` → `cf deploy --mode production` を実行する。
+
+> **`cf deploy` を直接実行しない。** `cloudflare.config.ts` はカスタムドメインを `mode === "production"` のときだけ付ける（`cf dev` に付くとリクエストの URL がそのドメインになり、localhost 限定の開発用バイパスが効かずローカルの API がすべて 401 になるため）。`--mode production` なしでデプロイするとカスタムドメインが外れる。
+
+`cf deploy` はアップロードしたバージョンをそのまま 100% に切り替える（Wrangler 時代の `versions deploy` は不要）。`cloudflare.config.ts` に `AUTH_DEV_BYPASS` が書かれていると deploy を中止する。
 
 確認:
 
@@ -197,7 +201,7 @@ bunx cf workers deployments list --worker <worker-name>   # 先頭の versions[]
 
 ### 3.7 カスタムドメインを後から追加する
 
-1. `cloudflare.config.ts` の `worker.domains` にホストを追加
+1. `cloudflare.config.ts` の `CUSTOM_DOMAINS` にホストを追加
 2. Access Application の `self_hosted_domains` にも同じホストを追加（[4.3](#43-access-applicationcf) の `update`）
 3. `bun run deploy:team`
 
