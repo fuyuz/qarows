@@ -8,7 +8,7 @@ const session: SessionConfig = {
   selectedEnvironmentIds: ["chrome"],
 };
 
-const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false };
+const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false, onlyWithSkip: false };
 
 describe("resolveMatrixTestCases", () => {
   const definition = makeDefinition();
@@ -38,7 +38,7 @@ describe("resolveMatrixTestCases", () => {
   it("applies runner filters without session", () => {
     const cases = resolveMatrixTestCases(
       definition,
-      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false },
+      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false, onlyWithSkip: false },
       {
         "TC-001": { chrome: { status: "OK" } },
       },

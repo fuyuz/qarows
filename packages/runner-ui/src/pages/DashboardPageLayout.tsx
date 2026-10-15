@@ -96,6 +96,7 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
           onlyIncomplete: false,
           onlyWithBugs: false,
           onlyWithNg: false,
+          onlyWithSkip: false,
         }),
       );
     },

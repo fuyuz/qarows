@@ -390,6 +390,14 @@ testCases:
     prerequisites: "テスト実行画面 (/run) を表示中、セッション対象端末のいずれかに NG 結果があるテストが1件以上あること"
     description: "NGを含むをオンにすると、対象端末のいずれかが NG のテストのみがランナー・一覧・進捗バーのフィルタ行に残る"
 
+  - id: TC-139
+    category:
+      major: "テスト実行"
+      medium: "フィルタ"
+      minor: "SKIPを含む"
+    prerequisites: "テスト実行画面 (/run) を表示中、セッション対象端末のいずれかに SKIP 結果があるテストが1件以上あること"
+    description: "SKIPを含むをオンにすると、対象端末のいずれかが SKIP のテストのみがランナー・一覧・進捗バーのフィルタ行に残る。URL の filters に skip が入り、リロードしても維持される"
+
   - id: TC-092
     category:
       major: "テスト実行"

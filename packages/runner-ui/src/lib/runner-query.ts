@@ -6,7 +6,7 @@ import {
 } from "nuqs";
 import type { ResultsFile, RunnerFilters, RunnerTargetMode, TestDefinition } from "@qarows/shared";
 
-export const RUNNER_SCOPE_FILTER_VALUES = ["incomplete", "ng", "bugs"] as const;
+export const RUNNER_SCOPE_FILTER_VALUES = ["incomplete", "ng", "skip", "bugs"] as const;
 export type RunnerScopeFilterToken = (typeof RUNNER_SCOPE_FILTER_VALUES)[number];
 
 export const defaultRunnerFilters: RunnerFilters = {
@@ -14,6 +14,7 @@ export const defaultRunnerFilters: RunnerFilters = {
   onlyIncomplete: false,
   onlyWithBugs: false,
   onlyWithNg: false,
+  onlyWithSkip: false,
 };
 
 export const runnerQueryParsers = {
@@ -62,12 +63,14 @@ export function scopeFilterTokensToFlags(tokens: readonly RunnerScopeFilterToken
   onlyIncomplete: boolean;
   onlyWithBugs: boolean;
   onlyWithNg: boolean;
+  onlyWithSkip: boolean;
 } {
   const set = new Set(tokens);
   return {
     onlyIncomplete: set.has("incomplete"),
     onlyWithBugs: set.has("bugs"),
     onlyWithNg: set.has("ng"),
+    onlyWithSkip: set.has("skip"),
   };
 }
 
@@ -75,6 +78,7 @@ export function runnerFiltersToScopeTokens(filters: RunnerFilters): RunnerScopeF
   const tokens: RunnerScopeFilterToken[] = [];
   if (filters.onlyIncomplete) tokens.push("incomplete");
   if (filters.onlyWithNg) tokens.push("ng");
+  if (filters.onlyWithSkip) tokens.push("skip");
   if (filters.onlyWithBugs) tokens.push("bugs");
   return tokens;
 }

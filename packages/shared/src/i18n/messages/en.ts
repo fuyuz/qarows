@@ -168,6 +168,7 @@ export const enMessages = {
     incompleteOnly: "Pending",
     withBugs: "With bugs",
     withNg: "With NG",
+    withSkip: "With SKIP",
     filter: "Filter",
     filterTests: "Filter tests",
     filterBugs: "Filter bugs",

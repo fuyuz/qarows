@@ -170,6 +170,7 @@ export const jaMessages = {
     incompleteOnly: "未実施のみ",
     withBugs: "バグを含む",
     withNg: "NGを含む",
+    withSkip: "SKIPを含む",
     filter: "フィルタ",
     filterTests: "テストの絞り込み",
     filterBugs: "バグの絞り込み",

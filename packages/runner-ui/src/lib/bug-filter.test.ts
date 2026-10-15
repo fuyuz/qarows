@@ -3,7 +3,7 @@ import { resolveFilteredBugs } from "./bug-filter";
 import { makeDefinition } from "@qarows/shared/test-fixtures";
 import type { Bug } from "@qarows/shared";
 
-const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false };
+const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false, onlyWithSkip: false };
 
 describe("resolveFilteredBugs", () => {
   const definition = makeDefinition();

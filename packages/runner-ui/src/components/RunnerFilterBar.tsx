@@ -44,8 +44,9 @@ const RUNNER_SCOPE_FILTER_OPTIONS = [
   { key: "onlyIncomplete", labelKey: "runner.incompleteOnly" },
   { key: "onlyWithBugs", labelKey: "runner.withBugs" },
   { key: "onlyWithNg", labelKey: "runner.withNg" },
+  { key: "onlyWithSkip", labelKey: "runner.withSkip" },
 ] as const satisfies ReadonlyArray<{
-  key: keyof Pick<RunnerFilters, "onlyIncomplete" | "onlyWithBugs" | "onlyWithNg">;
+  key: keyof Pick<RunnerFilters, "onlyIncomplete" | "onlyWithBugs" | "onlyWithNg" | "onlyWithSkip">;
   labelKey: string;
 }>;
 
@@ -254,6 +255,7 @@ function RunnerScopeFilterDialog({
       onlyIncomplete: false,
       onlyWithBugs: false,
       onlyWithNg: false,
+      onlyWithSkip: false,
     });
   };
 
@@ -429,6 +431,7 @@ export function RunnerFilterBar({
       onlyIncomplete: runnerFilters.onlyIncomplete,
       onlyWithBugs: runnerFilters.onlyWithBugs,
       onlyWithNg: runnerFilters.onlyWithNg,
+      onlyWithSkip: runnerFilters.onlyWithSkip,
       majorCategoryFilter: undefined,
       mediumCategoryFilter: undefined,
       minorCategoryFilter: undefined,
@@ -444,6 +447,7 @@ export function RunnerFilterBar({
       onlyIncomplete: runnerFilters.onlyIncomplete,
       onlyWithBugs: runnerFilters.onlyWithBugs,
       onlyWithNg: runnerFilters.onlyWithNg,
+      onlyWithSkip: runnerFilters.onlyWithSkip,
       majorCategoryFilter: undefined,
       mediumCategoryFilter: undefined,
       minorCategoryFilter: undefined,

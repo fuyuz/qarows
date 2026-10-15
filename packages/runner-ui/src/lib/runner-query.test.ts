@@ -31,6 +31,7 @@ const defaultScopeFilters = {
   onlyIncomplete: false,
   onlyWithBugs: false,
   onlyWithNg: false,
+  onlyWithSkip: false,
 };
 
 describe("runner query roundtrip", () => {
@@ -46,6 +47,7 @@ describe("runner query roundtrip", () => {
       onlyIncomplete: true,
       onlyWithBugs: false,
       onlyWithNg: false,
+      onlyWithSkip: false,
     });
     expect(testId).toBe("TC-001");
   });
@@ -76,6 +78,7 @@ describe("runner query roundtrip", () => {
         onlyIncomplete: true,
         onlyWithBugs: false,
         onlyWithNg: false,
+        onlyWithSkip: false,
       },
       "TC-002",
     );

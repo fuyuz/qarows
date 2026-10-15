@@ -13,7 +13,7 @@ const session: SessionConfig = {
   selectedEnvironmentIds: ["chrome", "firefox"],
 };
 
-const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false };
+const defaultScopeFilters = { onlyIncomplete: false, onlyWithBugs: false, onlyWithNg: false, onlyWithSkip: false };
 
 describe("mergeResultsFiles extras", () => {
   const base: ResultsFile = {
@@ -128,7 +128,7 @@ describe("resolveRunnerTestCases", () => {
     const cases = resolveRunnerTestCases(
       definition,
       session,
-      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false },
+      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false, onlyWithSkip: false },
       results,
     );
     expect(cases.some((tc) => tc.id === "TC-001")).toBe(false);
@@ -155,7 +155,7 @@ describe("resolveRunnerTestCases", () => {
     const cases = resolveRunnerTestCases(
       anyDefinition,
       chromeSession,
-      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false },
+      { onlyIncomplete: true, onlyWithBugs: false, onlyWithNg: false, onlyWithSkip: false },
       results,
     );
     expect(cases.some((tc) => tc.id === "TC-001")).toBe(false);

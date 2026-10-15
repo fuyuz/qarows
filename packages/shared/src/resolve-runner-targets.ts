@@ -36,17 +36,18 @@ function matchesCategoryFilters(testCase: TestCase, filters: RunnerFilters): boo
   return true;
 }
 
-function testCaseHasNg(
+function testCaseHasStatus(
   testCase: TestCase,
   definition: TestDefinition,
   sessionEnvironmentIds: string[],
   results: TestResults,
+  status: TestStatus,
 ): boolean {
   const targets = resolveSessionTestTargets(testCase, definition, sessionEnvironmentIds);
   const byEnv = results[testCase.id] ?? {};
   for (const envId of targets.environmentIds) {
     const entry = byEnv[envId];
-    if (isResultEntryValid(entry, testCase) && entry!.status === "NG") {
+    if (isResultEntryValid(entry, testCase) && entry!.status === status) {
       return true;
     }
   }
@@ -73,7 +74,13 @@ function shouldIncludeTestCase(
   }
   if (
     filters.onlyWithNg &&
-    !testCaseHasNg(testCase, definition, sessionEnvironmentIds, results)
+    !testCaseHasStatus(testCase, definition, sessionEnvironmentIds, results, "NG")
+  ) {
+    return false;
+  }
+  if (
+    filters.onlyWithSkip &&
+    !testCaseHasStatus(testCase, definition, sessionEnvironmentIds, results, "SKIP")
   ) {
     return false;
   }

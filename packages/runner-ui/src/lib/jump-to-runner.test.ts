@@ -32,6 +32,7 @@ describe("findRunnerIndex", () => {
         onlyIncomplete: false,
         onlyWithBugs: false,
         onlyWithNg: false,
+        onlyWithSkip: false,
       }),
     ).toBe(1);
     expect(
@@ -39,6 +40,7 @@ describe("findRunnerIndex", () => {
         onlyIncomplete: false,
         onlyWithBugs: false,
         onlyWithNg: false,
+        onlyWithSkip: false,
       }),
     ).toBeNull();
   });

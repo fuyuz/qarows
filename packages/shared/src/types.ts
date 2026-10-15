@@ -138,6 +138,7 @@ export interface RunnerFilters {
   onlyIncomplete: boolean;
   onlyWithBugs: boolean;
   onlyWithNg: boolean;
+  onlyWithSkip: boolean;
 }
 
 export interface ResolvedTestTargets {
