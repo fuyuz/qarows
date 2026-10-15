@@ -1,3 +1,0 @@
-ts	phase	decision	why	evidence	result
-2026-10-15T14:05:46Z	frame	Audit about 355 first-party files in four library slices and fix only proven doc mismatches	A full rewrite is too large. Laziness says keep the diff to real misuse. Prove-it-works needs a falsifiable predicate.	import census in this session, 355 ts/tsx files	open
-2026-10-15T14:05:46Z	design	Four read-only audits then one fix at a time. Cloudflare first, then React, data libs, UI libs.	Riskiest unknown is Workers and auth. Sequence verifiable units so each fix is checked before the next.	packages listed in apps/team/package.json and apps/local/package.json	audits launched

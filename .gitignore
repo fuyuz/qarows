@@ -60,3 +60,6 @@ access-app.json
 
 # Local debug
 *.local
+
+# Local audit / work logs
+.audit/
