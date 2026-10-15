@@ -1,5 +1,5 @@
 import {
-  APP_NAV_LABELS,
+  appNavLabel,
   APP_NAV_PAGES,
   formatAppNavShortcutForPage,
   useTranslation,
@@ -66,7 +66,7 @@ export function ShortcutHelp({
             <dl className="space-y-2">
               {navPages.map((page) => (
                 <div key={page} className="flex items-center justify-between gap-4 text-sm">
-                  <dt className="text-muted-foreground">{APP_NAV_LABELS[page]}</dt>
+                  <dt className="text-muted-foreground">{appNavLabel(page, t)}</dt>
                   <dd>
                     <Kbd>{formatAppNavShortcutForPage(page)}</Kbd>
                   </dd>

@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from "@qarows/ui";
 import { Label } from "@qarows/ui";
-import { cn } from "@qarows/ui";
+import { cn, useTranslation } from "@qarows/ui";
 
 export function TestCaseEditDialog({
   open,
@@ -39,6 +39,7 @@ export function TestCaseEditDialog({
   ) => void | Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<TestCaseEditDraft>(() => testCaseToDraft(testCase));
   const [majorError, setMajorError] = useState(false);
   const [descriptionError, setDescriptionError] = useState(false);
@@ -96,7 +97,7 @@ export function TestCaseEditDialog({
       >
         <DialogHeader className="shrink-0 border-b px-6 py-4">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <DialogTitle>テスト項目を編集</DialogTitle>
+            <DialogTitle>{t("definition.editCase")}</DialogTitle>
             <Badge variant="secondary" className="bg-primary/10 font-bold text-primary">
               {testCase.id}
             </Badge>
@@ -133,16 +134,12 @@ export function TestCaseEditDialog({
                 htmlFor={`test-case-edit-${testCase.id}-bump-version`}
                 className="cursor-pointer font-medium"
               >
-                バージョンを更新
+                {t("definition.bumpVersion")}
               </Label>
               <p className="text-xs text-muted-foreground">
-                {draft.bumpVersion ? (
-                  <>
-                    保存時に v{currentVersion} → v{currentVersion + 1} に更新します。既存のテスト結果は未実施扱いになり、再テスト対象になります。
-                  </>
-                ) : (
-                  <>チェックすると、保存時にテスト定義の version を 1 つ上げます（現在 v{currentVersion}）。</>
-                )}
+                {draft.bumpVersion
+                  ? t("definition.versionBumpActive", { from: currentVersion, to: currentVersion + 1 })
+                  : t("definition.versionBumpInactive", { version: currentVersion })}
               </p>
             </div>
           </div>
@@ -151,7 +148,7 @@ export function TestCaseEditDialog({
         <DialogFooter className="shrink-0 border-t px-6 py-4">
           <div className="flex w-full justify-end gap-2">
             <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
-              閉じる
+              {t("common.close")}
             </Button>
             <Button
               type="button"
@@ -159,7 +156,7 @@ export function TestCaseEditDialog({
               className={cn(busy && "opacity-70")}
               onClick={() => void handleSave()}
             >
-              保存
+              {t("common.save")}
             </Button>
           </div>
         </DialogFooter>

@@ -22,6 +22,7 @@ export const jaMessages = {
     remove: "削除",
     required: "必須",
     optional: "任意",
+    listSeparator: "、",
     all: "すべて",
     none: "なし",
     back: "戻る",
@@ -276,7 +277,7 @@ export const jaMessages = {
     scenarioNamed: "シナリオ（{name}）",
     filterNamed: "フィルタ（{parts}）",
     introHowToBody:
-      "テスト内容を確認し、端末ごとに結果を入力します。{nextKeys} で次のテストへ進みます。",
+      "テスト内容を確認し、端末ごとに結果を入力します。「はじめる」または {nextKeys} で次のテストへ進みます。",
     introBatchKeysHint: "{okKeys} で表示中の端末すべてに同じ結果を一括入力できます。",
     introPerDeviceHint: "端末ごとのボタンで個別に入力することもできます。",
     introShortcutsHint: "右下の ? からショートカット一覧を確認できます。メモ入力中は無効です。",

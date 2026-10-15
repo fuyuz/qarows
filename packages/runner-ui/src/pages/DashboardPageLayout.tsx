@@ -107,11 +107,11 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
 
   if (!definition || !results) return null;
 
-  const envNames = definition.environments.map((e) => e.name).join("、");
+  const envNames = definition.environments.map((e) => e.name).join(t("common.listSeparator"));
   const sessionEnvNames =
     session?.selectedEnvironmentIds
       .map((id) => definition.environments.find((e) => e.id === id)?.name ?? id)
-      .join("、") ?? "";
+      .join(t("common.listSeparator")) ?? "";
 
   return (
     <div className="flex min-h-svh flex-col">

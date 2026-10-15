@@ -1,6 +1,6 @@
 import type { TestCase } from "@qarows/shared";
 import type { ReactNode } from "react";
-import { cn } from "@qarows/ui";
+import { cn, useTranslation } from "@qarows/ui";
 
 function formatCategory(testCase: TestCase): string {
   const parts = [testCase.category.major];
@@ -18,6 +18,7 @@ export function TestCaseHoverPreview({
   children: ReactNode;
   className?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <span className={cn("group/tc relative inline-flex", className)}>
       {children}
@@ -31,7 +32,7 @@ export function TestCaseHoverPreview({
         </span>
         {testCase.prerequisites && (
           <span className="mb-2 block text-xs leading-relaxed text-muted-foreground">
-            <span className="font-semibold text-foreground/80">前提: </span>
+            <span className="font-semibold text-foreground/80">{t("runner.prereqShort")} </span>
             {testCase.prerequisites}
           </span>
         )}

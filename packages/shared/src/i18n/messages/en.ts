@@ -22,6 +22,7 @@ export const enMessages = {
     remove: "Remove",
     required: "Required",
     optional: "Optional",
+    listSeparator: ", ",
     all: "All",
     none: "None",
     back: "Back",

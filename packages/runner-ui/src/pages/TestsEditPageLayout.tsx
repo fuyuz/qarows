@@ -144,7 +144,7 @@ export function TestsEditPageLayout({
         compact={compact}
         onCompactChange={setCompact}
         onAddTestCase={() => {
-          const major = filters.major ?? "未分類";
+          const major = filters.major ?? t("definition.uncategorized");
           draftApi.addTestCase({
             category: {
               major,

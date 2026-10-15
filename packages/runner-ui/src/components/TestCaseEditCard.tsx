@@ -20,6 +20,7 @@ import {
   SelectValue,
   Textarea,
   cn,
+  useTranslation,
 } from "@qarows/ui";
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 
@@ -48,6 +49,7 @@ export function TestCaseEditCard({
   onSetTargets: (spec: TargetEnvironmentSpec | undefined) => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const [detailsOpen, setDetailsOpen] = useState(isNew);
   const resolved = resolveTestTargets(testCase, definition);
   const envNames = Object.fromEntries(definition.environments.map((e) => [e.id, e.name]));
@@ -56,7 +58,7 @@ export function TestCaseEditCard({
   const targetsSummary =
     resolved.environmentIds.length > 0
       ? `${resolved.required} — ${resolved.environmentIds.map((id) => envNames[id] ?? id).join(", ")}`
-      : "対象外";
+      : t("runner.outOfScope");
 
   return (
     <article
@@ -72,7 +74,7 @@ export function TestCaseEditCard({
             value={testCase.id}
             className={cn("shrink-0 font-mono", compact ? "h-7 w-24 text-xs" : "h-8 w-32 text-sm")}
             onChange={(e) => onChangeId(e.target.value)}
-            aria-label="テストケース ID"
+            aria-label={t("definition.testCaseIdAria")}
           />
         ) : (
           <Badge
@@ -84,7 +86,7 @@ export function TestCaseEditCard({
         )}
         {!compact ? (
           <span className="min-w-0 flex-1 truncate whitespace-nowrap text-xs text-muted-foreground">
-            {categoryPath(testCase.category) || "分類未設定"}
+            {categoryPath(testCase.category) || t("definition.uncategorizedBadge")}
           </span>
         ) : (
           <span className="min-w-0 flex-1" />
@@ -94,12 +96,12 @@ export function TestCaseEditCard({
             variant="secondary"
             className={cn("bg-amber-100 text-amber-950", compact && "px-1.5 py-0 text-[10px]")}
           >
-            変更
+            {t("definition.modified")}
           </Badge>
         ) : null}
         {isNew && !compact ? (
           <Badge variant="secondary" className="bg-green-100 text-green-900">
-            新規
+            {t("definition.new")}
           </Badge>
         ) : null}
         <Button
@@ -108,21 +110,21 @@ export function TestCaseEditCard({
           variant="ghost"
           className={cn("shrink-0 text-muted-foreground", compact ? "size-6" : "size-8")}
           onClick={() => {
-            if (window.confirm(`「${testCase.id}」を削除しますか？`)) onRemove();
+            if (window.confirm(t("definition.deleteCaseConfirm", { id: testCase.id }))) onRemove();
           }}
-          aria-label={`${testCase.id} を削除`}
+          aria-label={t("definition.deleteCaseAria", { id: testCase.id })}
         >
           <Trash2 className={compact ? "size-3.5" : "size-4"} />
         </Button>
       </div>
 
       <div className={cn("grid gap-1", compact ? "mb-1.5" : "mb-3")}>
-        {!compact ? <Label className="text-sm font-semibold">確認内容</Label> : null}
+        {!compact ? <Label className="text-sm font-semibold">{t("runner.steps")}</Label> : null}
         <Textarea
           value={testCase.description}
           rows={compact ? 2 : 3}
-          aria-label="確認内容"
-          placeholder={compact ? "確認内容" : undefined}
+          aria-label={t("runner.steps")}
+          placeholder={compact ? t("runner.steps") : undefined}
           className={cn(
             "resize-y font-medium leading-relaxed",
             compact
@@ -134,12 +136,12 @@ export function TestCaseEditCard({
       </div>
 
       <div className={cn("grid gap-1", compact ? "mb-0" : "mb-3")}>
-        {!compact ? <Label className="text-xs text-muted-foreground">前提条件</Label> : null}
+        {!compact ? <Label className="text-xs text-muted-foreground">{t("runner.prerequisites")}</Label> : null}
         <Textarea
           value={testCase.prerequisites ?? ""}
           rows={compact ? 1 : 2}
-          aria-label="前提条件"
-          placeholder={compact ? "前提条件（任意）" : "任意"}
+          aria-label={t("runner.prerequisites")}
+          placeholder={compact ? t("definition.prerequisitesOptional") : t("common.optional")}
           className={cn(
             "resize-y text-muted-foreground",
             compact ? "min-h-[1.75rem] px-2 py-1 text-xs" : "min-h-[2.5rem] text-sm",
@@ -165,7 +167,7 @@ export function TestCaseEditCard({
             ) : (
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             )}
-            <span className="shrink-0 font-medium text-muted-foreground">詳細</span>
+            <span className="shrink-0 font-medium text-muted-foreground">{t("definition.details")}</span>
             <span className="min-w-0 flex-1 truncate whitespace-nowrap text-xs text-muted-foreground">
               {categoryPath(testCase.category)} · {targetsSummary}
             </span>
@@ -173,10 +175,10 @@ export function TestCaseEditCard({
           {detailsOpen ? (
             <div className="space-y-4 border-t border-border/60 px-3 py-3">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">分類</p>
+                <p className="text-xs font-medium text-muted-foreground">{t("definition.category")}</p>
                 <div className="grid gap-2 sm:grid-cols-3">
                   <div className="grid gap-1">
-                    <Label className="text-xs text-muted-foreground">大分類</Label>
+                    <Label className="text-xs text-muted-foreground">{t("runner.major")}</Label>
                     <Input
                       value={testCase.category.major}
                       className="h-8"
@@ -188,11 +190,11 @@ export function TestCaseEditCard({
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label className="text-xs text-muted-foreground">中分類</Label>
+                    <Label className="text-xs text-muted-foreground">{t("runner.medium")}</Label>
                     <Input
                       value={testCase.category.medium ?? ""}
                       className="h-8"
-                      placeholder="任意"
+                      placeholder={t("common.optional")}
                       onChange={(e) => {
                         const medium = e.target.value;
                         onUpdate({
@@ -208,11 +210,11 @@ export function TestCaseEditCard({
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label className="text-xs text-muted-foreground">小分類</Label>
+                    <Label className="text-xs text-muted-foreground">{t("runner.minor")}</Label>
                     <Input
                       value={testCase.category.minor ?? ""}
                       className="h-8"
-                      placeholder="任意"
+                      placeholder={t("common.optional")}
                       onChange={(e) => {
                         const minor = e.target.value;
                         onUpdate({
@@ -231,7 +233,7 @@ export function TestCaseEditCard({
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">対象端末</p>
+                <p className="text-xs font-medium text-muted-foreground">{t("runner.targetDevices")}</p>
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox
                     checked={hasOverride}
@@ -243,12 +245,12 @@ export function TestCaseEditCard({
                       }
                     }}
                   />
-                  ケース単位で上書きする
+                  {t("definition.overridePerCase")}
                 </label>
                 {hasOverride && override ? (
                   <>
                     <div className="grid gap-1">
-                      <Label className="text-xs text-muted-foreground">完了条件</Label>
+                      <Label className="text-xs text-muted-foreground">{t("definition.completionRule")}</Label>
                       <Select
                         value={override.required}
                         onValueChange={(value) =>
@@ -262,14 +264,14 @@ export function TestCaseEditCard({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">all（すべて）</SelectItem>
-                          <SelectItem value="any">any（いずれか）</SelectItem>
+                          <SelectItem value="all">{t("definition.completionAll")}</SelectItem>
+                          <SelectItem value="any">{t("definition.completionAny")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="grid gap-2">
                       <Label className="text-xs text-muted-foreground">
-                        対象端末（未選択 = 上位の有効プール全体）
+                        {t("definition.targetEnvHint")}
                       </Label>
                       <div className="flex flex-wrap gap-3">
                         {definition.environments.map((env) => {
@@ -297,7 +299,7 @@ export function TestCaseEditCard({
                     </div>
                   </>
                 ) : null}
-                <p className="text-xs text-muted-foreground">解決結果: {targetsSummary}</p>
+                <p className="text-xs text-muted-foreground">{t("definition.resolvedResult")} {targetsSummary}</p>
               </div>
 
               <div className="grid gap-1">

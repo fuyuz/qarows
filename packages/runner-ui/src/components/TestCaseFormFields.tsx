@@ -2,7 +2,7 @@ import type { SessionTestTargets, TestCase } from "@qarows/shared";
 import type { Dispatch, SetStateAction } from "react";
 import { Input } from "@qarows/ui";
 import { Label } from "@qarows/ui";
-import { Textarea } from "@qarows/ui";
+import { Textarea, useTranslation } from "@qarows/ui";
 
 export function TestCaseFormFields({
   idPrefix,
@@ -23,15 +23,16 @@ export function TestCaseFormFields({
   descriptionError: boolean;
   setDescriptionError: (value: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const envSummary =
     envTargets.environmentIds.length > 0
       ? `${envTargets.required} — ${envTargets.environmentIds.join(", ")}`
-      : "対象外";
+      : t("runner.outOfScope");
 
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-targets`}>対象端末（読み取り専用）</Label>
+        <Label htmlFor={`${idPrefix}-targets`}>{t("definition.targetDevicesReadonly")}</Label>
         <Input
           id={`${idPrefix}-targets`}
           value={envSummary}
@@ -43,7 +44,7 @@ export function TestCaseFormFields({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="grid gap-2 sm:col-span-1">
-          <Label htmlFor={`${idPrefix}-major`}>大分類</Label>
+          <Label htmlFor={`${idPrefix}-major`}>{t("runner.major")}</Label>
           <Input
             id={`${idPrefix}-major`}
             value={draft.major}
@@ -53,41 +54,41 @@ export function TestCaseFormFields({
               setDraft((prev) => ({ ...prev, major: e.target.value }));
             }}
           />
-          {majorError && <p className="text-sm text-destructive">大分類は必須です</p>}
+          {majorError && <p className="text-sm text-destructive">{t("definition.majorRequired")}</p>}
         </div>
         <div className="grid gap-2 sm:col-span-1">
-          <Label htmlFor={`${idPrefix}-medium`}>中分類</Label>
+          <Label htmlFor={`${idPrefix}-medium`}>{t("runner.medium")}</Label>
           <Input
             id={`${idPrefix}-medium`}
             value={draft.medium}
-            placeholder="任意"
+            placeholder={t("common.optional")}
             onChange={(e) => setDraft((prev) => ({ ...prev, medium: e.target.value }))}
           />
         </div>
         <div className="grid gap-2 sm:col-span-1">
-          <Label htmlFor={`${idPrefix}-minor`}>小分類</Label>
+          <Label htmlFor={`${idPrefix}-minor`}>{t("runner.minor")}</Label>
           <Input
             id={`${idPrefix}-minor`}
             value={draft.minor}
-            placeholder="任意"
+            placeholder={t("common.optional")}
             onChange={(e) => setDraft((prev) => ({ ...prev, minor: e.target.value }))}
           />
         </div>
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-prerequisites`}>前提条件</Label>
+        <Label htmlFor={`${idPrefix}-prerequisites`}>{t("runner.prerequisites")}</Label>
         <Textarea
           id={`${idPrefix}-prerequisites`}
           rows={2}
           value={draft.prerequisites}
-          placeholder="任意"
+          placeholder={t("common.optional")}
           onChange={(e) => setDraft((prev) => ({ ...prev, prerequisites: e.target.value }))}
         />
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-description`}>確認内容</Label>
+        <Label htmlFor={`${idPrefix}-description`}>{t("runner.steps")}</Label>
         <Textarea
           id={`${idPrefix}-description`}
           rows={4}
@@ -98,7 +99,7 @@ export function TestCaseFormFields({
             setDraft((prev) => ({ ...prev, description: e.target.value }));
           }}
         />
-        {descriptionError && <p className="text-sm text-destructive">確認内容は必須です</p>}
+        {descriptionError && <p className="text-sm text-destructive">{t("definition.stepsRequired")}</p>}
       </div>
     </div>
   );

@@ -144,7 +144,7 @@ export function BugCard({
 
   const envNames = (bug.environmentIds ?? [])
     .map((id) => definition.environments.find((env) => env.id === id)?.name ?? id)
-    .join("、");
+    .join(t("common.listSeparator"));
 
   const handleCopy = useCallback(async () => {
     try {
