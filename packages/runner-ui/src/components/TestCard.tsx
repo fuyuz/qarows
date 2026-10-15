@@ -11,6 +11,7 @@ import {
   testCardShellClass,
   type RunnerCardNavProps,
 } from "./RunnerCardFooter";
+import { LinkifiedText } from "./LinkifiedText";
 import { Badge } from "@qarows/ui";
 import { Button } from "@qarows/ui";
 import { Textarea } from "@qarows/ui";
@@ -148,7 +149,9 @@ export function TestCard({
             <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               {t("runner.prerequisites")}
             </h2>
-            <p className="text-sm leading-relaxed text-foreground/90">{testCase.prerequisites}</p>
+            <p className="text-sm leading-relaxed text-foreground/90">
+              <LinkifiedText text={testCase.prerequisites} />
+            </p>
           </section>
         )}
 
@@ -156,7 +159,9 @@ export function TestCard({
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {t("runner.steps")}
           </h2>
-          <p className="text-lg leading-relaxed font-semibold text-foreground">{testCase.description}</p>
+          <p className="text-lg leading-relaxed font-semibold text-foreground">
+            <LinkifiedText text={testCase.description} />
+          </p>
         </section>
 
         <section className="mb-5">

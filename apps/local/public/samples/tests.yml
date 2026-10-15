@@ -438,6 +438,14 @@ testCases:
     prerequisites: "テスト実行画面 (/run) を表示中"
     description: "画面右下の ? にホバーするとキーボードショートカット一覧（ランナー操作と画面移動）が表示される"
 
+  - id: TC-145
+    category:
+      major: "テスト実行"
+      medium: "画面"
+      minor: "URL リンク"
+    prerequisites: "テスト実行画面でこのテストを表示中（参考: https://example.com/ ）"
+    description: "前提条件・確認内容に含まれる URL（この前提条件の https://example.com/ など）がリンク表示され、クリックすると別タブで開く。URL 直後の句読点や全角括弧はリンクに含まれない"
+
   - id: TC-021a
     category:
       major: "テスト実行"
