@@ -371,7 +371,7 @@ export const jaMessages = {
     scenarios: "シナリオ",
     categoryTargetsChanged: "categoryTargets に変更があります",
     searchPlaceholder: "ID・確認内容・前提条件で検索",
-    compact: "コンパクト",
+    compact: "コンパクト表示",
     addCase: "ケース追加",
     editCase: "テスト項目を編集",
     bumpVersion: "バージョンを更新",
