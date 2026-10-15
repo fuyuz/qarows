@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   columnOrderingFeature,
@@ -100,11 +100,6 @@ function pinningStyles(column: MatrixColumn, isHeader = false): CSSProperties {
   };
 }
 
-/** セル操作が行クリック（テスト実行へ遷移）に伝播しないようにする。Portal 内のメニューも React ツリー上は行の子 */
-function stopRowActivation(event: SyntheticEvent) {
-  event.stopPropagation();
-}
-
 const NOT_ENTERED = "none";
 
 interface MatrixCellContextValue {
@@ -112,6 +107,8 @@ interface MatrixCellContextValue {
   session: SessionConfig | null;
   onSetStatus: (testCase: TestCase, envId: string, status: TestStatus) => void;
   onClear: (testCaseId: string, envId: string) => void;
+  canJump: (testCaseId: string) => boolean;
+  onJump: (testCaseId: string) => void;
 }
 
 /**
@@ -120,6 +117,38 @@ interface MatrixCellContextValue {
  * 再マウントされ、StatusBadge の出現アニメーションが一斉に再生されてちらつく
  */
 const MatrixCellContext = createContext<MatrixCellContextValue | null>(null);
+
+/** テスト実行への遷移は ID だけで受け付ける（行全体だとセル操作と競合する） */
+function IdCell({ testCaseId }: { testCaseId: string }) {
+  const { t } = useTranslation();
+  const context = useContext(MatrixCellContext);
+  const textClass = "font-mono text-xs font-semibold";
+
+  if (!context?.canJump(testCaseId)) {
+    return (
+      <span
+        className={textClass}
+        title={context?.session ? t("runner.outOfSession") : t("runner.sessionRequired")}
+      >
+        {testCaseId}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        textClass,
+        "cursor-pointer rounded-sm text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+      )}
+      title={t("runner.clickToRun")}
+      onClick={() => context.onJump(testCaseId)}
+    >
+      {testCaseId}
+    </button>
+  );
+}
 
 function EnvCell({
   testCase,
@@ -154,12 +183,10 @@ function EnvCell({
     <DropdownMenu>
       <DropdownMenuTrigger
         className="flex h-7 w-full cursor-pointer items-center rounded-sm px-1 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        onClick={stopRowActivation}
-        onKeyDown={stopRowActivation}
       >
         {display}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" onClick={stopRowActivation} onKeyDown={stopRowActivation}>
+      <DropdownMenuContent align="start">
         <DropdownMenuRadioGroup
           value={entry?.status ?? NOT_ENTERED}
           onValueChange={(value) => {
@@ -268,9 +295,7 @@ export function TestMatrixTable({
         id: "id",
         header: "ID",
         size: COLUMN_SIZES.id,
-        cell: (info) => (
-          <span className="font-mono text-xs font-semibold">{info.getValue()}</span>
-        ),
+        cell: (info) => <IdCell testCaseId={info.getValue()} />,
       }),
       helper.accessor((row) => row.category.major, {
         id: "major",
@@ -339,15 +364,17 @@ export function TestMatrixTable({
 
   const cellContext = useMemo<MatrixCellContextValue | null>(
     () =>
-      results
+      results && definition
         ? {
             results: results.results,
             session,
             onSetStatus: handleSetStatus,
             onClear: (testCaseId, envId) => void clearTestResult(testCaseId, envId),
+            canJump: (testCaseId) => canJumpToRunner(testCaseId, definition, session),
+            onJump: (testCaseId) => navigate(path("run", runnerFilters, testCaseId)),
           }
         : null,
-    [clearTestResult, handleSetStatus, results, session],
+    [clearTestResult, definition, handleSetStatus, navigate, path, results, runnerFilters, session],
   );
 
   const table = useTable({
@@ -398,10 +425,6 @@ export function TestMatrixTable({
     );
   }
 
-  const handleRowActivate = (testCase: TestCase) => {
-    if (!canJumpToRunner(testCase.id, definition, session)) return;
-    navigate(path("run", runnerFilters, testCase.id));
-  };
 
   return (
     <>
@@ -447,37 +470,14 @@ export function TestMatrixTable({
               ) : null}
               {virtualRows.map((virtualRow) => {
                 const row = rows[virtualRow.index];
-                const testCase = row.original;
-                const jumpable = canJumpToRunner(testCase.id, definition, session);
 
                 return (
                   <tr
                     key={row.id}
                     ref={compact ? undefined : rowVirtualizer.measureElement}
                     data-index={virtualRow.index}
-                    className={cn(
-                      "border-b border-border/40 transition-colors",
-                      jumpable
-                        ? "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
-                        : "hover:bg-muted/20",
-                    )}
+                    className="border-b border-border/40 transition-colors hover:bg-muted/20"
                     style={compact ? { height: ROW_HEIGHT } : undefined}
-                    tabIndex={jumpable ? 0 : undefined}
-                    onClick={() => void handleRowActivate(testCase)}
-                    onKeyDown={(event) => {
-                      if (!jumpable) return;
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        void handleRowActivate(testCase);
-                      }
-                    }}
-                    title={
-                      jumpable
-                        ? t("runner.clickToRun")
-                        : session
-                          ? t("runner.outOfSession")
-                          : t("runner.sessionRequired")
-                    }
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td
