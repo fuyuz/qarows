@@ -1,4 +1,8 @@
 export const jaMessages = {
+  update: {
+    available: "新しいバージョンが公開されました。再読み込みすると最新版になります",
+    reload: "再読み込み",
+  },
   common: {
     brandSubtitle: "QA シート特化ツール",
     loading: "読み込み中…",

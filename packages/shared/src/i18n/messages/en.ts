@@ -1,4 +1,8 @@
 export const enMessages = {
+  update: {
+    available: "A new version is available. Reload to get the latest.",
+    reload: "Reload",
+  },
   common: {
     brandSubtitle: "QA sheet tool",
     loading: "Loading…",

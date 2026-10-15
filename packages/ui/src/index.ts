@@ -124,3 +124,5 @@ export {
   type I18nProviderProps,
   type LanguageSwitcherProps,
 } from "./workspace";
+export { UpdateAvailableBanner } from "./components/update-available-banner";
+export { installStaleChunkReload } from "./lib/stale-build";
