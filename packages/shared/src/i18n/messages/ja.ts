@@ -214,6 +214,7 @@ export const jaMessages = {
     clickToRun: "クリックでテスト実行へ",
     matrixHint: "環境列は右方向へスクロールして確認できます。セッションで選択した端末のセルをクリックすると結果を入力できます",
     matrixNotEntered: "未入力",
+    matrixScopeAria: "マトリクスの表示対象",
     introTitle: "使い方",
     introHeading: "テストの進め方",
     introResults: "結果の入力",

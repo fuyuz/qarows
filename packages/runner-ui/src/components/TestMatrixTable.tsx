@@ -173,8 +173,11 @@ function EnvCell({
 
 export function TestMatrixTable({
   testCases,
+  environmentIds,
 }: {
   testCases: TestCase[];
+  /** 表示する環境列 */
+  environmentIds: string[];
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -283,32 +286,34 @@ export function TestMatrixTable({
       }),
     ];
 
-    const envColumns = definition.environments.map((env) =>
-      helper.display({
-        id: `env-${env.id}`,
-        header: () => (
-          <span className="block truncate" title={env.name}>
-            {env.name}
-          </span>
-        ),
-        size: COLUMN_SIZES.env,
-        cell: ({ row }) =>
-          results ? (
-            <EnvCell
-              testCase={row.original}
-              envId={env.id}
-              isTarget={targetEnvIdsByTestCase.get(row.original.id)?.includes(env.id) ?? false}
-              editable={session?.selectedEnvironmentIds.includes(env.id) ?? false}
-              results={results.results}
-              onSetStatus={handleSetStatus}
-              onClear={(testCaseId, envId) => void clearTestResult(testCaseId, envId)}
-            />
-          ) : null,
-      }),
-    );
+    const envColumns = definition.environments
+      .filter((env) => environmentIds.includes(env.id))
+      .map((env) =>
+        helper.display({
+          id: `env-${env.id}`,
+          header: () => (
+            <span className="block truncate" title={env.name}>
+              {env.name}
+            </span>
+          ),
+          size: COLUMN_SIZES.env,
+          cell: ({ row }) =>
+            results ? (
+              <EnvCell
+                testCase={row.original}
+                envId={env.id}
+                isTarget={targetEnvIdsByTestCase.get(row.original.id)?.includes(env.id) ?? false}
+                editable={session?.selectedEnvironmentIds.includes(env.id) ?? false}
+                results={results.results}
+                onSetStatus={handleSetStatus}
+                onClear={(testCaseId, envId) => void clearTestResult(testCaseId, envId)}
+              />
+            ) : null,
+        }),
+      );
 
     return helper.columns([...metaColumns, ...envColumns]);
-  }, [clearTestResult, definition, handleSetStatus, results, session, t, targetEnvIdsByTestCase]);
+  }, [clearTestResult, definition, environmentIds, handleSetStatus, results, session, t, targetEnvIdsByTestCase]);
 
   const table = useTable({
     features,
