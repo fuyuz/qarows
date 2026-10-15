@@ -185,10 +185,14 @@ function FieldChangeRow({
     <div className={cn("mt-2 space-y-1", compact && "ml-0")}>
       <p className="text-xs font-medium text-muted-foreground">{change.field}</p>
       {change.before ? (
-        <p className="rounded bg-red-50/80 px-2 py-1 text-xs text-red-950 line-through">{change.before}</p>
+        <p className="rounded bg-red-50/80 px-2 py-1 text-xs whitespace-pre-wrap text-red-950 line-through">
+          {change.before.trimEnd()}
+        </p>
       ) : null}
       {change.after ? (
-        <p className="rounded bg-green-50/80 px-2 py-1 text-xs text-green-950">{change.after}</p>
+        <p className="rounded bg-green-50/80 px-2 py-1 text-xs whitespace-pre-wrap text-green-950">
+          {change.after.trimEnd()}
+        </p>
       ) : null}
     </div>
   );
