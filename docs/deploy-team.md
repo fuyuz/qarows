@@ -30,7 +30,7 @@
 - [Bun](https://bun.sh/)（リポジトリルートで `bun install`）
 - [Cloudflare アカウント](https://dash.cloudflare.com/)
 - cf CLI（`apps/team` の devDependency に含まれる。`apps/team` で `bunx cf ...` として実行する）
-- Wrangler も devDependency に残している。`cf dev` / `cf deploy` が内部で Wrangler に委譲するため（直接は使わない）
+- Wrangler も devDependency に残している。`cf dev` / `cf deploy` が内部で Wrangler に委譲するためと、`check:worker-env` が `wrangler/experimental-config` の型を使うため（CLI として直接実行する手順はない）
 
 ```bash
 bun install
