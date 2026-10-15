@@ -38,7 +38,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
         className={cn(
           "absolute top-2 right-2 inline-flex size-7 cursor-pointer items-center justify-center rounded-md border bg-card shadow-xs transition-colors",
           copied
-            ? "text-green-600 dark:text-green-500"
+            ? "text-green-600 hover:text-green-600 dark:text-green-500 dark:hover:text-green-500"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
@@ -70,17 +70,16 @@ function InlineCode({ children }: { children?: ReactNode }) {
       title={copied ? t("common.copied") : t("runner.clickToCopy")}
       aria-label={`${String(children ?? "")} — ${copied ? t("common.copied") : t("runner.clickToCopy")}`}
       className={cn(
-        "inline-flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 align-baseline font-mono text-[0.85em] transition-colors",
-        copied
-          ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
-          : "bg-muted hover:bg-muted-foreground/15",
+        "inline-flex cursor-pointer items-center gap-1 rounded bg-muted px-1 py-0.5 align-baseline font-mono text-[0.85em] transition-colors hover:bg-muted-foreground/15",
+        // 他のコピーボタン（TestCard / BugCard など）と同じく、コピー後は文字とアイコンを緑にする
+        copied && "text-green-600 dark:text-green-500",
       )}
     >
       <code>{children}</code>
       {copied ? (
         <Check className="size-3 shrink-0" aria-hidden />
       ) : (
-        <Copy className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+        <Copy className="size-3 shrink-0 opacity-60" aria-hidden />
       )}
     </button>
   );
