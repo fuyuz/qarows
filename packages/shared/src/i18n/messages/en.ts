@@ -468,7 +468,7 @@ export const enMessages = {
     hideFullDiff: "Hide full YAML diff",
     showFullDiff: "Show full YAML diff",
     generationFailedHint: "Could not generate diff; specify TC details",
-    proposalHint: "Ask-only OK; edits show proposal here",
+    proposalHint: "Questions are fine too. Send an edit request to see a proposed change here.",
     history: "History (undo)",
     restore: "Restore",
     requestFailed: "AI request failed",

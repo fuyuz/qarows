@@ -355,7 +355,7 @@ export const jaMessages = {
   },
   definition: {
     title: "テスト定義",
-    draftHint: "変更は一時状態として保持されます。Apply するまで…",
+    draftHint: "変更は一時状態として保持され、Apply するまで保存されません。",
     noChanges: "未適用の変更はありません",
     noMatching: "条件に一致するテストケースがありません",
     changeDiff: "変更差分",
@@ -472,7 +472,7 @@ export const jaMessages = {
     showFullDiff: "YAML 全文 diff を表示",
     generationFailedHint:
       "編集した旨の応答はありますが、編集案（diff）を生成できませんでした。会話欄の補足を確認し、追加する TC の内容を具体的に指定して再試行してください。",
-    proposalHint: "質問だけでも OK です。編集指示を送ると…",
+    proposalHint: "質問だけでも OK です。編集指示を送ると、ここに変更案が表示されます。",
     history: "履歴（元に戻す）",
     restore: "復元",
     requestFailed: "AI リクエストに失敗しました",
