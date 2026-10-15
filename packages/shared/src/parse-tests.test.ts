@@ -86,6 +86,42 @@ testCases:
     }
     expect(() => parseTestsYaml(nested)).toThrow(/maxDepth|nesting/i);
   });
+
+  it("rejects an alias that expands past the node budget", () => {
+    const fields = Array.from({ length: 100 }, (_, index) => `  k${index}: a`).join("\n");
+    const repeats = Array.from({ length: 10_001 }, () => "  - *row").join("\n");
+    const yaml = `
+project:
+  name: Test Project
+  id: test-project
+environments:
+  - id: chrome
+    name: Chrome
+row: &row
+${fields}
+testCases:
+${repeats}
+`;
+    expect(() => parseTestsYaml(yaml)).toThrow("tests.yml が大きすぎます（構造が複雑すぎます）");
+  });
+
+  it("rejects a self-referencing alias", () => {
+    const yaml = `
+project: &project
+  name: Test Project
+  id: test-project
+  again: *project
+environments:
+  - id: chrome
+    name: Chrome
+testCases:
+  - id: TC-001
+    category:
+      major: Auth
+    description: Login works
+`;
+    expect(() => parseTestsYaml(yaml)).toThrow("tests.yml が大きすぎます（構造が複雑すぎます）");
+  });
 });
 
 describe("slugifyProjectId", () => {

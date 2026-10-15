@@ -12,29 +12,35 @@ import type {
 
 /** Nesting limit for js-yaml (default in library is 100). */
 export const MAX_YAML_DEPTH = 32;
-/** Max unique object/array nodes after parse (DoS guard). */
-export const MAX_YAML_NODES = 50_000;
+/**
+ * Max key visits while walking a parsed document. Repeated aliases count again.
+ * A 5MB tests.yml of one-letter steps is about 874k visits, measured by scaling
+ * a 50,000-step file. Team already rejects bodies over 5MB, so this sits just above that.
+ */
+export const MAX_YAML_NODES = 1_000_000;
+
+function isYamlContainer(value: unknown): value is Record<string, unknown> {
+  if (Array.isArray(value)) return true;
+  if (value === null || typeof value !== "object") return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
 
 function assertYamlNodeBudget(root: unknown, limit: number): void {
+  if (!isYamlContainer(root)) return;
   let count = 0;
-  const stack: unknown[] = [root];
-  const seen = new Set<object>();
+  const stack: Record<string, unknown>[] = [root];
 
   while (stack.length > 0) {
     const node = stack.pop();
-    if (node === null || typeof node !== "object") continue;
-    if (seen.has(node)) continue;
-    seen.add(node);
-    count += 1;
-    if (count > limit) {
-      throw new Error("tests.yml が大きすぎます（構造が複雑すぎます）");
-    }
-    if (Array.isArray(node)) {
-      for (const item of node) stack.push(item);
-    } else {
-      for (const value of Object.values(node as Record<string, unknown>)) {
-        stack.push(value);
+    if (node === undefined) break;
+    for (const key in node) {
+      count += 1;
+      if (count > limit) {
+        throw new Error("tests.yml が大きすぎます（構造が複雑すぎます）");
       }
+      const value = node[key];
+      if (isYamlContainer(value)) stack.push(value);
     }
   }
 }
