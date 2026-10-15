@@ -8,6 +8,10 @@
   "required": ["project", "environments", "testCases"],
   "properties": {
     "project": { "$ref": "#/$defs/project" },
+    "overview": {
+      "type": "string",
+      "description": "Project overview in Markdown, shown on its own page (what to share before testing, accounts to use, etc.)"
+    },
     "environments": {
       "type": "array",
       "minItems": 1,

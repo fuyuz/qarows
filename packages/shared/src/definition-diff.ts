@@ -166,6 +166,9 @@ export function computeDefinitionDiff(
   after: TestDefinition,
 ): DefinitionDiff {
   const project = projectFields(before.project, after.project);
+  if ((before.overview ?? "") !== (after.overview ?? "")) {
+    project.push({ field: "overview", before: before.overview ?? "", after: after.overview ?? "" });
+  }
 
   const beforeEnvMap = new Map(before.environments.map((env) => [env.id, env]));
   const afterEnvMap = new Map(after.environments.map((env) => [env.id, env]));

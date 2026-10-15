@@ -3,6 +3,23 @@ project:
   id: qarows
   version: 1
 
+overview: |
+  ## このチェックリストについて
+  qarows 自身の手動 QA 用サンプルです。機能を追加したら、ここにテストケースを足していきます。
+
+  ## テスト前に共有しておくこと
+  - 確認するビルド: `main` の最新（Local 版は公式 URL、Team 版は各自のデプロイ）
+  - Local 版のデータはブラウザの IndexedDB に保存されます。確認後は「プロジェクト一覧」から削除して構いません
+  - 不具合を見つけたら NG を付け、そのままバグ起票ダイアログで報告します
+
+  ## 利用するアカウント
+  | 対象 | アカウント | 認証情報 |
+  |---|---|---|
+  | Local 版 | 不要 | — |
+  | Team 版 | Cloudflare Access で許可されたメールアドレス | 各自の IdP（パスワードはここに書かない） |
+
+  詳しい手順は [docs/deploy-team.md](https://github.com/fuyuz/qarows/blob/main/docs/deploy-team.md) を参照してください。
+
 environments:
   - id: chrome-desktop
     name: "Chrome (Desktop)"

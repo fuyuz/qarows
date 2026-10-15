@@ -8,6 +8,7 @@ import {
 } from "../lib/app-keybindings";
 
 const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
+  "overview",
   "session",
   "run",
   "matrix",

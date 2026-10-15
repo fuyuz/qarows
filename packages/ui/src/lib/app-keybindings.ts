@@ -1,4 +1,5 @@
 export type AppNavigationPage =
+  | "overview"
   | "session"
   | "run"
   | "matrix"
@@ -12,6 +13,7 @@ export type WorkspaceProjectPage = Exclude<AppNavigationPage, "projects">;
 
 /** 画面遷移ショートカット（Cmd/Ctrl + Shift + 文字） */
 export const APP_NAV_KEYBINDINGS: Record<AppNavigationPage, string> = {
+  overview: "o",
   run: "r",
   session: "s",
   dashboard: "d",
@@ -27,6 +29,7 @@ export function appNavLabel(page: AppNavigationPage, t: (key: string) => string)
 
 /** @deprecated Use appNavLabel(page, t) */
 export const APP_NAV_LABELS: Record<AppNavigationPage, string> = {
+  overview: "概要",
   run: "テスト実行",
   session: "セッション設定",
   dashboard: "ダッシュボード",
@@ -39,6 +42,7 @@ export const APP_NAV_LABELS: Record<AppNavigationPage, string> = {
 /** ShortcutHelp 等での表示順 */
 export const APP_NAV_PAGES: AppNavigationPage[] = [
   "projects",
+  "overview",
   "run",
   "session",
   "dashboard",

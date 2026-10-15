@@ -241,6 +241,12 @@ export function parseTestsYaml(content: string): TestDefinition {
   const projectName = String(projectObj.name ?? "");
   if (!projectName) throw new Error("project.name は必須です");
 
+  const overviewRaw = root.overview;
+  if (overviewRaw != null && typeof overviewRaw !== "string") {
+    throw new Error("overview は文字列（Markdown）である必要があります");
+  }
+  const overview = typeof overviewRaw === "string" && overviewRaw.trim() ? overviewRaw : undefined;
+
   const environmentsRaw = root.environments;
   if (!Array.isArray(environmentsRaw) || environmentsRaw.length === 0) {
     throw new Error("environments は1件以上必要です");
@@ -316,6 +322,7 @@ export function parseTestsYaml(content: string): TestDefinition {
       id: resolveProjectId(projectObj, projectName),
       version: projectObj.version != null ? Number(projectObj.version) : 1,
     },
+    ...(overview != null ? { overview } : {}),
     environments,
     ...(categoryTargets != null ? { categoryTargets } : {}),
     ...(scenarios != null ? { scenarios } : {}),

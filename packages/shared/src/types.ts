@@ -53,6 +53,8 @@ export interface TestDefinition {
     id?: string;
     version?: number;
   };
+  /** プロジェクト概要（Markdown）。テスト前に共有したい前提・アカウント情報など */
+  overview?: string;
   environments: Environment[];
   categoryTargets?: CategoryTarget[];
   scenarios?: TestScenario[];

@@ -16,6 +16,7 @@ Output YAML only — no markdown fences, no commentary before or after the file.
 
 \`\`\`yaml
 project:        # required
+overview:       # optional string (Markdown)
 environments:   # required, non-empty array
 testCases:      # required, non-empty array
 categoryTargets: # optional array
@@ -29,6 +30,35 @@ scenarios:      # optional array
 | name | string | yes | display name, non-empty |
 | id | string | no | stable slug; auto-generated from name if omitted. Must match \`^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$\` (alphanumeric start, then letters/digits/hyphen/underscore, max 64 chars) — used in URLs and storage keys |
 | version | number | no | default 1 |
+
+## overview (optional)
+
+Project overview shown on its own page (Markdown, GitHub-flavored: headings, lists, tables, links). Use it for onboarding: what testers should know or share before they start.
+
+Good things to include:
+- Purpose and scope of this test round (what is in / out of scope)
+- How to reach the test environment (URLs, builds, devices to borrow)
+- Accounts to use: test account names / roles, and where to get their credentials
+- Test data rules (what may be created or deleted, how to reset)
+- How to report bugs, who to ask, deadlines
+
+Do NOT write real passwords, API keys or other secrets — tests.yml is shared (and often committed). Point to where credentials are kept instead.
+
+\`\`\`yaml
+overview: |
+  ## このテストについて
+  - 対象: 3.2.0 リリース候補（ステージング）
+  - 対象外: 決済まわり（別途確認）
+
+  ## アカウント
+  | 用途 | アカウント | 認証情報 |
+  |---|---|---|
+  | 一般ユーザー | qa-user-01 | 共有パスワード管理ツール「QA」フォルダ |
+  | 管理者 | qa-admin | 同上 |
+
+  ## 注意
+  - テスト用データは「QA-」で始まる名前で作成し、終了後に削除する
+\`\`\`
 
 ## environments (required, ≥1)
 
@@ -133,7 +163,9 @@ Every \`steps\` entry must reference an existing \`testCases[].id\`.
 - Use \`required: all\` unless the case genuinely needs only one environment (\`any\`)
 - Add \`scenarios\` to bundle cases with the same prerequisites or cases meant to run in sequence (e.g. smoke, regression, release checklist flows)
 - When AI-editing, use \`patch.scenarios\` (added / removed / modified); every \`steps\` id must exist in \`testCases\`
+- \`overview\` cannot be changed through an AI patch; if the user asks to edit it, tell them to edit tests.yml directly and upload it again
 - Keep \`prerequisites\` short: screen, data state, role, feature flags
+- Put information shared by every case (accounts, environment URLs, data rules) in \`overview\` instead of repeating it in \`prerequisites\`
 
 ## Minimal valid example
 
@@ -141,6 +173,10 @@ project:
   name: "My App QA"
   id: my-app-qa
   version: 1
+
+overview: |
+  ## アカウント
+  - 一般ユーザー: qa-user-01（認証情報は共有パスワード管理ツールの「QA」フォルダ）
 
 environments:
   - id: chrome-desktop

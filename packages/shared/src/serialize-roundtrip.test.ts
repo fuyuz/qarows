@@ -107,3 +107,42 @@ describe("serialize roundtrip", () => {
     expect("memo" in (file.results["TC-001"]?.chrome ?? {})).toBe(false);
   });
 });
+
+describe("overview", () => {
+  const withOverview = `
+project:
+  name: Overview QA
+  id: overview-qa
+overview: |
+  # はじめに
+
+  - テスト用アカウント: 共有ドキュメントを参照
+  - 本番データは触らない
+environments:
+  - chrome
+testCases:
+  - id: TC-001
+    category:
+      major: Auth
+    description: Login succeeds
+`;
+
+  it("is optional so tests.yml written before it still loads", () => {
+    expect(parseTestsYaml(sampleYaml).overview).toBeUndefined();
+    expect(serializeTestsYaml(parseTestsYaml(sampleYaml))).not.toContain("overview");
+  });
+
+  it("keeps multi-line Markdown through parse and serialize", () => {
+    const parsed = parseTestsYaml(withOverview);
+    expect(parsed.overview).toBe(
+      "# はじめに\n\n- テスト用アカウント: 共有ドキュメントを参照\n- 本番データは触らない\n",
+    );
+    expect(parseTestsYaml(serializeTestsYaml(parsed)).overview).toBe(parsed.overview);
+  });
+
+  it("rejects a non-string overview", () => {
+    expect(() => parseTestsYaml(withOverview.replace(/overview: \|[\s\S]*?environments:/, "overview: [a]\nenvironments:"))).toThrow(
+      "overview",
+    );
+  });
+});

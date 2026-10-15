@@ -72,6 +72,7 @@ export function serializeTestsYaml(definition: TestDefinition): string {
 
   const payload: Record<string, unknown> = {
     project,
+    ...(definition.overview ? { overview: definition.overview } : {}),
     environments: definition.environments.map(serializeEnvironment),
     testCases: definition.testCases.map(serializeTestCase),
   };

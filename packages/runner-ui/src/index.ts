@@ -15,6 +15,7 @@ export { ShortcutHelp } from "./components/ShortcutHelp";
 export { RunPageLayout } from "./pages/RunPageLayout";
 export { DashboardPageLayout } from "./pages/DashboardPageLayout";
 export { MatrixPageLayout } from "./pages/MatrixPageLayout";
+export { OverviewPageLayout } from "./pages/OverviewPageLayout";
 export { BugsPageLayout } from "./pages/BugsPageLayout";
 export { TestsEditPageLayout } from "./pages/TestsEditPageLayout";
 export type {

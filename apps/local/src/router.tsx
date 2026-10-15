@@ -35,6 +35,9 @@ const RunPage = lazy(() => import("@/pages/RunPage").then((m) => ({ default: m.R
 const MatrixPage = lazy(() =>
   import("@/pages/MatrixPage").then((m) => ({ default: m.MatrixPage })),
 );
+const OverviewPage = lazy(() =>
+  import("@/pages/OverviewPage").then((m) => ({ default: m.OverviewPage })),
+);
 const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 );
@@ -183,6 +186,16 @@ function ProjectRunPage() {
   );
 }
 
+function ProjectOverviewPage() {
+  return (
+    <RequireProjectMatch>
+      <RequireDefinition>
+        <RunnerWorkspaceBridge>{withSuspense(OverviewPage)}</RunnerWorkspaceBridge>
+      </RequireDefinition>
+    </RequireProjectMatch>
+  );
+}
+
 function ProjectMatrixPage() {
   return (
     <RequireProjectMatch>
@@ -227,6 +240,7 @@ export const router = createBrowserRouter([
     children: [
       { path: "/projects", element: <ReadyGate>{withSuspense(ProjectsPage)}</ReadyGate> },
       { path: "/load", element: <ReadyGate>{withSuspense(HomePage)}</ReadyGate> },
+      { path: "/p/:projectId/overview", element: <ProjectOverviewPage /> },
       { path: "/p/:projectId/session", element: <ProjectSessionPage /> },
       { path: "/p/:projectId/run", element: <ProjectRunPage /> },
       { path: "/p/:projectId/matrix", element: <ProjectMatrixPage /> },
@@ -247,6 +261,7 @@ export const lazyPageModules = {
   SessionPage: () => import("@/pages/SessionPage"),
   RunPage: () => import("@/pages/RunPage"),
   MatrixPage: () => import("@/pages/MatrixPage"),
+  OverviewPage: () => import("@/pages/OverviewPage"),
   DashboardPage: () => import("@/pages/DashboardPage"),
   BugsPage: () => import("@/pages/BugsPage"),
   TestsEditPage: () => import("@/pages/TestsEditPage"),

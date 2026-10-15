@@ -61,6 +61,7 @@ export interface WorkspaceAppNavProps {
 }
 
 const DEFAULT_AVAILABLE_PAGES: WorkspaceProjectPage[] = [
+  "overview",
   "session",
   "run",
   "matrix",
@@ -95,7 +96,11 @@ function workflowLinks(
   } else if (page === "session" && canRun && session && isValidSession(session)) {
     items.push({ label: appNavLabel("run", t), to: path("run"), page: "run" });
   } else if (
-    (page === "matrix" || page === "dashboard" || page === "bugs" || page === "tests") &&
+    (page === "overview" ||
+      page === "matrix" ||
+      page === "dashboard" ||
+      page === "bugs" ||
+      page === "tests") &&
     availablePages.has(page)
   ) {
     if (canSession) {
@@ -114,7 +119,7 @@ function viewLinks(
   availablePages: Set<WorkspaceProjectPage>,
   t: (key: string) => string,
 ): NavLinkItem[] {
-  return (["dashboard", "bugs", "matrix"] as const).flatMap((page) =>
+  return (["overview", "dashboard", "bugs", "matrix"] as const).flatMap((page) =>
     availablePages.has(page)
       ? [{ label: appNavLabel(page, t), to: path(page), page }]
       : [],
@@ -134,7 +139,7 @@ function editLinks(
 }
 
 function currentProjectPage(pathname: string): NavContextPage {
-  const match = pathname.match(/^\/p\/[^/]+\/(session|run|matrix|dashboard|bugs|tests)$/);
+  const match = pathname.match(/^\/p\/[^/]+\/(overview|session|run|matrix|dashboard|bugs|tests)$/);
   if (match) return match[1] as NavContextPage;
   if (pathname === "/load") return "load";
   if (pathname === "/projects") return "projects";

@@ -37,7 +37,7 @@ export function AppNav({ offsetRight }: { offsetRight?: number } = {}) {
       session={session}
       results={results}
       path={path}
-      availablePages={["session", "run", "matrix", "dashboard", "bugs", "tests"]}
+      availablePages={["overview", "session", "run", "matrix", "dashboard", "bugs", "tests"]}
       offsetRight={offsetRight}
       syncStatus={{
         connected,

@@ -13,6 +13,9 @@ const RunPage = lazy(() => import("@/pages/RunPage").then((m) => ({ default: m.R
 const MatrixPage = lazy(() =>
   import("@/pages/MatrixPage").then((m) => ({ default: m.MatrixPage })),
 );
+const OverviewPage = lazy(() =>
+  import("@/pages/OverviewPage").then((m) => ({ default: m.OverviewPage })),
+);
 const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 );
@@ -93,6 +96,9 @@ export function ProjectPageRouter() {
 
   let content;
   switch (page) {
+    case "overview":
+      content = <OverviewPage />;
+      break;
     case "session":
       content = <SessionPageRoute />;
       break;
