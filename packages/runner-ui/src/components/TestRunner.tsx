@@ -265,6 +265,7 @@ export function TestRunner() {
     (status: TestStatus) => {
       if (!current || !envTargets || testSlideIndex == null) return;
       cancelPendingAdvance();
+      void handleMemoSave();
       void updateResultsBatch(current.id, envTargets.environmentIds, {
         status,
       });
@@ -282,6 +283,7 @@ export function TestRunner() {
       current,
       envTargets,
       advanceAfterComplete,
+      handleMemoSave,
       maybeDeferAdvanceForNg,
       targets.length,
       testSlideIndex,
@@ -293,6 +295,7 @@ export function TestRunner() {
     (envId: string, status: TestStatus) => {
       if (!current || !session || !envTargets || !results || !definition || testSlideIndex == null) return;
       cancelPendingAdvance();
+      void handleMemoSave();
       void updateResults(current.id, envId, {
         status,
         executedAt: new Date().toISOString(),
@@ -337,6 +340,7 @@ export function TestRunner() {
       definition,
       envTargets,
       advanceAfterComplete,
+      handleMemoSave,
       openBugDialog,
       results,
       session,
