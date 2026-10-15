@@ -34,7 +34,7 @@ export const jaMessages = {
     load: "読み込む",
     loadingAction: "読み込み中…",
     apply: "Apply",
-    applying: "適用中…",
+    applying: "Applying…",
     discard: "Discard",
     diff: "Diff",
     overall: "全体",
