@@ -38,7 +38,8 @@ function ScrollBar({
       data-slot="scroll-area-scrollbar"
       orientation={orientation}
       className={cn(
-        "flex touch-none p-px transition-colors select-none",
+        // 中身に z-index 付きの要素（例: ランナーのテスト一覧の項目）があっても操作できるよう前面に出す
+        "z-10 flex touch-none p-px transition-colors select-none",
         orientation === "vertical" &&
           "h-full w-2.5 border-l border-l-transparent",
         orientation === "horizontal" &&
