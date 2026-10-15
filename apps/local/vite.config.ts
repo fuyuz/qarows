@@ -32,13 +32,20 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          if (id.includes("@tanstack")) return "tanstack";
-          if (id.includes("@radix-ui") || id.includes("/radix-ui/")) return "radix";
-          return "vendor";
+        codeSplitting: {
+          groups: [
+            {
+              debugName: "vendor-chunks",
+              name(id) {
+                if (!id.includes("node_modules")) return null;
+                if (id.includes("@tanstack")) return "tanstack";
+                if (id.includes("@radix-ui") || id.includes("/radix-ui/")) return "radix";
+                return "vendor";
+              },
+            },
+          ],
         },
       },
     },
