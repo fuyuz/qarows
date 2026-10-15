@@ -139,9 +139,28 @@ export function TestRunner() {
   // 完了前に次のテストへ進んだり追記したりしていることがある
   const currentIdRef = useRef<string | undefined>(undefined);
   const latestMemoRef = useRef("");
+  const memoDirtyRef = useRef(false);
+  /** 保存中のメモ。結果入力で保存を始めた直後の自動前進で、同じ内容を二重に送らないため */
+  const inFlightMemoRef = useRef<{ testCaseId: string; memo: string } | null>(null);
   useEffect(() => {
     currentIdRef.current = current?.id;
   }, [current?.id]);
+  useEffect(() => {
+    memoDirtyRef.current = memoDirty;
+  }, [memoDirty]);
+
+  // 別のテストへ移る（← / → / 一覧クリック / URL）か画面を離れるとき、未保存のメモを保存する。
+  // 結果入力時と同じく「保存」を押さなくても消えないようにする
+  useEffect(() => {
+    const testCaseId = current?.id;
+    return () => {
+      if (!testCaseId || !memoDirtyRef.current) return;
+      const memoToSave = latestMemoRef.current;
+      const inFlight = inFlightMemoRef.current;
+      if (inFlight?.testCaseId === testCaseId && inFlight.memo === memoToSave) return;
+      void updateTestMemo(testCaseId, memoToSave);
+    };
+  }, [current?.id, updateTestMemo]);
 
   useEffect(() => {
     if (!current) {
@@ -168,6 +187,7 @@ export function TestRunner() {
     if (!current || !memoDirty) return;
     const testCaseId = current.id;
     const savingMemo = memo;
+    inFlightMemoRef.current = { testCaseId, memo: savingMemo };
     setMemoSaving(true);
     try {
       await updateTestMemo(testCaseId, savingMemo);
@@ -177,6 +197,9 @@ export function TestRunner() {
         setMemoDirty(false);
       }
     } finally {
+      if (inFlightMemoRef.current?.testCaseId === testCaseId && inFlightMemoRef.current.memo === savingMemo) {
+        inFlightMemoRef.current = null;
+      }
       setMemoSaving(false);
     }
   }, [current, memo, memoDirty, updateTestMemo]);
