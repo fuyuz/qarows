@@ -1,4 +1,4 @@
-import { useMemo, useRef, type CSSProperties } from "react";
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   columnOrderingFeature,
@@ -13,19 +13,33 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
+  nextBugId,
+  resolveSessionTestTargets,
   resolveTestTargets,
   type TestCase,
   type TestResults,
+  type TestStatus,
 } from "@qarows/shared";
+import { BugDialog, bugDraftToBug, type BugDialogDraft } from "./BugDialog";
 import { useRunnerWorkspace } from "../context/runner-workspace";
 import { useProjectRoutes } from "../hooks/useProjectRoutes";
 import { useRunnerQueryState } from "../hooks/useRunnerQueryState";
-import { StatusBadge } from "@qarows/ui";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+  StatusBadge,
+} from "@qarows/ui";
 import { useTranslation } from "@qarows/ui";
 import { canJumpToRunner } from "../lib/jump-to-runner";
 import { cn } from "@qarows/ui";
 
 const ROW_HEIGHT = 40;
+
+/** ランナーのボタン並びに合わせる */
+const MATRIX_STATUS_OPTIONS: readonly TestStatus[] = ["OK", "NG", "SKIP"];
 
 /** 列幅・固定・getIsLastColumn だけを使う。行の並べ替えや絞り込みは表側で済ませている */
 const features = tableFeatures({
@@ -83,27 +97,78 @@ function pinningStyles(column: MatrixColumn, isHeader = false): CSSProperties {
   };
 }
 
+/** セル操作が行クリック（テスト実行へ遷移）に伝播しないようにする。Portal 内のメニューも React ツリー上は行の子 */
+function stopRowActivation(event: SyntheticEvent) {
+  event.stopPropagation();
+}
+
+const NOT_ENTERED = "none";
+
 function EnvCell({
   testCase,
   envId,
   isTarget,
+  editable,
   results,
+  onSetStatus,
+  onClear,
 }: {
   testCase: TestCase;
   envId: string;
   isTarget: boolean;
+  /** 自分のセッションで選択している端末のみ入力できる */
+  editable: boolean;
   results: TestResults;
+  onSetStatus: (testCase: TestCase, envId: string, status: TestStatus) => void;
+  onClear: (testCaseId: string, envId: string) => void;
 }) {
+  const { t } = useTranslation();
+
   if (!isTarget) {
     return <div className="h-full w-full bg-muted/40" />;
   }
 
   const entry = results[testCase.id]?.[envId];
-  if (!entry?.status) {
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
+  const display = entry?.status ? (
+    <StatusBadge status={entry.status} className="text-[0.65rem]" />
+  ) : (
+    <span className="text-xs text-muted-foreground">—</span>
+  );
 
-  return <StatusBadge status={entry.status} className="text-[0.65rem]" />;
+  if (!editable) return display;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="flex h-7 w-full cursor-pointer items-center rounded-sm px-1 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        onClick={stopRowActivation}
+        onKeyDown={stopRowActivation}
+      >
+        {display}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" onClick={stopRowActivation} onKeyDown={stopRowActivation}>
+        <DropdownMenuRadioGroup
+          value={entry?.status ?? NOT_ENTERED}
+          onValueChange={(value) => {
+            if (value === NOT_ENTERED) {
+              if (entry) onClear(testCase.id, envId);
+              return;
+            }
+            onSetStatus(testCase, envId, value as TestStatus);
+          }}
+        >
+          {MATRIX_STATUS_OPTIONS.map((status) => (
+            <DropdownMenuRadioItem key={status} value={status}>
+              <StatusBadge status={status} className="text-[0.65rem]" />
+            </DropdownMenuRadioItem>
+          ))}
+          <DropdownMenuRadioItem value={NOT_ENTERED} className="text-xs">
+            {t("runner.matrixNotEntered")}
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 export function TestMatrixTable({
@@ -113,10 +178,51 @@ export function TestMatrixTable({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { definition, results, session } = useRunnerWorkspace();
+  const { definition, results, session, updateResults, clearTestResult, addBug } = useRunnerWorkspace();
   const { runnerFilters } = useRunnerQueryState();
   const { path } = useProjectRoutes();
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [bugTarget, setBugTarget] = useState<{ testCase: TestCase; envId: string } | null>(null);
+  const [bugDialogBusy, setBugDialogBusy] = useState(false);
+  const [bugCreateMore, setBugCreateMore] = useState(false);
+  const [bugFormKey, setBugFormKey] = useState(0);
+
+  const handleSetStatus = useCallback(
+    (testCase: TestCase, envId: string, status: TestStatus) => {
+      if (!session) return;
+      void updateResults(testCase.id, envId, {
+        status,
+        executedAt: new Date().toISOString(),
+        executedBy: session.executorName,
+      });
+      // ランナーと同じく NG 入力時にバグ起票を促す
+      if (status === "NG") setBugTarget({ testCase, envId });
+    },
+    [session, updateResults],
+  );
+
+  const closeBugDialog = useCallback((cancelled: boolean) => {
+    setBugTarget(null);
+    if (cancelled) setBugCreateMore(false);
+  }, []);
+
+  const handleBugSubmit = useCallback(
+    async (draft: BugDialogDraft) => {
+      if (!results) return;
+      setBugDialogBusy(true);
+      try {
+        await addBug(bugDraftToBug(nextBugId(results.bugs), draft));
+        if (bugCreateMore) {
+          setBugFormKey((key) => key + 1);
+          return;
+        }
+        closeBugDialog(false);
+      } finally {
+        setBugDialogBusy(false);
+      }
+    },
+    [addBug, bugCreateMore, closeBugDialog, results],
+  );
 
   /** 環境列のセルごとに再解決しないよう、対象環境をテストケース単位で先に引く */
   const targetEnvIdsByTestCase = useMemo(() => {
@@ -192,14 +298,17 @@ export function TestMatrixTable({
               testCase={row.original}
               envId={env.id}
               isTarget={targetEnvIdsByTestCase.get(row.original.id)?.includes(env.id) ?? false}
+              editable={session?.selectedEnvironmentIds.includes(env.id) ?? false}
               results={results.results}
+              onSetStatus={handleSetStatus}
+              onClear={(testCaseId, envId) => void clearTestResult(testCaseId, envId)}
             />
           ) : null,
       }),
     );
 
     return helper.columns([...metaColumns, ...envColumns]);
-  }, [definition, results, t, targetEnvIdsByTestCase]);
+  }, [clearTestResult, definition, handleSetStatus, results, session, t, targetEnvIdsByTestCase]);
 
   const table = useTable({
     features,
@@ -250,101 +359,123 @@ export function TestMatrixTable({
   };
 
   return (
-    <div
-      ref={tableContainerRef}
-      className="h-full min-h-0 overflow-auto rounded-lg border bg-card"
-    >
-      <table
-        className="table-fixed border-separate border-spacing-0 text-left"
-        style={{ width: table.getTotalSize(), minWidth: "100%" }}
+    <>
+      <div
+        ref={tableContainerRef}
+        className="h-full min-h-0 overflow-auto rounded-lg border bg-card"
       >
-        <colgroup>
-          {table.getVisibleLeafColumns().map((column) => (
-            <col key={column.id} style={{ width: column.getSize() }} />
-          ))}
-        </colgroup>
-        <thead className="sticky top-0 z-[4] bg-card shadow-sm">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id} className="border-b border-border/60">
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  className="overflow-hidden border-b border-r border-border/60 px-2 py-2 text-xs font-semibold text-muted-foreground"
-                  style={{
-                    ...cellWidthStyle(header.column),
-                    ...pinningStyles(header.column, true),
-                  }}
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody style={{ overflowAnchor: "none" }}>
-          {paddingTop > 0 ? (
-            <tr aria-hidden className="pointer-events-none">
-              <td colSpan={columnCount} style={{ height: paddingTop, padding: 0, border: "none" }} />
-            </tr>
-          ) : null}
-          {virtualRows.map((virtualRow) => {
-            const row = rows[virtualRow.index];
-            const testCase = row.original;
-            const jumpable = canJumpToRunner(testCase.id, definition, session);
-
-            return (
-              <tr
-                key={row.id}
-                data-index={virtualRow.index}
-                className={cn(
-                  "border-b border-border/40 transition-colors",
-                  jumpable
-                    ? "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
-                    : "hover:bg-muted/20",
-                )}
-                style={{ height: ROW_HEIGHT }}
-                tabIndex={jumpable ? 0 : undefined}
-                onClick={() => void handleRowActivate(testCase)}
-                onKeyDown={(event) => {
-                  if (!jumpable) return;
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    void handleRowActivate(testCase);
-                  }
-                }}
-                title={
-                  jumpable
-                    ? t("runner.clickToRun")
-                    : session
-                      ? t("runner.outOfSession")
-                      : t("runner.sessionRequired")
-                }
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className="border-r border-border/40 px-2 align-middle"
+        <table
+          className="table-fixed border-separate border-spacing-0 text-left"
+          style={{ width: table.getTotalSize(), minWidth: "100%" }}
+        >
+          <colgroup>
+            {table.getVisibleLeafColumns().map((column) => (
+              <col key={column.id} style={{ width: column.getSize() }} />
+            ))}
+          </colgroup>
+          <thead className="sticky top-0 z-[4] bg-card shadow-sm">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="border-b border-border/60">
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="overflow-hidden border-b border-r border-border/60 px-2 py-2 text-xs font-semibold text-muted-foreground"
                     style={{
-                      height: ROW_HEIGHT,
-                      ...cellWidthStyle(cell.column),
-                      ...pinningStyles(cell.column),
+                      ...cellWidthStyle(header.column),
+                      ...pinningStyles(header.column, true),
                     }}
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
                 ))}
               </tr>
-            );
-          })}
-          {paddingBottom > 0 ? (
-            <tr aria-hidden className="pointer-events-none">
-              <td colSpan={columnCount} style={{ height: paddingBottom, padding: 0, border: "none" }} />
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
-    </div>
+            ))}
+          </thead>
+          <tbody style={{ overflowAnchor: "none" }}>
+            {paddingTop > 0 ? (
+              <tr aria-hidden className="pointer-events-none">
+                <td colSpan={columnCount} style={{ height: paddingTop, padding: 0, border: "none" }} />
+              </tr>
+            ) : null}
+            {virtualRows.map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              const testCase = row.original;
+              const jumpable = canJumpToRunner(testCase.id, definition, session);
+
+              return (
+                <tr
+                  key={row.id}
+                  data-index={virtualRow.index}
+                  className={cn(
+                    "border-b border-border/40 transition-colors",
+                    jumpable
+                      ? "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+                      : "hover:bg-muted/20",
+                  )}
+                  style={{ height: ROW_HEIGHT }}
+                  tabIndex={jumpable ? 0 : undefined}
+                  onClick={() => void handleRowActivate(testCase)}
+                  onKeyDown={(event) => {
+                    if (!jumpable) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      void handleRowActivate(testCase);
+                    }
+                  }}
+                  title={
+                    jumpable
+                      ? t("runner.clickToRun")
+                      : session
+                        ? t("runner.outOfSession")
+                        : t("runner.sessionRequired")
+                  }
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className="border-r border-border/40 px-2 align-middle"
+                      style={{
+                        height: ROW_HEIGHT,
+                        ...cellWidthStyle(cell.column),
+                        ...pinningStyles(cell.column),
+                      }}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+            {paddingBottom > 0 ? (
+              <tr aria-hidden className="pointer-events-none">
+                <td colSpan={columnCount} style={{ height: paddingBottom, padding: 0, border: "none" }} />
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+      {bugTarget && session && (
+        <BugDialog
+          open
+          testCase={bugTarget.testCase}
+          environments={definition.environments}
+          availableEnvironmentIds={
+            resolveSessionTestTargets(bugTarget.testCase, definition, session.selectedEnvironmentIds)
+              .environmentIds
+          }
+          initialTestCaseLinked
+          initialEnvironmentIds={[bugTarget.envId]}
+          createMore={bugCreateMore}
+          formKey={bugFormKey}
+          defaultAssignee={session.executorName}
+          busy={bugDialogBusy}
+          onCreateMoreChange={setBugCreateMore}
+          onSubmit={handleBugSubmit}
+          onCancel={() => closeBugDialog(true)}
+        />
+      )}
+    </>
   );
 }

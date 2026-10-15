@@ -34,7 +34,16 @@ export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
       <main className="mx-auto flex min-h-0 w-full max-w-[min(100%,1400px)] flex-1 flex-col overflow-hidden px-5 py-4">
         <div className="shrink-0">
           <h1 className="mb-1 text-lg font-bold tracking-tight">{t("nav.matrix")}</h1>
-          <p className="mb-3 text-xs text-muted-foreground">{t("runner.matrixHint")}</p>
+          <p className="mb-1 text-xs text-muted-foreground">{t("runner.matrixHint")}</p>
+          <p className="mb-3 text-xs">
+            {session ? (
+              <>
+                <span className="text-muted-foreground">{t("runner.executorLabel")}</span> {session.executorName}
+              </>
+            ) : (
+              <span className="text-muted-foreground">{t("runner.sessionRequired")}</span>
+            )}
+          </p>
         </div>
         <div className="min-h-0 flex-1">
           <TestMatrixTable testCases={testCases} />
