@@ -26,7 +26,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
     <div className="group relative my-3">
       <pre
         ref={preRef}
-        className="overflow-x-auto rounded-md bg-muted p-3 pr-20 font-mono text-sm leading-relaxed"
+        className="overflow-x-auto rounded-md bg-muted p-3 pr-12 font-mono text-sm leading-relaxed"
       >
         {children}
       </pre>
@@ -34,15 +34,15 @@ function CodeBlock({ children }: { children?: ReactNode }) {
         type="button"
         onClick={() => void handleCopy()}
         aria-label={copied ? t("common.copied") : t("common.copy")}
+        title={copied ? t("common.copied") : t("common.copy")}
         className={cn(
-          "absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs shadow-xs transition-colors",
+          "absolute top-2 right-2 inline-flex size-7 cursor-pointer items-center justify-center rounded-md border bg-card shadow-xs transition-colors",
           copied
             ? "text-green-600 dark:text-green-500"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
         {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
-        {copied ? t("common.copied") : t("common.copy")}
       </button>
     </div>
   );
