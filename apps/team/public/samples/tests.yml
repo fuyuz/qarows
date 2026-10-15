@@ -18,6 +18,13 @@ overview: |
   | Local 版 | 不要 | — |
   | Team 版 | Cloudflare Access で許可されたメールアドレス | 各自の IdP（パスワードはここに書かない） |
 
+  ## 手元で動かす場合
+  ```bash
+  bun install
+  bun run dev        # Local 版 http://localhost:5174
+  bun run dev:team   # Team 版 http://localhost:5177
+  ```
+
   詳しい手順は [docs/deploy-team.md](https://github.com/fuyuz/qarows/blob/main/docs/deploy-team.md) を参照してください。
 
 environments:

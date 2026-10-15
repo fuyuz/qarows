@@ -18,6 +18,13 @@ overview: |
   | Local 版 | 不要 | — |
   | Team 版 | Cloudflare Access で許可されたメールアドレス | 各自の IdP（パスワードはここに書かない） |
 
+  ## 手元で動かす場合
+  ```bash
+  bun install
+  bun run dev        # Local 版 http://localhost:5174
+  bun run dev:team   # Team 版 http://localhost:5177
+  ```
+
   詳しい手順は [docs/deploy-team.md](https://github.com/fuyuz/qarows/blob/main/docs/deploy-team.md) を参照してください。
 
 environments:
@@ -661,7 +668,7 @@ testCases:
       medium: "概要"
       minor: "表示"
     prerequisites: "tests.yml に overview（Markdown）があるプロジェクトを開いている"
-    description: "Compass メニューの「概要」から概要ページへ遷移し、overview の見出し・リスト・表・リンクが整形されて表示される。リンクは別タブで開く。生 HTML はタグのまま描画されない"
+    description: "Compass メニューの「概要」から概要ページへ遷移し、overview の見出し・リスト・表・リンクが整形されて表示される。リンクは別タブで開く。生 HTML はタグのまま描画されない。コードブロック右上の「コピー」で中身がクリップボードにコピーされ、一時的に「コピー済み」表示になる"
 
   - id: TC-147
     category:

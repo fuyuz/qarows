@@ -1,8 +1,53 @@
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { Check, Copy } from "lucide-react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useTranslation } from "@qarows/ui";
+import { cn, useTranslation } from "@qarows/ui";
 import { useRunnerWorkspace } from "../context/runner-workspace";
+
+/** コードブロック。コマンドや設定値をそのまま貼れるようコピーボタンを付ける */
+function CodeBlock({ children }: { children?: ReactNode }) {
+  const { t } = useTranslation();
+  const preRef = useRef<HTMLPreElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const text = preRef.current?.textContent ?? "";
+    try {
+      await navigator.clipboard.writeText(text.replace(/\n$/, ""));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className="group relative my-3">
+      {/* react-markdown 10 は code にインラインかどうかを渡さないので、ブロック内ではインライン用の装飾を打ち消す */}
+      <pre
+        ref={preRef}
+        className="overflow-x-auto rounded-md bg-muted p-3 pr-20 font-mono text-sm leading-relaxed [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[1em]"
+      >
+        {children}
+      </pre>
+      <button
+        type="button"
+        onClick={() => void handleCopy()}
+        aria-label={copied ? t("common.copied") : t("common.copy")}
+        className={cn(
+          "absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs shadow-xs transition-colors",
+          copied
+            ? "text-green-600 dark:text-green-500"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+        {copied ? t("common.copied") : t("common.copy")}
+      </button>
+    </div>
+  );
+}
 
 /** Tailwind Typography を入れていないので、要素ごとに最低限の体裁を当てる */
 const markdownComponents: Components = {
@@ -30,12 +75,7 @@ const markdownComponents: Components = {
   code: ({ children, className }) => (
     <code className={className ?? "rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]"}>{children}</code>
   ),
-  pre: ({ children }) => (
-    // react-markdown 10 は code にインラインかどうかを渡さないので、ブロック内ではインライン用の装飾を打ち消す
-    <pre className="my-3 overflow-x-auto rounded-md bg-muted p-3 font-mono text-sm leading-relaxed [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[1em]">
-      {children}
-    </pre>
-  ),
+  pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
   hr: () => <hr className="my-6 border-border" />,
   table: ({ children }) => (
     <div className="my-3 overflow-x-auto">
