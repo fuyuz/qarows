@@ -1,5 +1,5 @@
 import type { BugSeverity, BugStatus, Environment, TestCase } from "@qarows/shared";
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "@qarows/ui";
 import { Checkbox } from "@qarows/ui";
 import { Input } from "@qarows/ui";
@@ -43,6 +43,12 @@ export function BugFormFields({
   setTitleError: (value: boolean) => void;
 }) {
   const { t } = useTranslation();
+  // 既に選ばれている端末は、セッション外でも表示して外せるようにする（ランナー・マトリクスから
+  // 既存バグを開くとセッションの端末しか渡されない）。外したあとも再チェックできるよう初期値で決める
+  const [initiallySelected] = useState(() => draft.environmentIds);
+  const shownEnvironmentIds = environments
+    .map((env) => env.id)
+    .filter((envId) => availableEnvironmentIds.includes(envId) || initiallySelected.includes(envId));
   const { statusLabels, severityLabels } = useBugLabels();
   const { attachments: attachmentsAdapter } = useRunnerWorkspace();
   const envNameById = new Map(environments.map((env) => [env.id, env.name]));
@@ -88,7 +94,7 @@ export function BugFormFields({
       <div className="grid min-w-0 gap-2">
         <Label>{t("bug.targetEnvironments")}</Label>
         <ul className="flex flex-col gap-2 rounded-lg border p-3">
-          {availableEnvironmentIds.map((envId) => {
+          {shownEnvironmentIds.map((envId) => {
             const checked = draft.environmentIds.includes(envId);
             return (
               <li key={envId}>
