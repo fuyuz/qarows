@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getTestCaseVersion,
   isResultEntryValid,
+  isTestIncomplete,
   nextBugId,
   resolveSessionTestTargets,
   testCaseNeedsRetest,
@@ -203,6 +204,14 @@ export function TestRunner() {
       setMemoSaving(false);
     }
   }, [current, memo, memoDirty, updateTestMemo]);
+
+  /** 完了カードで「未実施が残っている」を正しく伝えるため（→ で最後まで送っただけでも完了カードに着く） */
+  const incompleteTargetIndexes = useMemo(() => {
+    if (!definition || !results || !session) return [];
+    return targets.flatMap((testCase, index) =>
+      isTestIncomplete(testCase, definition, session.selectedEnvironmentIds, results.results) ? [index] : [],
+    );
+  }, [definition, results, session, targets]);
 
   const needsRetest = useMemo(() => {
     if (!current || !results || !session || !definition) return false;
@@ -532,6 +541,10 @@ export function TestRunner() {
             {slideIndex === maxSlide && (
               <RunnerCompleteCard
                 testCount={targets.length}
+                incompleteCount={incompleteTargetIndexes.length}
+                onJumpToFirstIncomplete={() => {
+                  if (incompleteTargetIndexes.length > 0) goToSlide(incompleteTargetIndexes[0] + 1);
+                }}
                 canPrev={slideIndex > 0}
                 canNext={slideIndex < maxSlide}
                 onPrev={() => goToSlide(slideIndex - 1)}

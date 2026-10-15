@@ -7,31 +7,59 @@ import { useProjectRoutes } from "../hooks/useProjectRoutes";
 
 export function RunnerCompleteCard({
   testCount,
+  incompleteCount,
+  onJumpToFirstIncomplete,
   ...navProps
-}: { testCount: number } & RunnerCardNavProps) {
+}: {
+  testCount: number;
+  /** 表示中のうち未実施のまま残っている件数（→ で送っただけの場合など） */
+  incompleteCount: number;
+  onJumpToFirstIncomplete: () => void;
+} & RunnerCardNavProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { path } = useProjectRoutes();
 
+  const hasIncomplete = incompleteCount > 0;
+
   return (
-    <article className={testCardShellClass("border-green-200/80 bg-green-50/30")}>
+    <article
+      className={testCardShellClass(
+        hasIncomplete ? "border-amber-200/80 bg-amber-50/30" : "border-green-200/80 bg-green-50/30",
+      )}
+    >
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         <header className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b pb-3.5">
-          <Badge className="border-transparent bg-green-100 font-bold text-green-800 hover:bg-green-100">
-            {t("runner.completeTitle")}
-          </Badge>
-          <span className="text-sm text-muted-foreground">{t("runner.scopeComplete")}</span>
+          {hasIncomplete ? (
+            <Badge className="border-transparent bg-amber-100 font-bold text-amber-800 hover:bg-amber-100">
+              {t("runner.endOfListTitle")}
+            </Badge>
+          ) : (
+            <Badge className="border-transparent bg-green-100 font-bold text-green-800 hover:bg-green-100">
+              {t("runner.completeTitle")}
+            </Badge>
+          )}
+          <span className="text-sm text-muted-foreground">
+            {hasIncomplete ? t("runner.endOfList") : t("runner.scopeComplete")}
+          </span>
         </header>
 
         <section className="mb-5">
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            {t("runner.inputComplete")}
+            {hasIncomplete ? t("runner.notRun") : t("runner.inputComplete")}
           </h2>
           <p className="text-base leading-relaxed font-medium">
-            {testCount > 0
-              ? t("runner.allRecorded", { n: testCount })
-              : t("runner.noTestsInScope")}
+            {hasIncomplete
+              ? t("runner.incompleteRemaining", { n: incompleteCount, total: testCount })
+              : testCount > 0
+                ? t("runner.allRecorded", { n: testCount })
+                : t("runner.noTestsInScope")}
           </p>
+          {hasIncomplete && (
+            <Button type="button" size="sm" className="mt-3 font-semibold" onClick={onJumpToFirstIncomplete}>
+              {t("runner.goToFirstIncomplete")}
+            </Button>
+          )}
         </section>
 
         <section className="mb-5">
