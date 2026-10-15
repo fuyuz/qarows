@@ -64,7 +64,7 @@ function InlineCode({ children }: { children?: ReactNode }) {
     try {
       await navigator.clipboard.writeText(String(children ?? ""));
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }

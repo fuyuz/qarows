@@ -46,7 +46,7 @@ export function TestsYamlGuide() {
         onClick={() => void handleCopy()}
       >
         <Copy className="size-3.5" aria-hidden />
-        {t("common.copy")}
+        {copied ? t("common.copied") : t("common.copy")}
       </Button>
     </section>
   );

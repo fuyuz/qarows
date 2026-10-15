@@ -548,7 +548,7 @@ testCases:
       medium: "ガイド"
       minor: "AI プロンプト"
     prerequisites: "/projects?project=_new を表示中（/load からリダイレクト可）"
-    description: "tests.yml の書き方ガイドが表示され、「仕様をコピー」で AI 向け仕様テキストをクリップボードにコピーできる"
+    description: "tests.yml の書き方ガイドが表示され、「コピー」で AI 向け仕様テキストをクリップボードにコピーできる。コピー後は緑の「コピー済み」に変わる（テストカード・バグカードのコピーと同じ）"
 
   - id: TC-032
     category:
