@@ -14,6 +14,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   isResultEntryValid,
+  isValidSession,
   nextBugId,
   resolveSessionTestTargets,
   resolveTestTargets,
@@ -230,7 +231,10 @@ export function TestMatrixTable({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { definition, results, session, updateResults, clearTestResult, addBug } = useRunnerWorkspace();
+  const { definition, results, session: rawSession, updateResults, clearTestResult, addBug } =
+    useRunnerWorkspace();
+  // ページ側（MatrixPageLayout）と同じく、開始していないセッションでは編集させない
+  const session = rawSession && isValidSession(rawSession) ? rawSession : null;
   const { runnerFilters } = useRunnerQueryState();
   const { path } = useProjectRoutes();
   const tableContainerRef = useRef<HTMLDivElement>(null);

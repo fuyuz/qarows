@@ -215,6 +215,7 @@ export function RelatedBugsDialog({
             {currentBug.id}
           </button>
           <BugFormFields
+            key={currentBug.id}
             idPrefix={`related-bug-${currentBug.id}`}
             testCase={testCase}
             environments={environments}

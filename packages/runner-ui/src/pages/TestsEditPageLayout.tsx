@@ -160,7 +160,8 @@ export function TestsEditPageLayout({
         compact={compact}
         onCompactChange={setCompact}
         onAddTestCase={() => {
-          const major = filters.major ?? t("definition.uncategorized");
+          // tests.yml に書かれるデータなので UI 言語で変えない（言語の違う編集者で分類が分かれないように）
+          const major = filters.major ?? "未分類";
           draftApi.addTestCase({
             category: {
               major,

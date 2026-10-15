@@ -29,12 +29,15 @@ const ConfirmContext = createContext<Confirm | null>(null);
  */
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  // 閉じるアニメーション中も文言・ボタンの色が変わらないよう、最後の内容を残しておく
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const resolveRef = useRef<((value: boolean) => void) | null>(null);
 
   const confirm = useCallback<Confirm>((next) => {
     resolveRef.current?.(false);
     setOptions(next);
+    setOpen(true);
     return new Promise<boolean>((resolve) => {
       resolveRef.current = resolve;
     });
@@ -43,13 +46,13 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const settle = (value: boolean) => {
     resolveRef.current?.(value);
     resolveRef.current = null;
-    setOptions(null);
+    setOpen(false);
   };
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      <Dialog open={options != null} onOpenChange={(open) => !open && settle(false)}>
+      <Dialog open={open} onOpenChange={(next) => !next && settle(false)}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{options?.title ?? t("common.confirmTitle")}</DialogTitle>
@@ -69,8 +72,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Provider の外（テストなど）では従来どおりブラウザの確認にフォールバックする。参照を固定して effect の再実行を防ぐ */
+const nativeConfirm: Confirm = (options) => Promise.resolve(window.confirm(options.message));
+
 export function useConfirm(): Confirm {
-  const confirm = useContext(ConfirmContext);
-  // Provider の外（テストなど）では従来どおりブラウザの確認にフォールバックする
-  return confirm ?? ((options) => Promise.resolve(window.confirm(options.message)));
+  return useContext(ConfirmContext) ?? nativeConfirm;
 }
