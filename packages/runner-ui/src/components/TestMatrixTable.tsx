@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   columnOrderingFeature,
@@ -37,6 +37,8 @@ import { canJumpToRunner } from "../lib/jump-to-runner";
 import { cn } from "@qarows/ui";
 
 const ROW_HEIGHT = 40;
+
+const wrapTextClass = "whitespace-pre-wrap break-words";
 
 /** ランナーのボタン並びに合わせる */
 const MATRIX_STATUS_OPTIONS: readonly TestStatus[] = ["OK", "NG", "SKIP"];
@@ -174,10 +176,13 @@ function EnvCell({
 export function TestMatrixTable({
   testCases,
   environmentIds,
+  compact,
 }: {
   testCases: TestCase[];
   /** 表示する環境列 */
   environmentIds: string[];
+  /** true: 1 行固定で文字列を省略 / false: 全文を折り返して行の高さを可変にする */
+  compact: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -256,14 +261,16 @@ export function TestMatrixTable({
         id: "major",
         header: t("runner.majorCol"),
         size: COLUMN_SIZES.major,
-        cell: (info) => <span className="text-xs">{info.getValue()}</span>,
+        cell: (info) => <span className={cn("text-xs", !compact && wrapTextClass)}>{info.getValue()}</span>,
       }),
       helper.accessor((row) => row.category.medium ?? "", {
         id: "medium",
         header: t("runner.mediumCol"),
         size: COLUMN_SIZES.medium,
         cell: (info) => (
-          <span className="text-xs text-muted-foreground">{info.getValue() || "—"}</span>
+          <span className={cn("text-xs text-muted-foreground", !compact && wrapTextClass)}>
+            {info.getValue() || "—"}
+          </span>
         ),
       }),
       helper.accessor((row) => row.category.minor ?? "", {
@@ -271,18 +278,23 @@ export function TestMatrixTable({
         header: t("runner.minorCol"),
         size: COLUMN_SIZES.minor,
         cell: (info) => (
-          <span className="text-xs text-muted-foreground">{info.getValue() || "—"}</span>
+          <span className={cn("text-xs text-muted-foreground", !compact && wrapTextClass)}>
+            {info.getValue() || "—"}
+          </span>
         ),
       }),
       helper.accessor("description", {
         id: "description",
         header: t("runner.steps"),
         size: COLUMN_SIZES.description,
-        cell: (info) => (
-          <span className="block max-w-[160px] truncate text-xs" title={info.getValue()}>
-            {info.getValue()}
-          </span>
-        ),
+        cell: (info) =>
+          compact ? (
+            <span className="block max-w-[160px] truncate text-xs" title={info.getValue()}>
+              {info.getValue()}
+            </span>
+          ) : (
+            <span className={cn("block text-xs", wrapTextClass)}>{info.getValue()}</span>
+          ),
       }),
     ];
 
@@ -313,7 +325,17 @@ export function TestMatrixTable({
       );
 
     return helper.columns([...metaColumns, ...envColumns]);
-  }, [clearTestResult, definition, environmentIds, handleSetStatus, results, session, t, targetEnvIdsByTestCase]);
+  }, [
+    clearTestResult,
+    compact,
+    definition,
+    environmentIds,
+    handleSetStatus,
+    results,
+    session,
+    t,
+    targetEnvIdsByTestCase,
+  ]);
 
   const table = useTable({
     features,
@@ -339,6 +361,11 @@ export function TestMatrixTable({
     estimateSize: () => ROW_HEIGHT,
     overscan: 8,
   });
+
+  // 表示モードが変わると行の高さが変わるため、計測済みサイズを捨てる
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [compact, rowVirtualizer]);
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const columnCount = table.getVisibleLeafColumns().length;
@@ -412,6 +439,7 @@ export function TestMatrixTable({
               return (
                 <tr
                   key={row.id}
+                  ref={compact ? undefined : rowVirtualizer.measureElement}
                   data-index={virtualRow.index}
                   className={cn(
                     "border-b border-border/40 transition-colors",
@@ -419,7 +447,7 @@ export function TestMatrixTable({
                       ? "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
                       : "hover:bg-muted/20",
                   )}
-                  style={{ height: ROW_HEIGHT }}
+                  style={compact ? { height: ROW_HEIGHT } : undefined}
                   tabIndex={jumpable ? 0 : undefined}
                   onClick={() => void handleRowActivate(testCase)}
                   onKeyDown={(event) => {
@@ -440,9 +468,9 @@ export function TestMatrixTable({
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className="border-r border-border/40 px-2 align-middle"
+                      className={cn("border-r border-border/40 px-2 align-middle", !compact && "py-2")}
                       style={{
-                        height: ROW_HEIGHT,
+                        height: compact ? ROW_HEIGHT : undefined,
                         ...cellWidthStyle(cell.column),
                         ...pinningStyles(cell.column),
                       }}

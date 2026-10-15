@@ -1,5 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import {
+  Checkbox,
+  Label,
   Select,
   SelectContent,
   SelectItem,
@@ -21,6 +23,7 @@ export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
   const { definition, results, session } = useRunnerWorkspace();
   const { runnerFilters } = useRunnerQueryState();
   const [scope, setScope] = useState<MatrixScope>("session");
+  const [compact, setCompact] = useState(true);
   // セッション未設定時はセッション絞り込みができないため全体に固定
   const effectiveScope: MatrixScope = session ? scope : "all";
 
@@ -53,22 +56,28 @@ export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
         <div className="shrink-0">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-lg font-bold tracking-tight">{t("nav.matrix")}</h1>
-            <Select
-              value={effectiveScope}
-              onValueChange={(value) => setScope(value as MatrixScope)}
-              disabled={!session}
-            >
-              <SelectTrigger
-                aria-label={t("runner.matrixScopeAria")}
-                className="h-auto w-auto px-2.5 py-1.5 text-sm font-semibold"
+            <div className="flex items-center gap-4">
+              <Label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                <Checkbox checked={compact} onCheckedChange={(value) => setCompact(value === true)} />
+                {t("runner.matrixCompact")}
+              </Label>
+              <Select
+                value={effectiveScope}
+                onValueChange={(value) => setScope(value as MatrixScope)}
+                disabled={!session}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="session">{t("runner.dashboardScopeSession")}</SelectItem>
-                <SelectItem value="all">{t("runner.dashboardScopeAll")}</SelectItem>
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  aria-label={t("runner.matrixScopeAria")}
+                  className="h-auto w-auto px-2.5 py-1.5 text-sm font-semibold"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="session">{t("runner.dashboardScopeSession")}</SelectItem>
+                  <SelectItem value="all">{t("runner.dashboardScopeAll")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <p className="mb-1 text-xs text-muted-foreground">{t("runner.matrixHint")}</p>
           <p className="mb-3 text-xs">
@@ -82,7 +91,7 @@ export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
           </p>
         </div>
         <div className="min-h-0 flex-1">
-          <TestMatrixTable testCases={testCases} environmentIds={environmentIds} />
+          <TestMatrixTable testCases={testCases} environmentIds={environmentIds} compact={compact} />
         </div>
       </main>
     </div>

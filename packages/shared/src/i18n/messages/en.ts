@@ -213,6 +213,7 @@ export const enMessages = {
     matrixHint: "Scroll right for environment columns. Click a cell of an environment selected in your session to enter a result",
     matrixNotEntered: "Not entered",
     matrixScopeAria: "Matrix scope",
+    matrixCompact: "Compact",
     introTitle: "How to use",
     introHeading: "Running tests",
     introResults: "Entering results",
