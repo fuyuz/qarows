@@ -149,8 +149,8 @@ export function TestCard({
             <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               {t("runner.prerequisites")}
             </h2>
-            <p className="text-sm leading-relaxed text-foreground/90">
-              <LinkifiedText text={testCase.prerequisites} />
+            <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+              <LinkifiedText text={testCase.prerequisites.trimEnd()} />
             </p>
           </section>
         )}
@@ -159,8 +159,8 @@ export function TestCard({
           <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {t("runner.steps")}
           </h2>
-          <p className="text-lg leading-relaxed font-semibold text-foreground">
-            <LinkifiedText text={testCase.description} />
+          <p className="text-lg leading-relaxed font-semibold whitespace-pre-wrap text-foreground">
+            <LinkifiedText text={testCase.description.trimEnd()} />
           </p>
         </section>
 
