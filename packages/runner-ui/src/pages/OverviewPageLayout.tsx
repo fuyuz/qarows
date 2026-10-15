@@ -31,7 +31,10 @@ const markdownComponents: Components = {
     <code className={className ?? "rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]"}>{children}</code>
   ),
   pre: ({ children }) => (
-    <pre className="my-3 overflow-x-auto rounded-md bg-muted p-3 font-mono text-sm leading-relaxed">{children}</pre>
+    // react-markdown 10 は code にインラインかどうかを渡さないので、ブロック内ではインライン用の装飾を打ち消す
+    <pre className="my-3 overflow-x-auto rounded-md bg-muted p-3 font-mono text-sm leading-relaxed [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[1em]">
+      {children}
+    </pre>
   ),
   hr: () => <hr className="my-6 border-border" />,
   table: ({ children }) => (
