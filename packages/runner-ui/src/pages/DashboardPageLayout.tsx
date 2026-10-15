@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { isBugClosed } from "@qarows/shared";
+import { isBugClosed, isValidSession } from "@qarows/shared";
 import { isKeyboardTypingTarget, useTranslation } from "@qarows/ui";
 import {
   Card,
@@ -41,7 +41,9 @@ export function DashboardPageLayout({ nav }: { nav: ReactNode }) {
   const { t, locale } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { definition, results, session } = useRunnerWorkspace();
+  const { definition, results, session: rawSession } = useRunnerWorkspace();
+  // 端末を選ぶ前の（開始していない）セッションは未設定と同じ扱いにする（マトリクスと同じ）
+  const session = rawSession && isValidSession(rawSession) ? rawSession : null;
   const { projectId, path } = useProjectRoutes();
   const [scope, setScope] = useState<DashboardScope>("session");
   // セッション未設定時はセッション絞り込みができないため全体に固定
