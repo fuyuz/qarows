@@ -15,11 +15,11 @@
 | 項目 | 内容 |
 |---|---|
 | 成果物 | `apps/team/dist`（SPA）+ `apps/team/worker`（Hono API + Durable Objects） |
-| ホスティング | 1 つの Worker（`[assets]` + API + WebSocket） |
+| ホスティング | 1 つの Worker（静的アセット + API + WebSocket） |
 | 永続化 | D1（プロジェクト snapshot）+ Durable Objects（リアルタイム同期） |
 | 認証（本番） | Cloudflare Access（組織内メンバー限定）+ Worker 側 enforce |
 | データの所在 | そのデプロイの D1 / DO のみ（他環境と非共有） |
-| ローカル開発 | Vite `:5177` + Wrangler `:8787`（Vite が `/api` を proxy） |
+| ローカル開発 | Vite `:5177` + `cf dev` `:8787`（Vite が `/api` を proxy） |
 
 構成図: [architecture.md](./architecture.md#phase-2--closed-環境--リアルタイム同期)
 
@@ -29,12 +29,19 @@
 
 - [Bun](https://bun.sh/)（リポジトリルートで `bun install`）
 - [Cloudflare アカウント](https://dash.cloudflare.com/)
-- Wrangler CLI（`apps/team` の devDependency に含まれる）
+- cf CLI（`apps/team` の devDependency に含まれる。`apps/team` で `bunx cf ...` として実行する）
+- Wrangler も devDependency に残している。`cf dev` / `cf deploy` が内部で Wrangler に委譲するため（直接は使わない）
 
 ```bash
 bun install
-bunx wrangler login
+cd apps/team
+bunx cf auth login     # ブラウザ（デバイス認可）でログイン。Wrangler のログインとは別
+bunx cf auth whoami    # アカウント ID もここで確認できる
 ```
+
+> **cf はオープンベータ。** コマンド・設定形式は stable までに変わりうる。このリポジトリは `cf` を exact で固定している（`apps/team/package.json`）。
+>
+> 環境変数 `CLOUDFLARE_API_TOKEN` があると cf は OAuth より優先して使う。Workers / Zero Trust の権限がないトークンが入っていると失敗するので、その場合は `env -u CLOUDFLARE_API_TOKEN bunx cf ...` のように外して実行する。
 
 ---
 
@@ -43,13 +50,11 @@ bunx wrangler login
 ### 初回セットアップ
 
 ```bash
-cp apps/team/wrangler.toml.example apps/team/wrangler.toml
-# 必要なら account_id を wrangler.toml に記入（deploy 時必須）
-
-cp apps/team/.dev.vars.example apps/team/.dev.vars   # 任意（シークレット不要）
+cp apps/team/cloudflare.config.example.ts apps/team/cloudflare.config.ts
+cp apps/team/.dev.vars.example apps/team/.dev.vars   # AUTH_DEV_BYPASS=true（ローカル専用）
 ```
 
-`wrangler.toml` は **gitignore** 対象。テンプレートのみリポジトリに含める。
+`cloudflare.config.ts` は **gitignore** 対象。テンプレート `cloudflare.config.example.ts` のみリポジトリに含める。ローカル開発だけならテンプレートの値（仮の D1 id 含む）のままでよい。
 
 ### 起動
 
@@ -91,39 +96,31 @@ bun run dev:stop               # Local + Team 版の dev ポートを解放
 
 ## 3. 本番デプロイ
 
-`apps/team` ディレクトリで作業する。
+`apps/team` ディレクトリで作業する。リソース作成・Access 設定・デプロイはすべて `cf` で行える（Dashboard 操作は不要）。
 
-### 3.1 wrangler.toml
+順番は **リソース作成 → Access Application 作成 → 設定記入 → デプロイ**。Access を先に作っておくと、デプロイ直後から保護された状態になる。
+
+### 3.1 cloudflare.config.ts
 
 ```bash
-cp wrangler.toml.example wrangler.toml
+cp cloudflare.config.example.ts cloudflare.config.ts
 ```
 
-`wrangler.toml` に **account_id** を設定する（Dashboard → アカウント概要）。
+`accountId` に `bunx cf auth whoami` の `accounts[].id` を設定する（環境変数 `CLOUDFLARE_ACCOUNT_ID` でも可）。`worker.name` は任意（以下 `<worker-name>`）。`PROJECT` binding の `worker` も同じ名前にそろえる。
 
 #### 任意: Workers AI（tests.yml AI 編集）
 
-AI 編集パネルを使う場合のみ、`wrangler.toml.example` のコメントを参考に以下を追加する。
+AI 編集パネルを使う場合のみ、`cloudflare.config.example.ts` のコメントを参考に `worker.env` へ追加する。
 
-```toml
-[ai]
-binding = "AI"
-
-[vars]
-AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-AI_MODEL_FALLBACK = "@cf/meta/llama-3.1-8b-instruct-fast"
-
-# 表 (table) ブロックは [vars] のキーより後に置く
-[[ratelimits]]
-name = "AI_RATE_LIMIT"
-namespace_id = "1001"
-  [ratelimits.simple]
-  limit = 20
-  period = 60
+```ts
+AI: bindings.ai(),
+AI_MODEL: bindings.text("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
+AI_MODEL_FALLBACK: bindings.text("@cf/meta/llama-3.1-8b-instruct-fast"),
+AI_RATE_LIMIT: bindings.rateLimit({ namespace: "1001", simple: { limit: 20, period: 60 } }),
 ```
 
-- `[ai]` が **ない** デプロイでは AI タブ・API は表示されない（opt-in）
-- **`[[ratelimits]]` は `[ai]` を有効にするなら設定すること。** 未設定でも動くが、その場合の
+- `AI` が **ない** デプロイでは AI タブ・API は表示されない（opt-in）
+- **`AI_RATE_LIMIT` は `AI` を有効にするなら設定すること。** 未設定でも動くが、その場合の
   レート制限は isolate ローカルの Map なので実効上限が定まらず（Cloudflare は isolate を
   多数立てる）、Workers AI の利用量に上限がかからない。設定すると Cloudflare の
   ロケーション単位で数える（グローバルではない点は要注意）。`period` は 10 か 60 のみ
@@ -131,58 +128,58 @@ namespace_id = "1001"
 - AI 編集は [Workers AI JSON Mode](https://developers.cloudflare.com/workers-ai/features/json-mode/) の `json_schema` 対応モデルのみ利用（非対応モデルは Worker が拒否）
 - 編集の schema 遵守には 70B 系を推奨。容量・コストを抑える場合は 8B-fast を primary にしてもよい
 - `@cf/meta/llama-3.1-8b-instruct`（非 `-fast`）は 2026-05-30 に非推奨。`-fast` / `llama-3.3-70b` を使うこと
-- ローカルで AI を試す場合は `wrangler dev --remote` が必要（通常の `dev:team` の Worker 部分を remote 起動に切り替える）
 - AI は **Web 検索・外部 API を使わない**。当該プロジェクトの tests.yml と会話内容のみ Cloudflare Workers AI へ送る
 
-### 3.2 D1 データベース作成
+### 3.2 D1 データベース作成とマイグレーション
 
 ```bash
-cd apps/team
-bunx wrangler d1 create qarows-v2
+bunx cf d1 create --name qarows-v2
 ```
 
-出力された `database_id` を `wrangler.toml` の `[[d1_databases]]` に追記:
+出力の `uuid` を `cloudflare.config.ts` の `DB` binding の `id` に設定する:
 
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "qarows-v2"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-migrations_dir = "migrations"
+```ts
+DB: bindings.d1({ name: "qarows-v2", id: "<D1_DATABASE_ID>" }),
 ```
 
-### 3.3 マイグレーション（リモート）
+リモートにマイグレーションを適用する（cf の D1 コマンドは名前ではなく **ID** を受け付ける）:
 
 ```bash
-bun run db:migrate:local    # ローカル確認（任意）
-bunx wrangler d1 migrations apply qarows-v2 --remote
+bunx cf d1 migrations apply <D1_DATABASE_ID> --dir migrations
 ```
 
-Durable Objects の SQLite migration は `wrangler.toml` の `[[migrations]]` で初回 deploy 時に適用される。
+Durable Objects（`ProjectRoom`）は `worker.exports` の宣言どおり、初回デプロイ時に作成される。
 
-### 3.3b R2 バケット作成（任意: バグ添付機能）
+### 3.3 R2 バケット作成（任意: バグ添付機能）
 
 バグへの画像・動画添付を使う場合のみ。**未設定でも他の機能はすべて動作し、添付 UI が非表示になるだけ**（AI 機能と同様のオプショナル扱い）。
 
 ```bash
-bunx wrangler r2 bucket create qarows-team-attachments
+bunx cf r2 buckets create --name qarows-team-attachments
 ```
 
-`wrangler.toml` にバインディングを追加（`wrangler.toml.example` に記載済み）:
+使わない場合は `cloudflare.config.ts` から `ATTACHMENTS` binding を削除する。
 
-```toml
-[[r2_buckets]]
-binding = "ATTACHMENTS"
-bucket_name = "qarows-team-attachments"
-```
-
-- バケット名は **自分の Cloudflare アカウント内で一意** であればよい（S3 と異なりグローバル一意性は不要）。変えたい場合は `bucket_name` を合わせて変更する
+- バケット名は **自分の Cloudflare アカウント内で一意** であればよい。変えたい場合は `ATTACHMENTS` の `name` を合わせて変更する
 - バケットは **公開しない**（Public Access は無効のまま）。配信は必ず Worker プロキシ経由で Access 認証がかかる
 - 添付の実体は `projects/<projectId>/attachments/<key>` に保存され、プロジェクト削除時に一括削除される
 
-### 3.4 ビルド & デプロイ
+### 3.4 公開ホストを決める
 
-**Access Application を作成し、`ACCESS_AUD` / `ACCESS_TEAM_DOMAIN` を設定してから** デプロイする（[4.4](#44-access_aud--access_team_domain-の取得と設定)）。未設定のままだと本番 API が 401 になる。
+Access Application に登録するため、公開するホストを先に決めておく。
+
+| ホスト | 設定 |
+|---|---|
+| カスタムドメイン（推奨） | `worker.domains: ["qarows.example.com"]`。Cloudflare 上のゾーンのホストなら、デプロイ時に DNS と証明書が自動で用意される（2 階層のサブドメインでも可） |
+| workers.dev | `worker.workersDev: true` で `<worker-name>.<your-subdomain>.workers.dev` が有効になる。プレビュー URL `*-<worker-name>.<your-subdomain>.workers.dev` も同じ Access に含める |
+
+`<your-subdomain>` は Dashboard の Workers & Pages、または既存 Worker があれば `bunx cf workers list` の `subdomain.url` で確認できる。
+
+### 3.5 Access Application 作成
+
+[4. Cloudflare Access](#4-cloudflare-access本番認証アクセス制限) の手順で Access Application を作成し、`ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` と allow guard を `cloudflare.config.ts` に記入する。**未設定のままデプロイすると本番 API が 401 になる。**
+
+### 3.6 ビルド & デプロイ
 
 リポジトリルート:
 
@@ -190,14 +187,21 @@ bucket_name = "qarows-team-attachments"
 bun run deploy:team
 ```
 
-または `apps/team` で:
+`apps/team/scripts/deploy.sh` が `bun run build` → `cf deploy` を実行する。`cf deploy` はアップロードしたバージョンをそのまま 100% に切り替える（Wrangler 時代の `versions deploy` は不要）。`cloudflare.config.ts` に `AUTH_DEV_BYPASS` が書かれていると deploy を中止する。
+
+確認:
 
 ```bash
-bun run build
-bunx wrangler deploy --config wrangler.toml
+bunx cf workers deployments list --worker <worker-name>   # 先頭の versions[].percentage が 100
 ```
 
-デプロイ後、Wrangler が表示する `*.workers.dev` URL で `/projects` にアクセスして確認する。
+### 3.7 カスタムドメインを後から追加する
+
+1. `cloudflare.config.ts` の `worker.domains` にホストを追加
+2. Access Application の `self_hosted_domains` にも同じホストを追加（[4.3](#43-access-applicationcf) の `update`）
+3. `bun run deploy:team`
+
+証明書の発行に数分かかることがある（その間は TLS ハンドシェイクが失敗する）。
 
 ---
 
@@ -209,97 +213,94 @@ Team 版 Worker は **Cloudflare Access 必須** で動作する（`AUTH_DEV_BYP
 
 | レイヤ | 役割 |
 |---|---|
-| Cloudflare Access（Dashboard） | 未認証ユーザーをログイン画面へリダイレクト |
+| Cloudflare Access | 未認証ユーザーをログイン画面へリダイレクト |
 | Worker JWT 検証 | `Cf-Access-Jwt-Assertion` を署名検証（ヘッダー偽装対策） |
 | Worker allow guard（任意） | `ACCESS_ALLOWED_EMAILS` または `ACCESS_ALLOWED_EMAIL_DOMAIN` |
 
 ### 4.1 Worker 側の必須設定
 
-本番では次の 2 つが **必須** です。Cloudflare は Worker へ自動注入しないため、**Access Application 作成後に Dashboard からコピーして設定**します（手順は [4.4](#44-access_aud--access_team_domain-の取得と設定)）。
+本番では次の 2 つが **必須** です。Cloudflare は Worker へ自動注入しないため、Access Application 作成後に `cloudflare.config.ts` の `worker.env` に記入します。
 
-```toml
-[vars]
-ACCESS_TEAM_DOMAIN = "your-team-name"   # Zero Trust の auth domain（サブドメイン部分のみ）
-ACCESS_AUD = "xxxxxxxx..."              # Access Application の AUD tag
+```ts
+ACCESS_TEAM_DOMAIN: bindings.text("your-team-name"),   // Zero Trust の auth domain（サブドメイン部分のみ）
+ACCESS_AUD: bindings.text("xxxxxxxx..."),              // Access Application の AUD tag
 ```
-
-設定方法は次のいずれか:
-
-| 方法 | 向いているケース |
-|---|---|
-| `wrangler.toml` の `[vars]` | 個人・小チーム。ファイルは gitignore 済み |
-| Dashboard → Worker → **Settings** → **Variables and Secrets** | `wrangler.toml` に書きたくない場合。デプロイ後も Dashboard から更新可 |
 
 `ACCESS_AUD` を未設定のまま本番デプロイすると、Worker は JWT 検証前に **401（サーバー設定エラー）** を返します。
 
 JWT 検証後、メールアドレスは **JWT の claim から取得**する（`Cf-Access-Authenticated-User-Email` 単体は信頼しない）。ヘッダー email がある場合は JWT と一致することを確認する。
 
-### 4.2 ユーザー追加（Dashboard）— Method A / B
+### 4.2 ユーザー制限 — Method A / B
 
-Access ポリシーは Dashboard で設定する。Worker 側 allow guard は **どちらか一方** を選んで mirror する（両方設定時は **EMAILS 優先**）。
+Access ポリシーで許可する相手を決め、Worker 側 allow guard にも **どちらか一方** を mirror する（両方設定時は **EMAILS 優先**）。
 
-| 方式 | Dashboard（Access ポリシー） | Worker `[vars]` |
+| 方式 | Access ポリシー（`include`） | Worker（`worker.env`） |
 |---|---|---|
-| **A: 個人メール** | Include → **Emails** に `alice@…`, `bob@…` を列挙 | `ACCESS_ALLOWED_EMAILS = "alice@…,bob@…"` |
-| **B: 組織ドメイン** | Include → **Email domain** に `@your-company.com` | `ACCESS_ALLOWED_EMAIL_DOMAIN = "your-company.com"` |
+| **A: 個人メール** | `{ "email": { "email": "alice@example.com" } }` を人数分 | `ACCESS_ALLOWED_EMAILS: bindings.text("alice@example.com,bob@example.com")` |
+| **B: 組織ドメイン** | `{ "email_domain": { "domain": "example.com" } }` | `ACCESS_ALLOWED_EMAIL_DOMAIN: bindings.text("example.com")` |
 
 - Method A: 招待メールは自動送信されない。URL を個別共有する。
 - Method B: そのドメインの Google / GitHub 等 IdP でログイン可能。
 - allow guard を省略すると JWT + Access ポリシーのみ（非推奨だが可）。
 
-### 4.3 Access アプリケーション（Dashboard）
+### 4.3 Access Application（cf）
 
-1. Dashboard → **Zero Trust** → **Access** → **Applications** → **Add an application**
-2. **Self-hosted** を選び、保護対象ホストを **1 アプリケーションにまとめて** 登録する（推奨）:
-   - カスタムドメイン（例: `qarows.example.com`）
-   - **`*.workers.dev` の Worker URL**（例: `qarows-v2.your-subdomain.workers.dev`）
-3. 上記 [4.2](#42-ユーザー追加dashboardmethod-a--b) の Method A または B でポリシーを作成
-4. 保存後、[4.4](#44-access_aud--access_team_domain-の取得と設定) の手順で AUD を Worker に設定する
+保護対象ホスト（[3.4](#34-公開ホストを決める)）を **1 つの Application にまとめて** 登録する。ポリシーは Application と同時にインラインで作成できる。
 
-**workers.dev だけ Access 外に残すと、Layer 1 がなく JWT なしの直接アクセスが可能になる。** 必ず workers.dev も同じ Access Application（または別 app だが AUD を別途設定）に含めること。
+`access-app.json`（**コミットしない**。実メールアドレスやホスト名が入る）:
 
-#### workers.dev をワンクリックで保護する場合
-
-1. Dashboard → **Workers & Pages** → 対象 Worker → **Settings** → **Domains & Routes**
-2. `workers.dev` または Preview URLs の **Enable Cloudflare Access** をクリック
-3. 表示されるモーダルに **Application Audience (AUD)** と **Team domain** が出る → [4.4](#44-access_aud--access_team_domain-の取得と設定) へ
-
-カスタムドメインを追加した場合は、Zero Trust の Application にそのホストも追加する（1 app に複数ホスト推奨）。
-
-### 4.4 ACCESS_AUD / ACCESS_TEAM_DOMAIN の取得と設定
-
-Cloudflare Access を有効にしても、Worker 環境変数は **自動では埋まりません**。初回デプロイ前（または Access 有効化直後）に、次を **1 回** 設定してください。
-
-#### ACCESS_TEAM_DOMAIN の確認
-
-Zero Trust の team 名（`https://<TEAM>.cloudflareaccess.com` の `<TEAM>` 部分）:
-
-1. Dashboard → **Zero Trust** → **Settings** → **Custom pages**（または組織設定）
-2. ブラウザ URL が `https://<TEAM>.cloudflareaccess.com/...` になっている → `<TEAM>` を `ACCESS_TEAM_DOMAIN` に設定
-
-例: URL が `https://acme.cloudflareaccess.com` → `ACCESS_TEAM_DOMAIN = "acme"`
-
-#### ACCESS_AUD の確認
-
-Application ごとに 1 つ。JWT の `aud` と一致させる必要があります。
-
-1. Dashboard → **Zero Trust** → **Access** → **Applications**
-2. qarows 用 Application を開く → **Overview**（または **Configure**）
-3. **Application Audience (AUD) Tag** をコピー（64 文字前後の英数字）
-4. `wrangler.toml` の `[vars]` または Dashboard の Worker Variables に貼り付け:
-
-```toml
-ACCESS_AUD = "32eafc7626e974616deaf0dc3ce63d7bcbed58a2731e84d06bc3cdf1b53c4228"
+```json
+{
+  "name": "qarows-team",
+  "type": "self_hosted",
+  "domain": "qarows.example.com",
+  "self_hosted_domains": [
+    "qarows.example.com",
+    "<worker-name>.<your-subdomain>.workers.dev",
+    "*-<worker-name>.<your-subdomain>.workers.dev"
+  ],
+  "session_duration": "24h",
+  "app_launcher_visible": false,
+  "policies": [
+    {
+      "name": "Allow members",
+      "decision": "allow",
+      "include": [{ "email": { "email": "alice@example.com" } }]
+    }
+  ]
+}
 ```
 
-#### ホストが複数ある場合
+```bash
+bunx cf zero-trust access applications create --body "$(cat access-app.json)" --dry-run   # 送信内容の確認
+bunx cf zero-trust access applications create --body "$(cat access-app.json)"
+```
+
+出力の `aud` が `ACCESS_AUD`、`policies[].id` が後で更新するときのポリシー ID。
+
+ホストを追加・変更するときは `update` で Application 全体を送り直す（`policies` は既存 ID を参照する）:
+
+```bash
+# access-app.json の policies を [{ "id": "<POLICY_ID>", "precedence": 1 }] に置き換えてから
+bunx cf zero-trust access applications update <APP_ID> --body "$(cat access-app.json)"
+bunx cf zero-trust access applications list   # 確認
+```
+
+**workers.dev（とプレビュー URL）だけ Access 外に残すと、Layer 1 がなく JWT なしの直接アクセスが可能になる。** `workersDev: true` なら必ず同じ Application に含めること。
+
+### 4.4 ACCESS_TEAM_DOMAIN / ACCESS_AUD の取得
+
+```bash
+bunx cf zero-trust organization get   # auth_domain: "<TEAM>.cloudflareaccess.com"
+```
+
+- `ACCESS_TEAM_DOMAIN` = `auth_domain` の `<TEAM>` 部分（例: `acme.cloudflareaccess.com` → `"acme"`）。Zero Trust の team 名を変更するとここも変わるので、変更したら記入し直して再デプロイする
+- `ACCESS_AUD` = 4.3 の `create` 出力の `aud`（`bunx cf zero-trust access applications list` でも確認できる）
 
 | 構成 | ACCESS_AUD |
 |---|---|
 | **1 Application に workers.dev + カスタムドメインを両方登録**（推奨） | その Application の AUD **1 つ** |
-| Application をホストごとに分けた | **現状は 1 つの AUD のみ対応**。Application を 1 つに統合するか、不要なホスト用 app を削除して単一 AUD に揃える |
-
-設定後、本番 URL にアクセスし、Access ログイン → `/api/me` が 200 になることを確認する（[4.6](#46-動作確認)）。
+| Application をホストごとに分けた | **現状は 1 つの AUD のみ対応**。Application を 1 つに統合する |
 
 ### 4.5 ローカル開発
 
@@ -312,19 +313,19 @@ cp apps/team/.dev.vars.example apps/team/.dev.vars
 
 ### 4.6 動作確認
 
-- 本番: 未ログイン → Access ログイン画面
+```bash
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://<host>/api/me
+# 302 https://<TEAM>.cloudflareaccess.com/cdn-cgi/access/login/<host> ... なら Access で保護されている
+```
+
+公開した全ホスト（カスタムドメイン・workers.dev・プレビュー URL）で確認する。
+
+- 本番: 未ログイン → Access ログイン画面（302）
+- 本番: ログイン後に `/api/me` が 200
 - 本番: JWT なし / 無効 JWT → 401
 - 本番: `ACCESS_AUD` 未設定 → 401（サーバー設定エラー）
 - 本番: 偽装ヘッダーのみ → 401（JWT 必須）
 - ローカル: `AUTH_DEV_BYPASS=true` で `/projects` が表示される
-
----
-
-## 5. カスタムドメイン（任意）
-
-1. Dashboard → **Workers & Pages** → デプロイした Worker
-2. **Settings** → **Domains & Routes** → **Add**
-3. DNS 指示に従い、Access アプリケーションの対象ホストも更新する
 
 ---
 
@@ -347,25 +348,27 @@ Browser
 
 | 症状 | 対処 |
 |---|---|
-| `dev:team` で API エラー | Worker が 8787 で起動しているか。`wrangler.toml` があるか |
-| D1 `no such table` | `bun run db:migrate:local` または `--remote` で migrations 適用 |
+| `dev:team` で API エラー | Worker が 8787 で起動しているか。`cloudflare.config.ts` があるか |
+| D1 `no such table` | ローカルは `bun run --filter @qarows/team db:migrate:local`、本番は `bunx cf d1 migrations apply <D1_DATABASE_ID> --dir migrations` |
 | WebSocket 接続失敗 | 本番では Access が WebSocket Upgrade を許可しているか確認 |
-| API が 401 | JWT / `ACCESS_AUD` / `ACCESS_TEAM_DOMAIN` 設定。Access ログイン済みか。[4.4](#44-access_aud--access_team_domain-の取得と設定) を確認。ローカルは `AUTH_DEV_BYPASS=true` |
+| API が 401 | JWT / `ACCESS_AUD` / `ACCESS_TEAM_DOMAIN` 設定。Access ログイン済みか。[4.4](#44-access_team_domain--access_aud-の取得) を確認（Zero Trust の team 名を変えていないか）。ローカルは `AUTH_DEV_BYPASS=true` |
 | workers.dev が Access 外 | **必ず** Access Application に workers.dev ホストを追加 |
 | 409 on create | 同じ `project.id` の tests.yml が既に存在。上書きまたは id を変更 |
-| `wrangler.toml` がない | `cp wrangler.toml.example wrangler.toml` |
+| `cloudflare.config.ts` がない | `cp cloudflare.config.example.ts cloudflare.config.ts` |
+| カスタムドメインで TLS エラー | 証明書の発行待ち。数分待って再確認する |
+| cf が権限エラー | `CLOUDFLARE_API_TOKEN` が OAuth より優先されている。`env -u CLOUDFLARE_API_TOKEN` を付けて実行する |
 
 ---
 
 ## セキュリティ
 
-- `wrangler.toml`（account_id 等）、`.dev.vars`、API トークンは **コミットしない**
+- `cloudflare.config.ts`（accountId・Access 設定・許可メール等）、`access-app.json`、`.dev.vars`、API トークンは **コミットしない**
 - 本番は `ACCESS_TEAM_DOMAIN` + JWT 検証必須。allow guard は Method A（`ACCESS_ALLOWED_EMAILS`）または B（`ACCESS_ALLOWED_EMAIL_DOMAIN`）を推奨
 - workers.dev とカスタムドメイン **両方** を Access Application に登録する
-- `AUTH_DEV_BYPASS` はローカル `wrangler`（`localhost` / `127.0.0.1:8787`）でのみ有効。本番ホストでは設定しても無視される。
-  加えて `bun run deploy:team` は `wrangler.toml` に有効な `AUTH_DEV_BYPASS` があると deploy を中止する
-- `workers_dev` はテンプレートで `false`。カスタムドメイン運用なら露出を減らせる。`true` にする場合は
-  Access Application に `*.workers.dev` のホストも含める（[4.3](#43-access-アプリケーションdashboard)）
+- `AUTH_DEV_BYPASS` はローカル dev サーバー（`localhost` / `127.0.0.1:8787`）でのみ有効。本番ホストでは設定しても無視される。
+  値は `.dev.vars` にだけ置く。`bun run deploy:team` は `cloudflare.config.ts` に `AUTH_DEV_BYPASS` があると deploy を中止する
+- `workersDev` はテンプレートで `false`。カスタムドメイン運用なら露出を減らせる。`true` にする場合は
+  Access Application に workers.dev とプレビュー URL のホストも含める（[4.3](#43-access-applicationcf)）
 - 状態変更 API は Origin（または `Sec-Fetch-Site: same-origin`）を検証する。`clear-results` は JSON + `expectedGeneration` 必須
 - AI propose はメール単位の簡易レート制限あり（isolate 内）。本番では Cloudflare Rate Limiting の併用を推奨
 - Access JWT は `email` claim 必須（`common_name` は使わない）
@@ -381,3 +384,4 @@ Browser
 |---|---|
 | 2026-06-28 | 初版 |
 | 2026-07-12 | README / deployment.md から手順の正本として明示 |
+| 2026-10-15 | Wrangler から cf CLI（`cloudflare.config.ts`）へ移行。Access Application も cf で作成 |

@@ -47,7 +47,7 @@ qarows/
 | ファイル | 用途 |
 |---|---|
 | `.env.example` | 環境変数のキー名一覧 |
-| `wrangler.toml.example` | Wrangler 設定テンプレート（プレースホルダー） |
+| `apps/team/cloudflare.config.example.ts` | Team 版の cf 設定テンプレート（プレースホルダー） |
 | `docs/deploy-local.md` | Local 版公式デプロイ手順（メンテナ向け） |
 | `docs/deploy-team.md` | Team 版セルフデプロイ手順（利用者向け） |
 
@@ -94,10 +94,10 @@ Team 版に **公式の共通ホストはない**。fork / clone した利用者
 
 概要だけ:
 
-1. `wrangler.toml.example` をコピーし `account_id` / D1 を設定
-2. Access Application を作成し `ACCESS_AUD` / `ACCESS_TEAM_DOMAIN` を Worker に設定
-3. `bun run deploy:team` でデプロイ
-4. Dashboard で Access ポリシー（許可メール / ドメイン）を設定
+1. `cloudflare.config.example.ts` をコピーし `accountId` を設定
+2. `cf` で D1（と任意で R2）を作成し、マイグレーションを適用
+3. `cf` で Access Application（許可メール / ドメインのポリシー込み）を作成し、`ACCESS_AUD` / `ACCESS_TEAM_DOMAIN` を設定
+4. `bun run deploy:team`（`cf deploy`）でデプロイ
 
 ---
 
@@ -121,14 +121,15 @@ Team 版に **公式の共通ホストはない**。fork / clone した利用者
 .dev.vars
 
 # Cloudflare local config (個人・組織固有)
-wrangler.toml
-# wrangler.toml.example はコミットする
+cloudflare.config.ts
+# cloudflare.config.example.ts はコミットする
 
-# Wrangler local state
+# cf / Wrangler の生成物・ローカル state
+.cloudflare/
 .wrangler/
 ```
 
-`wrangler.toml` を gitignore する場合、テンプレートは `wrangler.toml.example` としてコミットする。
+Team 版の設定 `apps/team/cloudflare.config.ts` は gitignore し、テンプレートは `cloudflare.config.example.ts` としてコミットする。
 
 ---
 
