@@ -27,12 +27,17 @@ export function MatrixPageLayout({ nav }: { nav: ReactNode }) {
   // セッション未設定時はセッション絞り込みができないため全体に固定
   const effectiveScope: MatrixScope = session ? scope : "all";
 
-  const environmentIds = useMemo(() => {
-    if (!definition) return [];
-    return effectiveScope === "session" && session
-      ? session.selectedEnvironmentIds
-      : getAllEnvironmentIds(definition);
-  }, [definition, effectiveScope, session]);
+  // 同期で session が作り直されても中身が同じなら同じ配列を返す（列定義の作り直しを防ぐ）
+  const environmentIdsKey = !definition
+    ? ""
+    : (effectiveScope === "session" && session
+        ? session.selectedEnvironmentIds
+        : getAllEnvironmentIds(definition)
+      ).join("\n");
+  const environmentIds = useMemo(
+    () => (environmentIdsKey ? environmentIdsKey.split("\n") : []),
+    [environmentIdsKey],
+  );
 
   const testCases = useMemo(() => {
     if (!definition || !results) return [];

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   columnOrderingFeature,
@@ -16,6 +16,7 @@ import {
   nextBugId,
   resolveSessionTestTargets,
   resolveTestTargets,
+  type SessionConfig,
   type TestCase,
   type TestResults,
   type TestStatus,
@@ -106,25 +107,35 @@ function stopRowActivation(event: SyntheticEvent) {
 
 const NOT_ENTERED = "none";
 
+interface MatrixCellContextValue {
+  results: TestResults;
+  session: SessionConfig | null;
+  onSetStatus: (testCase: TestCase, envId: string, status: TestStatus) => void;
+  onClear: (testCaseId: string, envId: string) => void;
+}
+
+/**
+ * 結果やハンドラは列定義に閉じ込めず Context で渡す。flexRender はセル関数を
+ * コンポーネントとして描画するため、結果が変わるたびに列定義を作り直すと全セルが
+ * 再マウントされ、StatusBadge の出現アニメーションが一斉に再生されてちらつく
+ */
+const MatrixCellContext = createContext<MatrixCellContextValue | null>(null);
+
 function EnvCell({
   testCase,
   envId,
   isTarget,
-  editable,
-  results,
-  onSetStatus,
-  onClear,
 }: {
   testCase: TestCase;
   envId: string;
   isTarget: boolean;
-  /** 自分のセッションで選択している端末のみ入力できる */
-  editable: boolean;
-  results: TestResults;
-  onSetStatus: (testCase: TestCase, envId: string, status: TestStatus) => void;
-  onClear: (testCaseId: string, envId: string) => void;
 }) {
   const { t } = useTranslation();
+  const context = useContext(MatrixCellContext);
+  if (!context) return null;
+  const { results, session, onSetStatus, onClear } = context;
+  // 自分のセッションで選択している端末のみ入力できる
+  const editable = session?.selectedEnvironmentIds.includes(envId) ?? false;
 
   if (!isTarget) {
     return <div className="h-full w-full bg-muted/40" />;
@@ -232,16 +243,20 @@ export function TestMatrixTable({
     [addBug, bugCreateMore, closeBugDialog, results],
   );
 
-  /** 環境列のセルごとに再解決しないよう、対象環境をテストケース単位で先に引く */
+  /**
+   * 環境列のセルごとに再解決しないよう、対象環境をテストケース単位で先に引く。
+   * 表示中の testCases（結果で絞り込まれる）ではなく定義全体から作り、結果の更新で
+   * 列定義が作り直されないようにする（MatrixCellContext のコメント参照）
+   */
   const targetEnvIdsByTestCase = useMemo(() => {
     if (!definition) return new Map<string, string[]>();
     return new Map(
-      testCases.map((testCase) => [
+      definition.testCases.map((testCase) => [
         testCase.id,
         resolveTestTargets(testCase, definition).environmentIds,
       ]),
     );
-  }, [definition, testCases]);
+  }, [definition]);
 
   const columns = useMemo(() => {
     if (!definition) return [];
@@ -309,33 +324,31 @@ export function TestMatrixTable({
             </span>
           ),
           size: COLUMN_SIZES.env,
-          cell: ({ row }) =>
-            results ? (
-              <EnvCell
-                testCase={row.original}
-                envId={env.id}
-                isTarget={targetEnvIdsByTestCase.get(row.original.id)?.includes(env.id) ?? false}
-                editable={session?.selectedEnvironmentIds.includes(env.id) ?? false}
-                results={results.results}
-                onSetStatus={handleSetStatus}
-                onClear={(testCaseId, envId) => void clearTestResult(testCaseId, envId)}
-              />
-            ) : null,
+          cell: ({ row }) => (
+            <EnvCell
+              testCase={row.original}
+              envId={env.id}
+              isTarget={targetEnvIdsByTestCase.get(row.original.id)?.includes(env.id) ?? false}
+            />
+          ),
         }),
       );
 
     return helper.columns([...metaColumns, ...envColumns]);
-  }, [
-    clearTestResult,
-    compact,
-    definition,
-    environmentIds,
-    handleSetStatus,
-    results,
-    session,
-    t,
-    targetEnvIdsByTestCase,
-  ]);
+  }, [compact, definition, environmentIds, t, targetEnvIdsByTestCase]);
+
+  const cellContext = useMemo<MatrixCellContextValue | null>(
+    () =>
+      results
+        ? {
+            results: results.results,
+            session,
+            onSetStatus: handleSetStatus,
+            onClear: (testCaseId, envId) => void clearTestResult(testCaseId, envId),
+          }
+        : null,
+    [clearTestResult, handleSetStatus, results, session],
+  );
 
   const table = useTable({
     features,
@@ -396,98 +409,100 @@ export function TestMatrixTable({
         ref={tableContainerRef}
         className="h-full min-h-0 overflow-auto rounded-lg border bg-card"
       >
-        <table
-          className="table-fixed border-separate border-spacing-0 text-left"
-          style={{ width: table.getTotalSize(), minWidth: "100%" }}
-        >
-          <colgroup>
-            {table.getVisibleLeafColumns().map((column) => (
-              <col key={column.id} style={{ width: column.getSize() }} />
-            ))}
-          </colgroup>
-          <thead className="sticky top-0 z-[4] bg-card shadow-sm">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-border/60">
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="overflow-hidden border-b border-r border-border/60 px-2 py-2 text-xs font-semibold text-muted-foreground"
-                    style={{
-                      ...cellWidthStyle(header.column),
-                      ...pinningStyles(header.column, true),
-                    }}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody style={{ overflowAnchor: "none" }}>
-            {paddingTop > 0 ? (
-              <tr aria-hidden className="pointer-events-none">
-                <td colSpan={columnCount} style={{ height: paddingTop, padding: 0, border: "none" }} />
-              </tr>
-            ) : null}
-            {virtualRows.map((virtualRow) => {
-              const row = rows[virtualRow.index];
-              const testCase = row.original;
-              const jumpable = canJumpToRunner(testCase.id, definition, session);
-
-              return (
-                <tr
-                  key={row.id}
-                  ref={compact ? undefined : rowVirtualizer.measureElement}
-                  data-index={virtualRow.index}
-                  className={cn(
-                    "border-b border-border/40 transition-colors",
-                    jumpable
-                      ? "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
-                      : "hover:bg-muted/20",
-                  )}
-                  style={compact ? { height: ROW_HEIGHT } : undefined}
-                  tabIndex={jumpable ? 0 : undefined}
-                  onClick={() => void handleRowActivate(testCase)}
-                  onKeyDown={(event) => {
-                    if (!jumpable) return;
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      void handleRowActivate(testCase);
-                    }
-                  }}
-                  title={
-                    jumpable
-                      ? t("runner.clickToRun")
-                      : session
-                        ? t("runner.outOfSession")
-                        : t("runner.sessionRequired")
-                  }
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className={cn("border-r border-border/40 px-2 align-middle", !compact && "py-2")}
+        <MatrixCellContext.Provider value={cellContext}>
+          <table
+            className="table-fixed border-separate border-spacing-0 text-left"
+            style={{ width: table.getTotalSize(), minWidth: "100%" }}
+          >
+            <colgroup>
+              {table.getVisibleLeafColumns().map((column) => (
+                <col key={column.id} style={{ width: column.getSize() }} />
+              ))}
+            </colgroup>
+            <thead className="sticky top-0 z-[4] bg-card shadow-sm">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="border-b border-border/60">
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="overflow-hidden border-b border-r border-border/60 px-2 py-2 text-xs font-semibold text-muted-foreground"
                       style={{
-                        height: compact ? ROW_HEIGHT : undefined,
-                        ...cellWidthStyle(cell.column),
-                        ...pinningStyles(cell.column),
+                        ...cellWidthStyle(header.column),
+                        ...pinningStyles(header.column, true),
                       }}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
                   ))}
                 </tr>
-              );
-            })}
-            {paddingBottom > 0 ? (
-              <tr aria-hidden className="pointer-events-none">
-                <td colSpan={columnCount} style={{ height: paddingBottom, padding: 0, border: "none" }} />
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+              ))}
+            </thead>
+            <tbody style={{ overflowAnchor: "none" }}>
+              {paddingTop > 0 ? (
+                <tr aria-hidden className="pointer-events-none">
+                  <td colSpan={columnCount} style={{ height: paddingTop, padding: 0, border: "none" }} />
+                </tr>
+              ) : null}
+              {virtualRows.map((virtualRow) => {
+                const row = rows[virtualRow.index];
+                const testCase = row.original;
+                const jumpable = canJumpToRunner(testCase.id, definition, session);
+
+                return (
+                  <tr
+                    key={row.id}
+                    ref={compact ? undefined : rowVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    className={cn(
+                      "border-b border-border/40 transition-colors",
+                      jumpable
+                        ? "cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+                        : "hover:bg-muted/20",
+                    )}
+                    style={compact ? { height: ROW_HEIGHT } : undefined}
+                    tabIndex={jumpable ? 0 : undefined}
+                    onClick={() => void handleRowActivate(testCase)}
+                    onKeyDown={(event) => {
+                      if (!jumpable) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        void handleRowActivate(testCase);
+                      }
+                    }}
+                    title={
+                      jumpable
+                        ? t("runner.clickToRun")
+                        : session
+                          ? t("runner.outOfSession")
+                          : t("runner.sessionRequired")
+                    }
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td
+                        key={cell.id}
+                        className={cn("border-r border-border/40 px-2 align-middle", !compact && "py-2")}
+                        style={{
+                          height: compact ? ROW_HEIGHT : undefined,
+                          ...cellWidthStyle(cell.column),
+                          ...pinningStyles(cell.column),
+                        }}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+              {paddingBottom > 0 ? (
+                <tr aria-hidden className="pointer-events-none">
+                  <td colSpan={columnCount} style={{ height: paddingBottom, padding: 0, border: "none" }} />
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </MatrixCellContext.Provider>
       </div>
       {bugTarget && session && (
         <BugDialog
