@@ -9,9 +9,9 @@ sleep 0.5
 
 cd "$TEAM"
 
-if [ ! -f wrangler.toml ]; then
-  echo "wrangler.toml がありません。初回は次を実行してください:"
-  echo "  cp apps/team/wrangler.toml.example apps/team/wrangler.toml"
+if [ ! -f cloudflare.config.ts ]; then
+  echo "cloudflare.config.ts がありません。初回は次を実行してください:"
+  echo "  cp apps/team/cloudflare.config.example.ts apps/team/cloudflare.config.ts"
   exit 1
 fi
 

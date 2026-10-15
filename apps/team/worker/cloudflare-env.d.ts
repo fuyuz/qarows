@@ -2,12 +2,12 @@
 /**
  * Worker の Env 型。手書きで管理する。
  *
- * `wrangler types` の出力では代用できない: wrangler は渡された 1 つの構成しか
+ * `cf workers types` の出力では代用できない: cf は渡された 1 つの構成しか
  * 知らないので全バインディングを必須で出力するが、この Worker は AI・R2・
  * メール許可リストを積まないデプロイも成立し、コード側が env.AI / env.ATTACHMENTS
  * の有無を見て機能を出し入れしている。
  *
- * wrangler.toml.example にバインディングを足したらここにも足すこと。
+ * cloudflare.config.example.ts にバインディングを足したらここにも足すこと。
  * ズレの検出: bun run --filter @qarows/team check:worker-env
  */
 declare namespace Cloudflare {

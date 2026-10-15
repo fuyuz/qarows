@@ -50,7 +50,9 @@ playwright/.cache/
 # Cloudflare
 .dev.vars
 .wrangler/
+.cloudflare/
 wrangler.toml
+cloudflare.config.ts
 
 # Vercel / deployment
 .vercel/

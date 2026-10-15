@@ -829,7 +829,7 @@ testCases:
       major: "AI編集"
       medium: "表示"
       minor: "opt-in"
-    prerequisites: "Team 版。wrangler に [ai] binding なし"
+    prerequisites: "Team 版。cloudflare.config.ts に AI binding なし"
     description: "テスト定義画面に AI アシスタントが表示されない（ナビの AI 編集項目もない）"
 
   - id: TC-111

@@ -1199,7 +1199,7 @@ testCases:
       minor: "D1 の tests_yaml"
     prerequisites: |
       コメント・独自のキー順を含む tests.yml を Team 版にアップロードし、テスト結果を1件以上入力した後。
-      確認は wrangler d1 execute <DB> --remote --command "select tests_yaml from projects where id='<ID>'" で行う
+      確認は cf d1 query <DATABASE_ID> --sql "select tests_yaml from projects where id='<ID>'" で行う
     description: "結果入力では D1 の tests_yaml が書き換わらず、アップロードしたコメント・キー順・project.version がそのまま残る。テスト定義の編集（定義編集画面での保存、実行画面でのテストケース編集）を行ったときだけ再直列化される"
 
   - id: TC-121

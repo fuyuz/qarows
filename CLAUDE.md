@@ -86,10 +86,10 @@ qarows/
 **公開リポジトリ前提。** 以下をコミットしない:
 
 - API トークン、Access シークレット（`.env`, `.dev.vars`）
-- Account ID、Zone ID、許可メールドメイン等の固有設定（`wrangler.toml`）
+- Account ID、Zone ID、許可メールドメイン等の固有設定（`apps/team/cloudflare.config.ts`）
 - 本番 URL、CI 用トークン
 
-テンプレート（`.env.example`, `wrangler.toml.example`）と手順書のみコミット。
+テンプレート（`.env.example`, `cloudflare.config.example.ts`）と手順書のみコミット。
 
 詳細: [docs/deployment.md](docs/deployment.md)
 
@@ -118,7 +118,7 @@ qarows/
 # dev ポートを止める（Local + Team 版）
 bun run dev:stop
 
-# Team 版初回: cp apps/team/wrangler.toml.example apps/team/wrangler.toml
+# Team 版初回: cp apps/team/cloudflare.config.example.ts apps/team/cloudflare.config.ts
 bun run dev:team
 
 # preview をビルドして 5173 で起動
