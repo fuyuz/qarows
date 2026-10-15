@@ -46,6 +46,8 @@ export interface WorkspaceAppNavProps {
   path: (page: WorkspaceProjectPage) => string;
   /** ナビに表示してよいプロジェクト内ページ。未指定時は Local 版相当の全ページ */
   availablePages?: readonly WorkspaceProjectPage[];
+  /** 「トップ（/）」を出すか。Team 版の / はプロジェクト一覧へのリダイレクトなので出さない */
+  showHome?: boolean;
   onExportYaml?: () => void;
   onExportResults?: () => void;
   onExportZip?: () => void;
@@ -81,10 +83,11 @@ function workflowLinks(
   page: NavContextPage,
   session: SessionConfig | null,
   availablePages: Set<WorkspaceProjectPage>,
+  showHome: boolean,
   t: (key: string) => string,
 ): NavLinkItem[] {
   const items: NavLinkItem[] = [
-    { label: t("nav.home"), to: "/" },
+    ...(showHome ? [{ label: t("nav.home"), to: "/" }] : []),
     { label: appNavLabel("projects", t), to: "/projects", page: "projects" },
   ];
 
@@ -152,6 +155,7 @@ export function WorkspaceAppNav({
   results,
   path,
   availablePages,
+  showHome = true,
   onExportYaml,
   onExportResults,
   onExportZip,
@@ -169,8 +173,8 @@ export function WorkspaceAppNav({
   const page = currentProjectPage(location.pathname);
 
   const workflow = useMemo(
-    () => (definition ? workflowLinks(path, page, session, pageSet, t) : []),
-    [definition, page, path, session, pageSet, t],
+    () => (definition ? workflowLinks(path, page, session, pageSet, showHome, t) : []),
+    [definition, page, path, session, pageSet, showHome, t],
   );
 
   const browseLinks = useMemo(
