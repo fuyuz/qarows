@@ -100,7 +100,9 @@ async function run(handler: () => Promise<unknown>) {
       );
     }
     if (err instanceof HTTPException && err.status === 400) return errorResult(err.message);
-    throw err;
+    // 想定外のエラーは内部の文言を AI に返さない（SDK は例外の message をそのまま返すため）
+    console.error("[mcp] tool failed", err);
+    return errorResult("Internal error. Try again later.");
   }
 }
 
@@ -393,7 +395,7 @@ export function createQarowsMcpServer({ env, user }: McpToolContext): McpServer 
         projectId: projectIdSchema,
         testCaseId: z.string(),
         status: STATUS,
-        environmentIds: z.array(z.string()).min(1).optional(),
+        environmentIds: z.array(z.string()).min(1).max(100).optional(),
       }),
       annotations: { readOnlyHint: false, destructiveHint: false },
     },
@@ -401,7 +403,8 @@ export function createQarowsMcpServer({ env, user }: McpToolContext): McpServer 
       run(async () => {
         const snapshot = await loadProject(env, projectId);
         const testCase = findTestCase(snapshot.definition, testCaseId);
-        const envIds = environmentIds ?? targetEnvironmentIds(snapshot.definition, testCase);
+        // 重複を除く（同じ端末を並べて書き込みを増幅させない）
+        const envIds = [...new Set(environmentIds ?? targetEnvironmentIds(snapshot.definition, testCase))];
         for (const envId of envIds) assertTargetEnvironment(snapshot.definition, testCase, envId);
         const executedAt = new Date().toISOString();
         for (const envId of envIds) {
@@ -605,11 +608,23 @@ export function createQarowsMcpServer({ env, user }: McpToolContext): McpServer 
     "delete_test_case",
     {
       title: "Delete test case",
-      description: "Delete a test case. Its results are dropped and it is removed from scenarios. Bugs keep their link text.",
+      description:
+        "Delete a test case. Its results and memo are dropped and it is removed from scenarios. Refused while bugs are linked to it: unlink them first with update_bug (testCaseId: \"\") so they are kept.",
       inputSchema: z.object({ projectId: projectIdSchema, testCaseId: z.string() }),
       annotations: { readOnlyHint: false, destructiveHint: true },
     },
-    async ({ projectId, testCaseId }) => run(() => editDefinition(projectId, (d) => deleteTestCase(d, testCaseId))),
+    async ({ projectId, testCaseId }) =>
+      run(async () => {
+        // 定義の置き換えは削除した TC に紐づくバグを捨てる。MCP からバグを消せないよう、紐づきがあれば拒否する
+        const snapshot = await loadProject(env, projectId);
+        const linked = snapshot.results.bugs.filter((bug) => bug.testCaseId === testCaseId).map((bug) => bug.id);
+        if (linked.length > 0) {
+          throw new ToolInputError(
+            `Bugs are linked to ${testCaseId}: ${linked.join(", ")}. Unlink them with update_bug (testCaseId: "") before deleting.`,
+          );
+        }
+        return editDefinition(projectId, (d) => deleteTestCase(d, testCaseId));
+      }),
   );
 
   server.registerTool(

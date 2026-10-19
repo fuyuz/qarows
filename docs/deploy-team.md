@@ -346,7 +346,9 @@ Claude Code や claude.ai などの AI から、Team 版のデータを MCP で�
 | バグ | `create_bug` `update_bug`（バグの削除はない） |
 | テスト定義 | `add_test_case` `update_test_case`（ID は変更不可） `delete_test_case` `add_environment` `rename_environment` `delete_environment` `set_overview` |
 
-- **できない操作**: プロジェクトの削除、結果の全クリア、results.json の取り込み、tests.yml の丸ごと置き換え。送れるコマンドはコードで限定している（`apps/team/worker/mcp/server.ts`）
+- **できない操作**: プロジェクトの削除、結果の全クリア、results.json の取り込み、tests.yml の丸ごと置き換え、バグの削除。送れるコマンドはコードで限定している（`apps/team/worker/mcp/server.ts`）
+- バグが紐づいているテストケースは削除できない（先に `update_bug` で紐づけを外す。外さずに消すとバグも消えるため）
+- テストケース・端末の削除では、その結果とメモが消える。定義の履歴（直近 20 件）からは定義は戻せるが、消えた結果は戻らない
 - 結果の実施者（executedBy）は Access でログインした利用者のメールアドレスになる
 - 定義の編集は、画面の定義編集と同じ保存処理（履歴の記録 + 同時編集の検知）を通る。他の人が先に保存していた場合はエラーを返し、AI に読み直させる
 - 書き込みは画面にリアルタイムで反映される
@@ -355,14 +357,14 @@ Claude Code や claude.ai などの AI から、Team 版のデータを MCP で�
 
 Cloudflare Access の **Managed OAuth** を使い、MCP クライアントのログインを Access に任せる。Managed OAuth は Access Application 全体の設定（ブラウザ以外の未認証アクセスが 302 ではなく 401 + `WWW-Authenticate` になる）なので、**MCP 専用のホスト名と Access Application を別に作る**。画面用ホストの設定は変えない。
 
-- MCP 専用ホストでは `/mcp` 以外（画面・`/api`）を返さない
+- MCP 専用ホストでは `/api` などの Worker のルートは `/mcp` 以外を返さない（画面の静的ファイルは Access を通った利用者には返るが、データは含まない）
 - Worker は MCP 専用ホストへのリクエストを MCP 用 Application の AUD（`MCP_ACCESS_AUD`）だけで、画面用ホストは `ACCESS_AUD` だけで検証する（トークンの使い回しを防ぐ）
 - `/mcp` は Host / Origin を MCP 専用ホストに限定する（DNS rebinding・ブラウザからの越境呼び出し対策）
 
 ### 6.3 手順
 
 1. `cloudflare.config.ts` の `CUSTOM_DOMAINS` に MCP 専用ホストを追加する（例: `["qarows.example.com", "qarows-mcp.example.com"]`）
-2. MCP 専用の Access Application を作る。`mcp-access-app.json`（**コミットしない**。gitignore 済みの `access-app.json` と同様に実メールが入る）:
+2. MCP 専用の Access Application を作る。`mcp-access-app.json`（**コミットしない**。実メールが入る。`*access-app.json` は gitignore 済み）:
 
    ```json
    {

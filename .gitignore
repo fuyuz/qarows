@@ -53,7 +53,7 @@ playwright/.cache/
 .cloudflare/
 wrangler.toml
 cloudflare.config.ts
-access-app.json
+*access-app.json
 
 # Vercel / deployment
 .vercel/

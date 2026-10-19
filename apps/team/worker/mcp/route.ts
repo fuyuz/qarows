@@ -18,7 +18,7 @@ export const MCP_PATH = "/mcp";
  */
 export async function handleMcp(c: Context<AppEnv>): Promise<Response> {
   const localDev = !isAccessRequired(c.env, c.req.raw);
-  const mcpHost = c.env.MCP_HOSTNAME?.trim();
+  const mcpHost = c.env.MCP_HOSTNAME?.trim().toLowerCase();
   const allowedHostnames = localDev ? localhostAllowedHostnames() : mcpHost ? [mcpHost] : [];
 
   const rejected =
