@@ -686,6 +686,22 @@ testCases:
     prerequisites: "セッションで選んでいない端末（例: Safari）を対象にしたバグがあり、そのテストをテスト実行画面で開いている"
     description: "関連バグの編集で、対象端末にセッション外の Safari も表示され、チェックを外せる（外したあと再びチェックもできる）。新規起票ではセッションの端末だけが並ぶ"
 
+  - id: TC-154
+    category:
+      major: "Team 版"
+      medium: "MCP"
+      minor: "接続"
+    prerequisites: "Team 版に MCP 専用ホストと Managed OAuth の Access Application を設定済み（docs/deploy-team.md §6）"
+    description: "Claude Code で claude mcp add --transport http <名前> https://<MCP ホスト>/mcp を実行して認証するとブラウザで Access のログインが開き、ログイン後に whoami が自分のメールアドレスを返す。認証なしで /mcp を叩くと 401 と WWW-Authenticate が返り、MCP ホストでは画面・/api は返らない"
+
+  - id: TC-155
+    category:
+      major: "Team 版"
+      medium: "MCP"
+      minor: "操作"
+    prerequisites: "MCP で接続済み、Team 版の画面で同じプロジェクトを開いている"
+    description: "set_results / set_memo / create_bug / add_test_case などで変更すると画面に即時反映され、結果の実施者はログインしたメールアドレスになる。対象外の端末への入力や重複 ID はエラーになり、プロジェクト削除・結果の全クリア・tests.yml の置き換えに当たるツールは存在しない"
+
   - id: TC-146
     category:
       major: "閲覧"

@@ -46,6 +46,11 @@ export default defineConfig(({ mode }) => ({
 			// Method A — named individuals (comma-separated):
 			// ACCESS_ALLOWED_EMAILS: bindings.text("alice@example.com,bob@example.com"),
 
+			// Optional: MCP server (docs/deploy-team.md §6). A dedicated hostname, also listed in
+			// CUSTOM_DOMAINS, protected by its own Access application with Managed OAuth.
+			// MCP_HOSTNAME: bindings.text("qarows-mcp.example.com"),
+			// MCP_ACCESS_AUD: bindings.text("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
+
 			// Optional: AI-assisted tests.yml editing (UI + API appear when bound)
 			// AI: bindings.ai(),
 			// Prefer json_schema-capable models (see Workers AI JSON Mode docs).

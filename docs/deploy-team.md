@@ -333,6 +333,86 @@ curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://<host>/api/me
 
 ---
 
+## 6. MCP サーバー（任意）
+
+Claude Code や claude.ai などの AI から、Team 版のデータを MCP で参照・編集できる。Worker の `/mcp`（Streamable HTTP）で提供する。
+
+### 6.1 できること / できないこと
+
+| 種別 | ツール |
+|---|---|
+| 参照 | `whoami` `list_projects` `get_project`（overview・端末・進捗） `list_test_cases`（分類・シナリオ・結果・端末・文字列で絞り込み） `get_test_case` `list_bugs` `get_bug` |
+| 結果・メモ | `set_results`（OK / NG / SKIP、対象端末のみ） `clear_result`（1 セルを未実施に戻す） `set_memo` |
+| バグ | `create_bug` `update_bug`（バグの削除はない） |
+| テスト定義 | `add_test_case` `update_test_case`（ID は変更不可） `delete_test_case` `add_environment` `rename_environment` `delete_environment` `set_overview` |
+
+- **できない操作**: プロジェクトの削除、結果の全クリア、results.json の取り込み、tests.yml の丸ごと置き換え。送れるコマンドはコードで限定している（`apps/team/worker/mcp/server.ts`）
+- 結果の実施者（executedBy）は Access でログインした利用者のメールアドレスになる
+- 定義の編集は、画面の定義編集と同じ保存処理（履歴の記録 + 同時編集の検知）を通る。他の人が先に保存していた場合はエラーを返し、AI に読み直させる
+- 書き込みは画面にリアルタイムで反映される
+
+### 6.2 構成
+
+Cloudflare Access の **Managed OAuth** を使い、MCP クライアントのログインを Access に任せる。Managed OAuth は Access Application 全体の設定（ブラウザ以外の未認証アクセスが 302 ではなく 401 + `WWW-Authenticate` になる）なので、**MCP 専用のホスト名と Access Application を別に作る**。画面用ホストの設定は変えない。
+
+- MCP 専用ホストでは `/mcp` 以外（画面・`/api`）を返さない
+- Worker は MCP 専用ホストへのリクエストを MCP 用 Application の AUD（`MCP_ACCESS_AUD`）だけで、画面用ホストは `ACCESS_AUD` だけで検証する（トークンの使い回しを防ぐ）
+- `/mcp` は Host / Origin を MCP 専用ホストに限定する（DNS rebinding・ブラウザからの越境呼び出し対策）
+
+### 6.3 手順
+
+1. `cloudflare.config.ts` の `CUSTOM_DOMAINS` に MCP 専用ホストを追加する（例: `["qarows.example.com", "qarows-mcp.example.com"]`）
+2. MCP 専用の Access Application を作る。`mcp-access-app.json`（**コミットしない**。gitignore 済みの `access-app.json` と同様に実メールが入る）:
+
+   ```json
+   {
+     "name": "qarows-team-mcp",
+     "type": "self_hosted",
+     "domain": "qarows-mcp.example.com",
+     "self_hosted_domains": ["qarows-mcp.example.com"],
+     "session_duration": "24h",
+     "app_launcher_visible": false,
+     "policies": [
+       { "name": "Allow members", "decision": "allow", "include": [{ "email": { "email": "alice@example.com" } }] }
+     ],
+     "oauth_configuration": {
+       "enabled": true,
+       "dynamic_client_registration": {
+         "enabled": true,
+         "allow_any_on_localhost": true,
+         "allow_any_on_loopback": true,
+         "allowed_uris": ["https://claude.ai/api/mcp/auth_callback"]
+       },
+       "grant": { "access_token_lifetime": "15m", "session_duration": "336h" }
+     }
+   }
+   ```
+
+   ```bash
+   bunx cf zero-trust access applications create --body "$(cat mcp-access-app.json)"
+   ```
+
+   - `allow_any_on_localhost` / `allow_any_on_loopback`: Claude Code（ローカルのポートで OAuth の戻り先を受ける）用
+   - `allowed_uris`: claude.ai（Web / Desktop / モバイル）の固定コールバック。使わないなら外す
+   - ポリシーは画面用 Application と同じ相手にする（4.2）
+3. 出力の `aud` を `MCP_ACCESS_AUD` に、ホスト名を `MCP_HOSTNAME` に設定する（`cloudflare.config.example.ts` のコメント参照）
+4. `bun run deploy:team`
+5. 確認（証明書の発行に数分かかることがある）:
+
+   ```bash
+   curl -s -D - -o /dev/null -X POST https://qarows-mcp.example.com/mcp   # 401 と WWW-Authenticate
+   curl -s https://qarows-mcp.example.com/.well-known/oauth-authorization-server   # Access の OAuth メタデータ（JSON）
+   ```
+
+### 6.4 接続
+
+- **Claude Code**: `claude mcp add --transport http qarows https://qarows-mcp.example.com/mcp` を実行し、`/mcp` から認証するとブラウザで Access のログインが開く
+- **claude.ai**: 設定 → コネクタ → カスタムコネクタを追加 で URL に `https://qarows-mcp.example.com/mcp` を入れる
+
+ログイン後は `whoami` で自分のメールアドレスが返ることを確認する。
+
+---
+
 ## アーキテクチャ
 
 詳細な構成図・シーケンス図は [architecture.md](./architecture.md#phase-2--closed-環境--リアルタイム同期) を参照。
@@ -389,3 +469,4 @@ Browser
 | 2026-06-28 | 初版 |
 | 2026-07-12 | README / deployment.md から手順の正本として明示 |
 | 2026-10-15 | Wrangler から cf CLI（`cloudflare.config.ts`）へ移行。Access Application も cf で作成 |
+| 2026-10-19 | MCP サーバー（専用ホスト + Managed OAuth）を追加 |
