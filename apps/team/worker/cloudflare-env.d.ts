@@ -24,6 +24,10 @@ declare namespace Cloudflare {
     AUTH_DEV_BYPASS?: string;
     AI_MODEL?: string;
     AI_MODEL_FALLBACK?: string;
+    /** MCP 専用ホスト名（例: team-mcp.example.com）。未設定なら MCP は無効 */
+    MCP_HOSTNAME?: string;
+    /** MCP 専用ホスト用 Access Application の AUD（Managed OAuth を有効にしたアプリ） */
+    MCP_ACCESS_AUD?: string;
   }
 }
 

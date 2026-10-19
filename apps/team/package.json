@@ -16,6 +16,7 @@
     "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
     "@qarows/application": "*",
     "@qarows/runner-ui": "*",
     "@qarows/shared": "*",
@@ -27,7 +28,8 @@
     "nuqs": "^2.10.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router-dom": "^7.18.4"
+    "react-router-dom": "^7.18.4",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261015.1",

@@ -82,10 +82,33 @@ function assertEmailAllowed(email: string, env: Env): void {
   }
 }
 
-function assertAccessConfig(env: Env): { teamDomain: string; audience: string } {
+/** MCP 専用ホストへのリクエストか（MCP_HOSTNAME 未設定なら常に false） */
+export function isMcpHostRequest(request: Request, env: Env): boolean {
+  const mcpHost = env.MCP_HOSTNAME?.trim().toLowerCase();
+  if (!mcpHost) return false;
+  try {
+    return new URL(request.url).hostname.toLowerCase() === mcpHost;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ホストごとに受け付ける AUD を 1 つに決める。MCP 専用ホストは Managed OAuth を有効にした
+ * 別の Access Application で守るため、その AUD（MCP_ACCESS_AUD）だけを受け付ける。
+ * 画面用ホストのトークンを MCP に、MCP のトークンを画面用ホストに流用させない
+ */
+function assertAccessConfig(env: Env, request: Request): { teamDomain: string; audience: string } {
   const teamDomain = env.ACCESS_TEAM_DOMAIN?.trim();
   if (!teamDomain) {
     throw new AccessDeniedError("サーバー設定エラー: ACCESS_TEAM_DOMAIN が未設定です");
+  }
+  if (isMcpHostRequest(request, env)) {
+    const audience = env.MCP_ACCESS_AUD?.trim();
+    if (!audience) {
+      throw new AccessDeniedError("サーバー設定エラー: MCP_ACCESS_AUD が未設定です");
+    }
+    return { teamDomain, audience };
   }
   const audience = env.ACCESS_AUD?.trim();
   if (!audience) {
@@ -162,7 +185,7 @@ function isLocalDevFrontendOrigin(origin: string): boolean {
 }
 
 async function resolveProductionUser(request: Request, env: Env): Promise<AuthUser> {
-  const { teamDomain, audience } = assertAccessConfig(env);
+  const { teamDomain, audience } = assertAccessConfig(env, request);
   const token = getAccessJwt(request);
   if (!token) {
     throw new AccessDeniedError(

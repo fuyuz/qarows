@@ -10,6 +10,8 @@ import { attachmentsRoutes } from "./routes/attachments";
 import { projectsRoutes } from "./routes/projects";
 import { resolveAiModelConfig } from "./ai/models";
 import { apiError, requestT } from "./i18n";
+import { isAccessRequired, isMcpHostRequest } from "./auth";
+import { handleMcp, MCP_PATH } from "./mcp/route";
 import type { AppEnv } from "./types";
 
 export function createApp() {
@@ -34,6 +36,19 @@ export function createApp() {
   app.use("*", requestIdMiddleware);
   app.use("*", localeMiddleware);
   app.use("*", securityHeadersMiddleware);
+
+  // MCP 専用ホストでは /mcp 以外（画面・/api）を返さない。画面用ホストの /mcp は
+  // ローカル開発（AUTH_DEV_BYPASS + localhost:8787）以外では無効
+  app.use("*", async (c, next) => {
+    const path = new URL(c.req.url).pathname;
+    const onMcpHost = isMcpHostRequest(c.req.raw, c.env);
+    if (onMcpHost && path !== MCP_PATH) apiError(c, 404, "api.notFound");
+    if (!onMcpHost && path === MCP_PATH && isAccessRequired(c.env, c.req.raw)) {
+      apiError(c, 404, "api.notFound");
+    }
+    await next();
+  });
+
   app.use("*", accessMiddleware);
   app.use("*", csrfMiddleware);
 
@@ -62,6 +77,8 @@ export function createApp() {
   app.route("/api/projects", projectsRoutes);
   app.route("/api/projects", attachmentsRoutes);
   app.route("/api/projects", createAiRoutes());
+
+  app.all(MCP_PATH, (c) => handleMcp(c));
 
   app.all("/api/*", (c) => {
     apiError(c, 404, "api.notFound");
