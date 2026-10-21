@@ -362,6 +362,7 @@ Cloudflare Access の **Managed OAuth** を使い、MCP クライアントのロ
 - MCP 専用ホストでは `/api` などの Worker のルートは `/mcp` 以外を返さない（画面の静的ファイルは Access を通った利用者には返るが、データは含まない）
 - Worker は MCP 専用ホストへのリクエストを MCP 用 Application の AUD（`MCP_ACCESS_AUD`）だけで、画面用ホストは `ACCESS_AUD` だけで検証する（トークンの使い回しを防ぐ）
 - `/mcp` は Host / Origin を MCP 専用ホストに限定する（DNS rebinding・ブラウザからの越境呼び出し対策）
+- プロトコルは MCP 2026-07-28（stateless。`initialize` なし、`server/discover`）を基本とし、2025-11-25 以前の `initialize` で始まるクライアントにも応答する（SDK の既定）。Claude Code は 2026-07-28 で接続する
 
 ### 6.3 手順
 
@@ -407,6 +408,8 @@ Cloudflare Access の **Managed OAuth** を使い、MCP クライアントのロ
    curl -s -D - -o /dev/null -X POST https://qarows-mcp.example.com/mcp   # 401 と WWW-Authenticate
    curl -s https://qarows-mcp.example.com/.well-known/oauth-authorization-server   # Access の OAuth メタデータ（JSON）
    ```
+
+   認証後に手で叩く場合、2026-07-28 では `MCP-Protocol-Version: 2026-07-28` と `Mcp-Method`（ツール呼び出しは `Mcp-Name` も）ヘッダー、`params._meta` の `io.modelcontextprotocol/protocolVersion` が必要（欠けると -32020）
 
 ### 6.4 接続
 
@@ -474,3 +477,4 @@ Browser
 | 2026-07-12 | README / deployment.md から手順の正本として明示 |
 | 2026-10-15 | Wrangler から cf CLI（`cloudflare.config.ts`）へ移行。Access Application も cf で作成 |
 | 2026-10-19 | MCP サーバー（専用ホスト + Managed OAuth）を追加 |
+| 2026-10-21 | MCP のプロトコル（2026-07-28 / 旧版への応答）と専用ホストにした理由を追記 |
