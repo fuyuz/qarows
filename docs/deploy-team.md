@@ -357,6 +357,8 @@ Claude Code や claude.ai などの AI から、Team 版のデータを MCP で�
 
 Cloudflare Access の **Managed OAuth** を使い、MCP クライアントのログインを Access に任せる。Managed OAuth は Access Application 全体の設定（ブラウザ以外の未認証アクセスが 302 ではなく 401 + `WWW-Authenticate` になる）なので、**MCP 専用のホスト名と Access Application を別に作る**。画面用ホストの設定は変えない。
 
+画面用 Application で Managed OAuth を有効にすると、MCP クライアントのトークンが画面と同じ AUD の JWT になり、`/api` を直接叩いてプロジェクトの削除などもできてしまう（Worker からはブラウザのログインと見分けられない）。同じホストに `/mcp` だけのパス限定 Application を足す方法は、Managed OAuth のドキュメントに記載がないため採らない。
+
 - MCP 専用ホストでは `/api` などの Worker のルートは `/mcp` 以外を返さない（画面の静的ファイルは Access を通った利用者には返るが、データは含まない）
 - Worker は MCP 専用ホストへのリクエストを MCP 用 Application の AUD（`MCP_ACCESS_AUD`）だけで、画面用ホストは `ACCESS_AUD` だけで検証する（トークンの使い回しを防ぐ）
 - `/mcp` は Host / Origin を MCP 専用ホストに限定する（DNS rebinding・ブラウザからの越境呼び出し対策）
