@@ -702,6 +702,14 @@ testCases:
     prerequisites: "MCP で接続済み、Team 版の画面で同じプロジェクトを開いている"
     description: "set_results / set_memo / create_bug / add_test_case などで変更すると画面に即時反映され、結果の実施者はログインしたメールアドレスになる。対象外の端末への入力や重複 ID はエラーになり、プロジェクト削除・結果の全クリア・tests.yml の置き換えに当たるツールは存在しない"
 
+  - id: TC-156
+    category:
+      major: "Team 版"
+      medium: "MCP"
+      minor: "添付"
+    prerequisites: "MCP で接続済み、スクショ（画像）と動画を添付したバグがある"
+    description: "get_bug で添付の一覧（key・名前・種類・サイズ）が返り、get_bug_attachment で画像が AI に表示される。動画と 5MB を超える画像は中身を返さず理由だけ返し、別のバグの添付 key を指定するとエラーになる"
+
   - id: TC-146
     category:
       major: "閲覧"

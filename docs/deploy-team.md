@@ -341,7 +341,7 @@ Claude Code や claude.ai などの AI から、Team 版のデータを MCP で�
 
 | 種別 | ツール |
 |---|---|
-| 参照 | `whoami` `list_projects` `get_project`（overview・端末・進捗） `list_test_cases`（分類・シナリオ・結果・端末・文字列で絞り込み） `get_test_case` `list_bugs` `get_bug` |
+| 参照 | `whoami` `list_projects` `get_project`（overview・端末・進捗） `list_test_cases`（分類・シナリオ・結果・端末・文字列で絞り込み） `get_test_case` `list_bugs` `get_bug`（添付の一覧） `get_bug_attachment`（添付画像を返す。5MB 以下の画像のみ。動画は画面で見る） |
 | 結果・メモ | `set_results`（OK / NG / SKIP、対象端末のみ） `clear_result`（1 セルを未実施に戻す） `set_memo` |
 | バグ | `create_bug` `update_bug`（バグの削除はない） |
 | テスト定義 | `add_test_case` `update_test_case`（ID は変更不可） `delete_test_case` `add_environment` `rename_environment` `delete_environment` `set_overview` |
@@ -478,3 +478,4 @@ Browser
 | 2026-10-15 | Wrangler から cf CLI（`cloudflare.config.ts`）へ移行。Access Application も cf で作成 |
 | 2026-10-19 | MCP サーバー（専用ホスト + Managed OAuth）を追加 |
 | 2026-10-21 | MCP のプロトコル（2026-07-28 / 旧版への応答）と専用ホストにした理由を追記 |
+| 2026-10-21 | MCP にバグ添付画像の閲覧（`get_bug_attachment`）を追加 |

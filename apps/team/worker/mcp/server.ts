@@ -1,9 +1,12 @@
+import { Buffer } from "node:buffer";
 import { McpServer } from "@modelcontextprotocol/server";
 import type { ProjectCommand } from "@qarows/application";
 import {
   BUG_STATUS_DISPLAY_ORDER,
   PROJECT_ID_PATTERN,
   isBugClosed,
+  isImageAttachment,
+  isValidAttachmentKey,
   isResultEntryValid,
   nextBugId,
   resolveTestTargets,
@@ -15,6 +18,7 @@ import {
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import type { AuthUser } from "../auth";
+import { getAttachment } from "../attachments";
 import { getProject, listProjects, type ProjectSnapshot } from "../db";
 import type { Env } from "../env";
 import { saveCheckpointAndReplaceDefinition } from "../replace-definition";
@@ -87,8 +91,12 @@ function errorResult(message: string) {
 
 /** AI に返すべき入力エラーはツールのエラー結果に、それ以外は例外のまま上げる */
 async function run(handler: () => Promise<unknown>) {
+  return runWith(async () => jsonResult(await handler()));
+}
+
+async function runWith<T>(handler: () => Promise<T>) {
   try {
-    return jsonResult(await handler());
+    return await handler();
   } catch (err) {
     if (err instanceof ToolInputError || err instanceof DefinitionEditError) {
       return errorResult(err.message);
@@ -172,6 +180,26 @@ function bugView(bug: Bug) {
   const { attachments, ...rest } = bug;
   return { ...rest, attachmentCount: attachments?.length ?? 0 };
 }
+
+/** 添付の中身は get_bug_attachment で取る。ここではメタデータだけ */
+function bugDetailView(bug: Bug) {
+  return {
+    ...bugView(bug),
+    attachments: (bug.attachments ?? []).map(({ key, name, size, mimeType, uploadedAt }) => ({
+      key,
+      name,
+      size,
+      mimeType,
+      ...(uploadedAt ? { uploadedAt } : {}),
+    })),
+  };
+}
+
+/**
+ * MCP で画像として返す上限。Claude などのクライアントが受け取れる画像サイズに合わせる
+ * （添付自体は最大 90MB まで保存できる）
+ */
+const MCP_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /** 1 リクエストごとに作る MCP サーバー。ツールは許可した操作だけを固定で登録する */
 export function createQarowsMcpServer({ env, user }: McpToolContext): McpServer {
@@ -370,7 +398,7 @@ export function createQarowsMcpServer({ env, user }: McpToolContext): McpServer 
     "get_bug",
     {
       title: "Get bug",
-      description: "One bug with all its fields.",
+      description: "One bug with all its fields and attachment metadata (view images with get_bug_attachment).",
       inputSchema: z.object({ projectId: projectIdSchema, bugId: z.string() }),
       annotations: { readOnlyHint: true },
     },
@@ -379,7 +407,60 @@ export function createQarowsMcpServer({ env, user }: McpToolContext): McpServer 
         const snapshot = await loadProject(env, projectId);
         const bug = snapshot.results.bugs.find((b) => b.id === bugId);
         if (!bug) throw new ToolInputError(`Unknown bug id: ${bugId}`);
-        return bugView(bug);
+        return bugDetailView(bug);
+      }),
+  );
+
+  server.registerTool(
+    "get_bug_attachment",
+    {
+      title: "View bug attachment",
+      description:
+        "Return an image attached to a bug (screenshot) so you can look at it. Videos and images over 5 MB are not returned; open them in the qarows UI.",
+      inputSchema: z.object({
+        projectId: projectIdSchema,
+        bugId: z.string(),
+        attachmentKey: z.string().describe("Attachment key from get_bug"),
+      }),
+      annotations: { readOnlyHint: true },
+    },
+    async ({ projectId, bugId, attachmentKey }) =>
+      runWith(async () => {
+        const snapshot = await loadProject(env, projectId);
+        const bug = snapshot.results.bugs.find((b) => b.id === bugId);
+        if (!bug) throw new ToolInputError(`Unknown bug id: ${bugId}`);
+        const key = attachmentKey.toLowerCase();
+        // バグに紐づいた添付だけを読む。R2 キーに使う前に形式も検証する
+        const attachment = bug.attachments?.find((a) => a.key === key);
+        if (!attachment || !isValidAttachmentKey(key)) {
+          throw new ToolInputError(`Attachment ${attachmentKey} is not attached to ${bugId}`);
+        }
+        const bucket = env.ATTACHMENTS;
+        if (!bucket) throw new ToolInputError("Attachments are not enabled on this instance");
+
+        // HEAD と GET に分けると間で差し替えられうるため、1 回の GET で得た実体のサイズと種類で判定する
+        const object = await getAttachment(bucket, projectId, key);
+        if (!object) throw new ToolInputError(`Attachment ${attachmentKey} was not found in storage`);
+        // 種類はアップロード時にマジックナンバーで検証済みの保存値を使う（バグ側のメタデータは信用しない）
+        const mimeType = object.httpMetadata?.contentType ?? "";
+        const meta = { key, name: attachment.name, mimeType, size: object.size };
+        if (!isImageAttachment(mimeType) || object.size > MCP_MAX_IMAGE_BYTES) {
+          await object.body.cancel();
+          return jsonResult({
+            ...meta,
+            returned: false,
+            reason: isImageAttachment(mimeType)
+              ? `Image is larger than ${MCP_MAX_IMAGE_BYTES} bytes`
+              : "Only images can be returned over MCP",
+          });
+        }
+        const data = Buffer.from(await object.arrayBuffer()).toString("base64");
+        return {
+          content: [
+            { type: "text" as const, text: JSON.stringify(meta) },
+            { type: "image" as const, data, mimeType },
+          ],
+        };
       }),
   );
 
